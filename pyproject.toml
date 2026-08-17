@@ -1,0 +1,10 @@
+[project]
+name = "comfyui-DirectorMaster"
+version = "14.3.0"
+description = "ComfyUI 导演级提示词聚合节点系统 — V14.3-MERGED: 13 个 DirectorMaster 超级节点 (V14.2审计基线+V14.1-clean合并+阶段1/2深化), 534 导演数据库驱动"
+authors = [{name = "DirectorMaster"}]
+requires-python = ">=3.8"
+
+[tool.comfyui]
+nodes = 13
+director_database = 534

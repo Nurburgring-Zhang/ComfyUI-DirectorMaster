@@ -1,0 +1,279 @@
+{
+  "last_node_id": 4,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "DirectorMasterCore",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        320,
+        260
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "title": "🎬 Core",
+      "properties": {
+        "Node name for S&R": "DirectorMasterCore"
+      },
+      "widgets_values": [
+        "标准",
+        "电影",
+        "[电影] 王家卫",
+        "",
+        "父女厨房雨夜",
+        "孤独",
+        "心酸",
+        true
+      ],
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "统一电影提示词",
+          "type": "STRING",
+          "links": [],
+          "label": "统一电影提示词"
+        },
+        {
+          "name": "核心数据包",
+          "type": "STRING",
+          "links": [
+            1,
+            2,
+            3
+          ],
+          "label": "核心数据包"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "DirectorMasterScript",
+      "pos": [
+        400,
+        0
+      ],
+      "size": [
+        320,
+        260
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "title": "📖 Script",
+      "properties": {
+        "Node name for S&R": "DirectorMasterScript"
+      },
+      "widgets_values": [
+        "完整剧本",
+        "父女厨房雨夜",
+        "王家卫",
+        true
+      ],
+      "inputs": [
+        {
+          "name": "核心数据包",
+          "type": "STRING",
+          "link": 1,
+          "label": "核心数据包"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "剧本",
+          "type": "STRING",
+          "links": [
+            4
+          ],
+          "label": "剧本"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "DirectorMasterCinematic",
+      "pos": [
+        400,
+        300
+      ],
+      "size": [
+        320,
+        260
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "title": "🎬 Cinematic",
+      "properties": {
+        "Node name for S&R": "DirectorMasterCinematic"
+      },
+      "widgets_values": [
+        "电影工作室",
+        "父女厨房雨夜",
+        "王家卫",
+        true
+      ],
+      "inputs": [
+        {
+          "name": "核心数据包",
+          "type": "STRING",
+          "link": 2,
+          "label": "核心数据包"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "分镜",
+          "type": "STRING",
+          "links": [
+            5
+          ],
+          "label": "分镜"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "DirectorMasterFinal",
+      "pos": [
+        800,
+        0
+      ],
+      "size": [
+        320,
+        260
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "title": "🏆 Final",
+      "properties": {
+        "Node name for S&R": "DirectorMasterFinal"
+      },
+      "widgets_values": [
+        "父女厨房"
+      ],
+      "inputs": [
+        {
+          "name": "核心数据包",
+          "type": "STRING",
+          "link": 3,
+          "label": "核心数据包"
+        },
+        {
+          "name": "剧本输出",
+          "type": "STRING",
+          "link": 4,
+          "label": "剧本输出"
+        },
+        {
+          "name": "创意输出",
+          "type": "STRING",
+          "link": null,
+          "label": "创意输出"
+        },
+        {
+          "name": "美术输出",
+          "type": "STRING",
+          "link": null,
+          "label": "美术输出"
+        },
+        {
+          "name": "声音输出",
+          "type": "STRING",
+          "link": null,
+          "label": "声音输出"
+        },
+        {
+          "name": "分镜输出",
+          "type": "STRING",
+          "link": 5,
+          "label": "分镜输出"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "剧本",
+          "type": "STRING",
+          "links": [],
+          "label": "剧本"
+        },
+        {
+          "name": "分镜脚本",
+          "type": "STRING",
+          "links": [],
+          "label": "分镜脚本"
+        },
+        {
+          "name": "完整制作手册",
+          "type": "STRING",
+          "links": [],
+          "label": "完整制作手册"
+        },
+        {
+          "name": "JSON结构化数据",
+          "type": "STRING",
+          "links": [],
+          "label": "JSON结构化数据"
+        }
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      1,
+      2,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      1,
+      1,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      3,
+      1,
+      1,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      4,
+      2,
+      0,
+      4,
+      1,
+      "STRING"
+    ],
+    [
+      5,
+      3,
+      0,
+      4,
+      5,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflow_info": {
+      "name": "MINIMAL_PIPELINE_V8.2",
+      "description": "Core→Script+Cinematic→Final 极简剧本+分镜管线",
+      "total_nodes": 4,
+      "total_links": 5
+    }
+  },
+  "version": 0.4
+}

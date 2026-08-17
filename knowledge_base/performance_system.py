@@ -1,0 +1,1020 @@
+# ============================================================
+# 角色表演系统 — 微表情、肢体动作、情感表达
+# 来源：Paul Ekman FACS系统 + Laban动作分析 + 斯坦尼斯拉夫斯基体系
+# ============================================================
+
+PERFORMANCE_SYSTEM = {
+    "micro_expressions": {
+        "happiness": {
+            "cn": "快乐/喜悦",
+            "facial_actions": "颧骨上提、眼角鱼尾纹出现(Duchenne smile)、嘴角上扬露齿",
+            "prompt_description": "嘴角自然上扬露出牙齿,眼角挤出细密的鱼尾纹,颧骨高高隆起,整张脸由内而外地发光",
+            "subtle_version": "嘴角微微上翘但紧闭,眼底有温暖的光,面部肌肉放松舒展",
+            "body_language": "身体微微前倾,手势打开,呼吸平缓深长",
+        },
+        "sadness": {
+            "cn": "悲伤",
+            "facial_actions": "内眉上提(AU1)、嘴角下拉(AU15)、下巴颤动、眼睑下垂",
+            "prompt_description": "眉头内侧微微上挑形成八字,嘴角不自觉向下坠,下巴轻微颤抖,眼眶泛红含着未落的泪",
+            "subtle_version": "目光下垂看向地面,面部肌肉整体松弛失去表情,嘴唇紧抿成一条线",
+            "body_language": "肩膀塌陷内收,头微低,手无意识地握紧又松开,呼吸变浅变慢",
+        },
+        "anger": {
+            "cn": "愤怒",
+            "facial_actions": "眉头紧锁下压(AU4)、上唇上提(AU10)、嘴唇紧绷变薄、瞳孔收缩",
+            "prompt_description": "双眉猛地压向眼睛形成深深的竖纹,鼻翼扩张,牙关紧咬使咬肌隆起,瞳孔缩成针尖大小",
+            "subtle_version": "下颌微微收紧,太阳穴的血管微微跳动,目光变得锐利冰冷",
+            "body_language": "身体前倾具有攻击性,双手握拳或指关节发白,颈部肌肉绷紧,呼吸急促",
+        },
+        "fear": {
+            "cn": "恐惧",
+            "facial_actions": "眉头上提内收(AU1+2)、眼睛睁大露白(AU5)、嘴唇水平拉伸(AU20)",
+            "prompt_description": "双眼猛地睁大到能看到眼白,瞳孔急剧放大,嘴唇向两侧拉开变薄,面色瞬间苍白",
+            "subtle_version": "呼吸突然停顿,瞳孔微微扩大,身体僵住不动,手指无意识抓紧身边物体",
+            "body_language": "身体后缩/僵硬,双手下意识护住要害,肩膀耸起缩脖,可能后退一步",
+        },
+        "surprise": {
+            "cn": "惊讶",
+            "facial_actions": "眉毛整体上提(AU1+2)、眼睛睁大(AU5)、下巴松弛(AU26)",
+            "prompt_description": "眉毛高高弹起,双眼圆睁,嘴巴不自觉张开形成O形,整张脸拉长",
+            "subtle_version": "眼皮微微一跳,头微微后仰,呼吸轻顿一下,嘴唇分开",
+            "body_language": "身体突然后倾,手可能抬起到胸前,整个人瞬间定格",
+        },
+        "disgust": {
+            "cn": "厌恶",
+            "facial_actions": "鼻子皱起(AU9)、上唇上提(AU10)、眉头中部下压",
+            "prompt_description": "鼻梁上方挤出横纹,上唇被鼻翼两侧的肌肉拉起露出牙龈,像闻到了腐烂的味道",
+            "subtle_version": "嘴角一侧微微下撇,鼻翼轻微翕动,目光移开不愿直视",
+            "body_language": "头微微后仰偏转,身体重心后移,手可能做出推开的姿态",
+        },
+        "contempt": {
+            "cn": "轻蔑",
+            "facial_actions": "单侧嘴角上提(AU12R或12L)、形成不对称微笑",
+            "prompt_description": "一侧嘴角微微上翘形成不对称的冷笑,下巴微抬,目光从上方斜视对方",
+            "subtle_version": "嘴角一侧几乎不可察觉地抽动了一下,眼神变得漫不经心",
+            "body_language": "下巴微微抬起,身体后靠表示不屑,可能翘起二郎腿或交叉手臂",
+        },
+        "determination": {
+            "cn": "决心/坚定",
+            "facial_actions": "下颌收紧、嘴唇抿紧、眉头微锁但目光聚焦、额头肌肉绷紧",
+            "prompt_description": "双唇紧紧抿成一条线,下颌的咬肌微微隆起,目光如炬直视前方不闪躲,额头皮肤微微绷紧",
+            "subtle_version": "深吸一口气然后缓缓呼出,目光变得坚定,身体微微挺直",
+            "body_language": "脊背挺直,双肩打开,步伐变得有力而稳定,可能握紧拳头",
+        },
+        "longing": {
+            "cn": "思念/渴望",
+            "facial_actions": "目光柔软聚焦远方、嘴唇微分、眉头轻柔上扬",
+            "prompt_description": "目光穿过眼前的空气望向远方某个看不见的点,瞳孔柔和地扩大,嘴唇微微分开像要说什么又没说出口",
+            "subtle_version": "手无意识地抚摸某个物件(信/照片/戒指),目光出神",
+            "body_language": "身体面向窗户/远方,手放在心口附近,整个人沉浸在回忆中",
+        },
+    },
+
+    "body_language": {
+        "power_poses": {
+            "dominance": "双脚与肩同宽站立,双手叉腰或背在身后,下巴微抬,目光平视或俯视",
+            "authority": "坐姿后靠,双手十指交叉置于腹前,面部表情平静到近乎冷淡",
+            "confidence": "步伐稳健匀速,手臂自然摆动幅度较大,与人交谈时保持目光接触",
+            "threat": "身体前倾侵入对方空间,手指指向对方,目光锁定不移",
+        },
+        "vulnerability_poses": {
+            "protection": "双臂交叉抱胸,身体侧转,视线避开对方",
+            "collapse": "肩膀塌陷,头低垂,双手无力垂在身侧或掩面",
+            "freeze": "整个人石化般静止,呼吸几乎停止,目光空洞",
+            "self_comfort": "双手抱住自己的手臂,或抚摸自己的颈后/手背,身体缩成更小",
+        },
+        "romantic_signals": {
+            "attraction": "身体朝向对方倾斜,瞳孔扩大,下意识整理头发/衣物,笑容增多",
+            "tension": "两人之间的距离忽近忽远,手指几乎触碰又收回,呼吸不自觉加快",
+            "intimacy": "额头相抵,手指交缠,呼吸同步,目光在对方五官之间游移",
+            "heartbreak": "伸出的手收回握紧,目光追随但脚步后退,笑容突然凝固",
+        },
+        "combat_stances": {
+            "ready": "重心微降,双脚前后分开,双手自然抬至胸前,目光锁定对手",
+            "exhausted": "呼吸粗重,汗水滴落,身体摇晃但仍保持站立,拳头颤抖但不松开",
+            "victory": "直起身体,仰头深呼吸,拳头缓缓松开,面部从紧绷到释然",
+            "defeat": "跪地或倒下,手臂无力支撑,目光涣散看向某个方向",
+        },
+    },
+
+    "laban_efforts": {
+        "punch": {
+            "cn": "击打(强+急+直)",
+            "quality": "有力量感的突发直接动作",
+            "usage": "愤怒时的挥拳、拍桌、摔门",
+            "prompt": "动作如同重锤落下——猛然、直接、带着全身的力量",
+        },
+        "slash": {
+            "cn": "劈砍(强+急+曲)",
+            "quality": "强烈的旋转或弧形急速动作",
+            "usage": "失控时甩开某物、绝望的挣扎",
+            "prompt": "动作像一道弧形闪电划过,带着无法控制的力量和方向",
+        },
+        "press": {
+            "cn": "挤压(强+缓+直)",
+            "quality": "持续施加力量的缓慢动作",
+            "usage": "坚持推门、忍耐中的握拳、缓慢爬行",
+            "prompt": "每一寸移动都在对抗巨大阻力,缓慢但从未停止,像穿过凝固的空气",
+        },
+        "wring": {
+            "cn": "扭绞(强+缓+曲)",
+            "quality": "痛苦扭曲的持续动作",
+            "usage": "内心煎熬时的坐立不安、双手绞在一起",
+            "prompt": "身体像被无形的力量拧紧,动作中带着无法排解的痛苦和纠结",
+        },
+        "dab": {
+            "cn": "轻触(轻+急+直)",
+            "quality": "精确快速的轻巧动作",
+            "usage": "快速按下按钮、机敏的闪避、轻点对方肩膀",
+            "prompt": "动作如蜻蜓点水,精准快速,接触瞬间即收",
+        },
+        "flick": {
+            "cn": "弹拨(轻+急+曲)",
+            "quality": "不经意的快速小动作",
+            "usage": "轻蔑地弹掉灰尘、不耐烦地挥手",
+            "prompt": "手指/手腕轻轻一弹,漫不经心中带着不屑或不耐",
+        },
+        "glide": {
+            "cn": "滑行(轻+缓+直)",
+            "quality": "优雅流畅的直线运动",
+            "usage": "从容地走向某处、手缓缓抚过物体表面",
+            "prompt": "动作如丝绸流过水面,每一步都从容不迫,优雅得像在无重力中",
+        },
+        "float": {
+            "cn": "漂浮(轻+缓+曲)",
+            "quality": "梦幻般的轻盈动作",
+            "usage": "仙侠飘逸、梦境中的移动、回忆中的模糊",
+            "prompt": "动作失去了重量,像气泡在水中缓缓上升,不受任何方向的束缚",
+        },
+    },
+
+    "character_interactions": {
+        "power_dynamics": {
+            "superior_to_inferior": "居高临下的目光,动作从容不急,说话时不直视对方,偶尔才瞥一眼",
+            "inferior_to_superior": "目光躲闪或从下方仰视,身体缩小,手不自觉地攥紧衣角",
+            "equals_friendly": "面对面,距离适中(一臂),目光平等交替,笑容自然",
+            "equals_hostile": "同样身高的对峙,谁也不后退,目光锁定像两把剑在空中碰撞",
+        },
+        "emotional_contagion": {
+            "comfort_giving": "一只手放在对方肩膀/手背上,身体靠近但不压迫,目光温柔等待",
+            "grief_sharing": "两人沉默坐在一起,肩膀靠着肩膀,不需要说话的陪伴",
+            "joy_spreading": "两人目光交汇笑声叠在一起,身体随笑声靠近",
+            "anger_feeding": "两人的怒火互相点燃,声音越来越大,动作越来越激烈",
+        },
+        "spatial_relationships": {
+            "intimate_zone": "0-45cm: 情侣/至亲/密友,呼吸可闻,体温可感",
+            "personal_zone": "45-120cm: 朋友/熟人,伸手可触",
+            "social_zone": "120-360cm: 正式交流距离,需要提高音量",
+            "public_zone": ">360cm: 演讲/表演/陌生人,需要放大表情和动作",
+        },
+    },
+
+    "world_interaction": {
+        "environment_reactions": {
+            "cold": "双手搓动/抱臂/缩脖/呼出白气/肩膀不自觉抖动",
+            "heat": "擦汗/领口被拉松/扇风/眯眼/步伐变慢",
+            "rain": "抬手遮头/加快脚步/寻找遮蔽处/闭眼仰头感受雨滴",
+            "wind": "头发飘动/衣角飞扬/眯眼侧脸/一只手按住裙摆或帽子",
+            "narrow_space": "侧身通过/低头弯腰/手扶墙壁/呼吸变浅",
+            "high_place": "握紧栏杆/不敢靠近边缘/目光不敢向下/腿微微发软",
+            "darkness": "瞳孔放大/步伐谨慎/手在前方摸索/听觉变得敏锐(侧耳)",
+        },
+        "object_interaction": {
+            "familiar_object": "自然地拿起使用,不看也能摸到正确位置",
+            "precious_object": "双手捧起,动作极其轻柔,呼吸都放轻",
+            "dangerous_object": "手指尖碰触,身体保持距离,随时准备缩回",
+            "discovered_object": "先是停下脚步注视,然后蹲下/弯腰靠近,手悬在上方犹豫要不要触碰",
+            "weapon": "握持时手指收紧,重心微降,目光变得专注锐利",
+        },
+    },
+
+    # ========================================================
+    # 进阶情绪微表情(扩充)
+    # ========================================================
+    "micro_expressions_advanced": {
+        # ─── 深度决策: 每个情绪 = 触发→原理→执行(面部+肢体+强度分层)→失败模式→验收→替代→交叉 ───
+        "shame": {
+            "cn": "羞耻/羞愧",
+            "trigger": "角色被当众揭穿/做了违背自我道德的事/在所爱之人前失态/失败后面对目光",
+            "rationale": "羞耻=自我价值受损。低头躲目光+面颊红+颈后缩=本能想藏起自己, 是社交动物的本能退缩。",
+            "facial_actions": "低头回避目光(AU54)、面颊泛红、嘴唇紧抿、颈部后缩",
+            "prompt_description": "头部不自觉低下躲开所有目光,双颊泛起无法掩饰的红晕,嘴唇紧抿成一条线,脖子微微后缩想把自己藏起来",
+            "subtle_version": "目光微微下闪一瞬,面颊若有若无泛红,嘴唇抿紧",
+            "body_language": "肩膀内收蜷缩,双手无意识绞在一起或藏到身后,身体侧转避开",
+            "failure_modes": ["演成单纯低头=缺红晕/抿唇层次, 须全套动作", "羞耻演过火=夸张失真, 真羞耻是压抑的", "面部泛红难表演=可用眼神回避+抿唇替代"],
+            "measurement": "观众应读出'想藏起自己'的本能退缩, 而非单纯低头",
+            "alternatives": ["guilt(愧疚:对他人做错事,目光下闪)", "despair(绝望:彻底放弃,无红晕)"],
+            "cross_refs": {"narrative_func": "失败/失态/被揭穿场景", "composition": "羞耻常配俯拍(被审视)", "close_up": "面颊红须特写可见"},
+        },
+        "pride": {
+            "cn": "骄傲/自豪",
+            "trigger": "角色达成目标/被认可/战胜/完成使命/逆袭成功",
+            "rationale": "下巴微抬+目光平视不躲=自信但不傲慢。骄傲是克制的,不是张扬, 真自豪带着庄重。",
+            "facial_actions": "下巴微抬(AU53)、嘴角克制上扬、目光平视不躲闪、眉头舒展",
+            "prompt_description": "下巴微微抬起带着克制的笑意,目光平视前方毫不躲闪,整张脸舒展却带着一种矜持的庄重",
+            "subtle_version": "嘴角一抹克制的微扬,目光定住,脊背挺直",
+            "body_language": "脊背挺直,胸口微微打开,步伐从容而沉稳,双手自然垂落或交握于前",
+            "failure_modes": ["骄傲演成傲慢=下巴抬过高+嘴角冷笑, 须克制", "骄傲无庄重=轻浮, 须脊背挺直"],
+            "measurement": "观众应读出'克制的自信与庄重', 而非傲慢",
+            "alternatives": ["serenity(更平和无成就指向)", "rage(失控版,无克制)"],
+            "cross_refs": {"narrative_func": "胜利/逆袭/打脸", "composition": "骄傲常配仰拍(权威化)", "pacing": "是爆发后的释放点情绪"},
+        },
+        "envy": {
+            "cn": "嫉妒/羡慕",
+            "trigger": "角色看到他人拥有自己想要的(物/人/地位)/不甘心",
+            "rationale": "目光黏在对方之物+嘴角单侧撇=想要却得不到的酸涩。嫉妒的微表情是'看物不看人'。",
+            "facial_actions": "嘴角单侧微撇、目光追随对方手中物、嘴唇紧抿、眉头上挑",
+            "prompt_description": "目光黏在对方拥有之物上移不开,嘴角不自觉向下一撇,嘴唇抿紧压抑着不甘,眉头悄悄上挑",
+            "subtle_version": "目光多停一秒在对方之物,嘴角一抹极轻的撇",
+            "body_language": "身体朝向对方拥有的东西而非对方,手指无意识攥紧又松开",
+            "failure_modes": ["嫉妒演成愤怒=失酸涩感, 须压抑", "目光不黏物=失'看物不看人'核心"],
+            "measurement": "观众应读出'想要却得不到的酸涩', 而非单纯生气",
+            "alternatives": ["guilt(对自己做错事)", "anger(向外指向,非酸涩)"],
+            "cross_refs": {"narrative_func": "铺垫/不甘/反派动机", "composition": "嫉妒常配角色看物的主观POV"},
+        },
+        "relief": {
+            "cn": "释然/如释重负",
+            "trigger": "危机解除/误会澄清/得知平安/重压卸下/逃出生天",
+            "rationale": "长出一口气+肩膀塌+面部松弛=累积的紧张瞬间释放。释然是'反向崩溃', 紧张卸下的瞬间。",
+            "facial_actions": "长出一口气肩膀塌下、眼皮微垂、嘴角松开上扬、面部肌肉整体松弛",
+            "prompt_description": "一口长气从胸腔深深呼出,紧绷的肩膀一下子塌下来,面部所有肌肉像融化般松弛,嘴角慢慢漾开一个释然的笑",
+            "subtle_version": "肩膀微微一沉,眼皮一垂又抬起,嘴角轻扬",
+            "body_language": "肩膀明显塌陷,身体可能后靠或前倾伏在桌上,手摸心口或额头",
+            "failure_modes": ["释然演成狂喜=失'卸重'感, 须松弛而非爆发", "无前置紧张=释然无对照, 须有蓄势"],
+            "measurement": "观众应读出'卸下重担的松弛', 须有前置紧张对照",
+            "alternatives": ["joy(更外放无卸重)", "serenity(更平静无对照)"],
+            "cross_refs": {"narrative_func": "危机解除/重逢/真相澄清", "pacing": "释然是高潮后的下沉点", "sound": "常配深呼气声+音乐渐缓"},
+        },
+        "hope": {
+            "cn": "希望/期盼",
+            "trigger": "绝境中看到一线生机/得到关键信息/被救赎的可能/新的选择",
+            "rationale": "眼底亮光+瞳孔聚焦+眉眼上抬=注意力投向'可能的美好'。希望是绝望的转折, 须有前置低谷。",
+            "facial_actions": "眼睛微亮瞳孔聚焦、嘴角轻扬、眉眼上抬、呼吸变浅变快",
+            "prompt_description": "眼底突然亮起一束光,瞳孔聚焦在某个方向,嘴角不自觉轻扬,眉眼整体上抬,呼吸变得浅而急促",
+            "subtle_version": "目光从涣散到聚焦一瞬,嘴角若有若无上扬",
+            "body_language": "身体微微前倾向着光源/对方,手无意识伸出或攥成拳抵在胸前",
+            "failure_modes": ["无前置绝望=希望无对照, 失力量", "希望演成确信=失'可能'的不确定, 须带忐忑"],
+            "measurement": "观众应读出'绝境中的一线生机', 须有前置低谷对照",
+            "alternatives": ["relief(危机已解除,非未定)", "joy(已实现,非期盼)"],
+            "cross_refs": {"narrative_func": "觉醒/重生/救赎/触发", "pacing": "希望是descent曲线的转折点", "lighting": "常配光源照入(希望之光)"},
+        },
+        "despair": {
+            "cn": "绝望",
+            "trigger": "彻底失去一切/无路可走/所爱永逝/信念崩塌后的空虚",
+            "rationale": "面部彻底松弛失表情+目光空洞=情绪系统关机。绝望不是痛苦, 是痛苦的尽头——无。",
+            "facial_actions": "面部彻底松弛失去表情、目光空洞涣散、嘴唇微张、泪痕干涸",
+            "prompt_description": "整张脸彻底垮塌失去所有表情,目光变成空洞的玻璃珠望向虚无,嘴唇微微张开却发不出声,泪痕在脸上干涸",
+            "subtle_version": "面部所有表情褪去,目光失焦,呼吸变浅近乎停止",
+            "body_language": "身体瘫软如断线,头无力垂下,双手垂在身侧一动不动,可能跪坐或瘫倒",
+            "failure_modes": ["绝望演成痛哭=失'无'的内核, 痛哭是还在挣扎, 绝望是放弃", "绝望过快转希望=失重量, 须有停留"],
+            "measurement": "观众应读出'痛苦的尽头——放弃', 而非还在挣扎",
+            "alternatives": ["sadness(还在痛,有泪)", "tender_grief(有爱的失去)"],
+            "cross_refs": {"narrative_func": "沉沦/低谷/死亡", "pacing": "descent曲线最低点", "composition": "常配俯拍+负空间渺小化", "sound": "常配静默或低频嗡鸣"},
+        },
+        "suspicion": {
+            "cn": "怀疑/警惕",
+            "trigger": "察觉不对劲/对方的言行矛盾/进入陌生环境/信息不可信",
+            "rationale": "单眉上挑+眼缝收窄=审视模式开启。怀疑是'不完全相信, 在掂量', 须留而不发。",
+            "facial_actions": "单眉上挑(AU1+4)、眼缝收窄(AU4)、嘴唇紧抿、头微侧",
+            "prompt_description": "一侧眉毛高高挑起,双眼眯成一条缝审视对方,嘴唇紧抿压下,头微微侧向一边像在掂量话的真假",
+            "subtle_version": "眼缝微微一收,头微侧,目光多停一秒",
+            "body_language": "身体后靠保持距离,双臂可能交叉,下巴微收护住咽喉",
+            "failure_modes": ["怀疑演成愤怒=失掂量感, 须不发", "怀疑无对象=空泛, 须有具体的'不对劲'"],
+            "measurement": "观众应读出'在掂量真假,未下结论', 而非已判定",
+            "alternatives": ["guilt(对自己做错事)", "anger(已判定且指向攻击)"],
+            "cross_refs": {"narrative_func": "铺垫/伏笔/悬念/识破前奏", "genre": "悬疑标配", "composition": "怀疑常配长焦偷拍感"},
+        },
+        "guilt": {
+            "cn": "愧疚",
+            "trigger": "对他人做了错事/隐瞒真相/背叛信任/被揭穿前的挣扎",
+            "rationale": "目光下闪+抿唇+喉结滚动=不敢直视+压抑+紧张。愧疚是对他人的亏欠, 本能回避对方目光。",
+            "facial_actions": "目光下闪避开(AU52)、抿唇、面部僵硬、吞咽动作",
+            "prompt_description": "目光一接触到对方就闪开向下,嘴唇紧抿,整张脸僵住一瞬,喉结滚动咽下一口干涩,表情带着隐藏不住的不安",
+            "subtle_version": "目光一触对方即下闪,嘴唇抿紧一瞬",
+            "body_language": "手无意识搓动或藏到身后,身体微缩,脚尖朝向出口(潜意识想逃离)",
+            "failure_modes": ["愧疚演成羞耻=混淆, 羞耻是自我价值, 愧疚是对他人", "愧疚无对象=空泛, 须有被亏欠者在场(或想象中)"],
+            "measurement": "观众应读出'对他人亏欠的不敢直视', 须有对象",
+            "alternatives": ["shame(自我价值受损,非对他人)", "suspicion(对外怀疑,非对己亏欠)"],
+            "cross_refs": {"narrative_func": "暗线/背叛/暴露前奏", "composition": "愧疚常配角色低位/俯拍", "performance": "脚尖朝出口=潜意识逃离是关键细节"},
+        },
+        "nostalgia": {
+            "cn": "怀念/怀旧",
+            "trigger": "回忆逝去的时光/想起故人/看到旧物/余韵收束",
+            "rationale": "目光失焦远方+嘴角浅笑+眼眶湿=沉浸在美好记忆中。怀念是'痛并快乐', 失去的温暖。",
+            "facial_actions": "目光柔软失焦远方、嘴角浅笑、眉眼带湿意、呼吸放缓",
+            "prompt_description": "目光穿过眼前的空气望向某个不存在的远方,嘴角浮起一抹浅笑,眼眶悄悄泛起湿意,呼吸缓缓放慢",
+            "subtle_version": "目光微微失焦,嘴角一抹极浅的弧,呼吸放缓",
+            "body_language": "手无意识抚摸某个旧物,身体面向窗外/远方,微微前倾沉浸",
+            "failure_modes": ["怀念演成悲伤=失温暖的'痛并快乐', 须有浅笑", "无旧物/远方锚点=空泛, 须有触发物"],
+            "measurement": "观众应读出'温暖的失去', 而非单纯悲伤",
+            "alternatives": ["tender_grief(更近失去,泪在落)", "despair(已无温度)"],
+            "cross_refs": {"narrative_func": "余韵/收束/结尾", "pacing": "结尾余韵标配", "composition": "常配窗外光/旧物特写", "sound": "常配渐弱音乐/留白"},
+        },
+        "awe": {
+            "cn": "敬畏/震撼",
+            "trigger": "面对超越理解的宏大/神圣/奇观/极致技艺/自然伟力",
+            "rationale": "嘴张+眉挑+眼圆睁+呼吸屏=被震慑到失语。敬畏是'小我面对大他'的瞬间, 须有尺度对比。",
+            "facial_actions": "嘴微张、眉毛上挑、双眼圆睁、呼吸屏住",
+            "prompt_description": "嘴巴不自觉张开,眉毛高高一挑,双眼瞪得溜圆,呼吸在这一刻屏住,整张脸写满被震慑的失语",
+            "subtle_version": "眉毛微微一挑,嘴唇分开,呼吸顿一拍",
+            "body_language": "身体后仰微微抬头,手可能无意识抬起半遮或抵在胸口,浑身凝固",
+            "failure_modes": ["敬畏无尺度对比=失'小我vs大他', 须有参照物", "敬畏演成恐惧=失崇高感, 须带美"],
+            "measurement": "观众应读出'被震慑的失语', 须有尺度对比+崇高感",
+            "alternatives": ["shock(更惊吓无崇高)", "hope(更主动期盼)"],
+            "cross_refs": {"narrative_func": "奇观/史诗/顿悟", "composition": "敬畏常配极远景渺小+巨大物", "genre": "史诗/神话/科幻标配"},
+        },
+        "anxiety": {
+            "cn": "焦虑/不安",
+            "trigger": "等待未知结果/预感不好/时限逼近/内心冲突无法决断",
+            "rationale": "频繁吞咽+目光游移+小动作=紧张能量无处释放。焦虑是'未发生的恐惧', 持续低强度。",
+            "facial_actions": "频繁吞咽、目光游移、嘴唇微动、眉间紧蹙",
+            "prompt_description": "喉结不停滚动咽口水,目光四处游移落不下来,嘴唇无意识地开合,眉心深深蹙起一团",
+            "subtle_version": "喉结微动,目光不定,手指轻叩",
+            "body_language": "坐立不安,手指抠桌/搓手/抖腿,身体小动作不断",
+            "failure_modes": ["焦虑演成恐惧=失'未发生'感, 须持续低强度", "焦虑无释放=拖沓, 须有蓄势到爆发的转折"],
+            "measurement": "观众应读出'未发生的紧张能量', 须持续低强度蓄积",
+            "alternatives": ["panic(已发生且失控)", "suspicion(对外,非对未发生)"],
+            "cross_refs": {"narrative_func": "蓄势/铺垫/悬崖/时限", "pacing": "焦虑是蓄势段情绪", "sound": "常配心跳/低频渐强"},
+        },
+        "panic": {
+            "cn": "惊慌",
+            "trigger": "突发危险/逃命/来不及思考的瞬间恐惧/失控的混乱",
+            "rationale": "瞳孔骤缩骤放+唇颤+血褪+汗=应激反应全开。惊慌是恐惧的爆发版, 失去理性。",
+            "facial_actions": "瞳孔骤缩又骤放、嘴唇颤抖、面色苍白、汗珠渗出",
+            "prompt_description": "瞳孔猛地一缩又骤然放大,嘴唇控制不住地颤抖,血色瞬间从脸上褪尽泛出苍白,额角渗出细密汗珠",
+            "subtle_version": "瞳孔一放,嘴唇一颤,呼吸急促",
+            "body_language": "身体僵住一秒然后猛地后退,双手乱抓或护住要害,步伐凌乱",
+            "failure_modes": ["惊慌演成恐惧=失'失控'感, 须混乱", "惊慌过长=观众出戏, 须快切到行动"],
+            "measurement": "观众应读出'失控的瞬间恐惧', 须快切不可停留",
+            "alternatives": ["fear(更可控的恐惧)", "anxiety(未发生的紧张)"],
+            "cross_refs": {"narrative_func": "突发危险/追逐/逃生", "pacing": "惊慌是快切点,不可长留", "camera": "常配手持晃动"},
+        },
+        "serenity": {
+            "cn": "宁静/安然",
+            "trigger": "达成内心平和/接受命运/禅定时刻/日常的美好",
+            "rationale": "面部彻底松弛+嘴角自然弧+呼吸绵长=无张力无冲突。宁静是情绪归零, 须经历后才达。",
+            "facial_actions": "面部肌肉彻底放松、嘴角自然平直略弯、眼神柔和定、呼吸绵长",
+            "prompt_description": "整张脸所有肌肉彻底松弛舒展,嘴角维持一道自然的浅弧,眼神柔和而安定,呼吸绵长深透",
+            "subtle_version": "面部松弛,嘴角自然弧,呼吸放缓",
+            "body_language": "身体端正而松弛,双手自然放置,姿态安住当下不动如山",
+            "failure_modes": ["宁静无经历=空洞, 须有前置冲突才显分量", "宁静演成疲惫=失'主动平和', 须脊背端正"],
+            "measurement": "观众应读出'经历后的内心平和', 须有前置对照",
+            "alternatives": ["relief(刚卸重,非已平)", "nostalgia(更指向过去)"],
+            "cross_refs": {"narrative_func": "收束/结尾/重生", "pacing": "结尾余韵情绪", "composition": "常配居中/对称/留白"},
+        },
+        "tenderness": {
+            "cn": "温柔/怜爱",
+            "trigger": "看着所爱之人/对弱者的怜悯/亲子/伴侣的柔情时刻",
+            "rationale": "目光柔软聚焦+嘴角眼角起纹+头微倾=全部注意力柔软地裹住对方。温柔是'无攻击性的深情'。",
+            "facial_actions": "目光柔软聚焦对方、嘴角上扬眼角起纹、眉心舒展、头微倾",
+            "prompt_description": "目光像融化的糖般柔软地裹住对方,嘴角扬起连眼角都挤出细纹,眉心彻底舒展,头微微偏向一侧",
+            "subtle_version": "目光柔和聚焦,嘴角一抹极轻的扬,头微倾",
+            "body_language": "身体朝向对方前倾,动作都放轻放慢,手不自觉想触碰又收住",
+            "failure_modes": ["温柔演成爱情=失怜悯维度, 须可对弱者", "温柔无对象=空泛, 须有所爱者在场"],
+            "measurement": "观众应读出'无攻击性的深情', 须有对象",
+            "alternatives": ["love(更双向心动)", "relief(更卸重)"],
+            "cross_refs": {"narrative_func": "甜宠/亲情/怜悯", "genre": "言情/家庭标配", "composition": "温柔常配双人景/浅景深"},
+        },
+        "vengeful_calm": {
+            "cn": "复仇前的平静",
+            "trigger": "已下定决心复仇/暴风雨前的宁静/决战前的最后冷静",
+            "rationale": "面部彻底松弛+目光清澈冷+呼吸深长=情绪已锁死, 能量内化。平静是危险的, 因为已无犹豫。",
+            "facial_actions": "面部肌肉彻底放松、目光清澈而冷、呼吸深长、嘴角平直",
+            "prompt_description": "整张脸所有肌肉彻底松弛下来,目光反而变得清澈而冰冷,呼吸深长匀净,嘴角维持一条平直的线——暴风雨前最危险的宁静",
+            "subtle_version": "面部放松到近乎空无表情,但眼底有一束冷光,呼吸比平时更慢更深",
+            "body_language": "身体异常松弛却重心稳固,动作慢而精准不带一丝多余,像上膛的枪",
+            "failure_modes": ["平静演成冷漠=失'已锁死能量'感, 须有眼底冷光", "平静无前置愤怒=失对照, 须有爆发前的蓄"],
+            "measurement": "观众应读出'危险的宁静,已无犹豫', 须有前置愤怒对照",
+            "alternatives": ["rage(已爆发)", "determination(更普遍的坚定)"],
+            "cross_refs": {"narrative_func": "冷开场/决战前/复仇布局", "pacing": "爆发前的蓄势顶点", "sound": "常配静默或单一低频"},
+        },
+        "shock": {
+            "cn": "震惊/错愕",
+            "trigger": "意外信息冲击/看到不可能的事/真相突现/突发变故",
+            "rationale": "眉骤弹+眼圆睁+唇张定住=认知卡壳的瞬间。震惊是'处理中'的状态, 须快切到反应。",
+            "facial_actions": "眉毛骤弹、双眼圆睁露白、嘴唇微张定住、面部血色褪尽",
+            "prompt_description": "眉毛猛地弹起,双眼瞪到极致露出眼白,嘴唇不自觉张开却发不出声,血色瞬间从脸上褪尽,整个人像被按下暂停键",
+            "subtle_version": "眼皮猛跳一下,瞳孔骤放,嘴唇分开,呼吸骤停半拍",
+            "body_language": "身体骤然后倾定格,手可能抬到胸前悬住,脚像钉在地上",
+            "failure_modes": ["震惊过长=失瞬间感, 须快切到反应", "震惊无后续反应=半截, 须接devastating_realization或anger"],
+            "measurement": "观众应读出'认知卡壳的瞬间', 须快切到后续反应",
+            "alternatives": ["devastating_realization(更深的崩塌)", "awe(带崇高的震撼)"],
+            "cross_refs": {"narrative_func": "反转/揭示/突发", "pacing": "震惊是快切点", "sound": "常配音效骤停"},
+        },
+        "rage": {
+            "cn": "狂怒/失控",
+            "trigger": "底线被触碰/极致不公/所爱被伤害/彻底失控的爆发",
+            "rationale": "面部扭曲+血管暴+瞳孔针尖+或反常笑=理智退场, 兽性接管。狂怒是愤怒的失控版, 须慎用。",
+            "facial_actions": "面部扭曲、血管暴起、瞳孔缩成针尖、嘴角狰狞下拉或反笑",
+            "prompt_description": "面部肌肉扭曲到极致,太阳穴的血管根根暴起,瞳孔缩成针尖大小,嘴角或是狰狞下拉或是反常地咧开一个可怕的笑,整个人在失控边缘",
+            "subtle_version": "太阳穴血管一跳,瞳孔一缩,嘴角抽搐",
+            "body_language": "身体前倾成攻击姿态,拳头攥到指节发白,呼吸粗如兽,或反常地极度静止",
+            "failure_modes": ["狂怒滥用=廉价, 须是全片1-2次的爆发顶点", "狂怒无前置愤怒=失渐进, 须有蓄势", "狂怒演成大喊大叫=失'失控'的内压, 也可极度安静"],
+            "measurement": "观众应读出'理智退场的失控', 须是全片爆发顶点, 不可多用",
+            "alternatives": ["anger(可控的愤怒)", "tender_anger(对所爱的愤怒)"],
+            "cross_refs": {"narrative_func": "高潮/决战/极致爆发", "pacing": "狂怒是强度0.95+顶点", "camera": "常配手持晃动+急推"},
+        },
+        "tender_anger": {
+            "cn": "温柔的愤怒",
+            "trigger": "对所爱之人的失望/恨其不争/被辜负后的复杂愤怒",
+            "rationale": "愤怒的声音+颤抖想触碰的手+转身背影=想骂又想抱, 想走又舍不得。是愤怒与爱的撕扯。",
+            "facial_actions": "愤怒的声音却手在颤抖想触碰、最后转身背影",
+            "prompt_description": "眉眼压着怒火,嘴唇因咬牙而紧抿,可伸出的手却微微颤抖像想触碰对方,最终缓缓收回,转身时背影绷得笔直——对所爱之人的失望与恨其不争",
+            "subtle_version": "眉头一压,手抬半途又收,转身迟疑一秒",
+            "body_language": "正面愤怒→侧面犹豫→背影离开,手在触碰与收回间徘徊,最后转身",
+            "failure_modes": ["演成单纯愤怒=失爱的撕扯, 须有想触碰的犹豫", "无转身=失背影的决裂感"],
+            "measurement": "观众应读出'愤怒与爱的撕扯', 须有想触碰又收回的犹豫",
+            "alternatives": ["anger(无爱)", "tender_grief(更被动失去)"],
+            "cross_refs": {"narrative_func": "背叛暴露/失望/虐点", "genre": "言情/家庭标配", "composition": "正面→侧面→背影三段式"},
+        },
+        "tender_grief": {
+            "cn": "温柔的悲伤",
+            "trigger": "带着爱的失去/逝者已矣但有美好回忆/为所爱牺牲后的余韵",
+            "rationale": "浅笑+泪+抚遗物+目光温柔=痛里有暖。不是绝望的'无', 是带着爱的失去。",
+            "facial_actions": "微笑着落泪、手轻抚遗物、目光温柔而非空洞",
+            "prompt_description": "嘴角竟还挂着一抹浅笑,泪却无声地滚落,手轻抚逝者遗物,目光温柔而非空洞——带着爱的失去,痛里有暖",
+            "subtle_version": "嘴角一抹浅弧,眼眶含泪不落,手轻抚某物",
+            "body_language": "双手捧起遗物贴在心口,身体微微前倾,不嚎啕却颤抖",
+            "failure_modes": ["演成痛哭=失'有暖'的内核, 须有浅笑", "无遗物/锚点=空泛, 须有触发物"],
+            "measurement": "观众应读出'带着爱的失去', 须有浅笑对照泪",
+            "alternatives": ["despair(无温度)", "nostalgia(更远更淡)"],
+            "cross_refs": {"narrative_func": "牺牲/余韵/代价/结尾", "pacing": "结尾余韵核心情绪", "sound": "常配渐弱音乐+留白"},
+        },
+        "devastating_realization": {
+            "cn": "毁灭性领悟",
+            "trigger": "意识到改变一切的事实/真相揭穿/认知崩塌的瞬间",
+            "rationale": "动作骤停+瞳孔骤放+血褪+嘴角抽搐=大脑处理不过来。是shock的深化版, 带崩塌感。",
+            "facial_actions": "动作骤停、瞳孔骤放、血色褪尽、嘴角抽动一下无法承受",
+            "prompt_description": "所有动作骤然停住,瞳孔猛地放大,血色从脸上褪尽泛出苍白,然后缓慢地——嘴角控制不住地抽动了一下,那是认知崩塌的瞬间无法承受",
+            "subtle_version": "动作顿一拍,瞳孔一放,嘴角一抽",
+            "body_language": "身体僵在原地,手中的东西可能滑落,腿一软但强撑,呼吸断了一拍",
+            "failure_modes": ["演成shock=失'崩塌'深度, 须有嘴角抽搐", "无前置铺垫=失重量, 须有伏笔累积", "领悟过长=失瞬间感, 须快切到后续"],
+            "measurement": "观众应读出'认知崩塌的瞬间', 须有伏笔累积+嘴角抽搐细节",
+            "alternatives": ["shock(更浅的惊吓)", "despair(已崩塌后的无)"],
+            "cross_refs": {"narrative_func": "识破/揭示/中点反转", "pacing": "是反转点的核心情绪", "camera": "常配vertigo shot或急推"},
+        },
+        "schadenfreude": {
+            "cn": "幸灾乐祸",
+            "trigger": "看到对手/讨厌的人倒霉/反派得逞时的隐秘快意",
+            "rationale": "强压笑意+侧面偷瞄+身体后仰放松=快意但不能露。是道德掩饰下的隐秘快感。",
+            "facial_actions": "嘴角强压的笑意、目光从侧面偷瞄、身体微微后仰的放松",
+            "prompt_description": "嘴角被强压下一抹藏不住的笑意,目光从侧面偷瞄对方的窘境,身体微微后仰带着一种隐秘的放松与快意",
+            "subtle_version": "嘴角一抽压下,目光斜瞄一秒,身体微后靠",
+            "body_language": "嘴角抽动压制笑,手指轻叩或交叉,身体后靠放松",
+            "failure_modes": ["演成大笑=失'道德掩饰', 须压抑", "无对象倒霉=空泛, 须有对手窘境在场"],
+            "measurement": "观众应读出'隐秘的快意+道德掩饰', 须有对手窘境在场",
+            "alternatives": ["pride(对自己成就)", "rage(向外攻击)"],
+            "cross_refs": {"narrative_func": "中点/反派得意/对手倒霉", "composition": "常配偷瞄POV+对手窘境对照"},
+        },
+    },
+
+    # ========================================================
+    # 角色原型与表演基调
+    # ========================================================
+    "character_archetypes": {
+        "hero_classic": {
+            "cn": "经典英雄",
+            "posture": "脊背挺直,步伐稳健,目光平视不躲闪,手势打开有力",
+            "voice_tempo": "语速中等偏慢,沉稳有分量",
+            "micro_default": "眉眼舒展带着克制的自信,危机时眉峰一收",
+            "reference": "《角斗士》Maximus、《教父》Michael后期",
+        },
+        "trickster": {
+            "cn": "智囊/浪子",
+            "posture": "身体放松慵懒,重心常偏一脚,手势多而快",
+            "voice_tempo": "语速偏快,带着玩味的抑扬",
+            "micro_default": "嘴角常挂一丝似笑非笑,眼神灵动游移",
+            "reference": "《加勒比海盗》Jack、《低俗小说》Vincent",
+        },
+        "mentor": {
+            "cn": "导师/长者",
+            "posture": "身形微伛但脊背仍直,动作缓慢有仪式感",
+            "voice_tempo": "语速慢,每字有分量,常有停顿",
+            "micro_default": "眉眼带着岁月的慈和,嘴角平直略弯",
+            "reference": "《星球大战》Yoda、《指环王》甘道夫",
+        },
+        "tragic_figure": {
+            "cn": "悲剧人物",
+            "posture": "肩膀微沉,头常略低,手势迟滞",
+            "voice_tempo": "语速时快时慢,情绪化断裂",
+            "micro_default": "眉间常锁一抹化不开的郁,眼底有湿意",
+            "reference": "《霸王别姬》程蝶衣、《出租车司机》Travis",
+        },
+        "femme_fatale": {
+            "cn": "蛇蝎美人",
+            "posture": "姿态慵懒却控制,动作慢而有目的,下巴微抬",
+            "voice_tempo": "语速慢而低沉,带着磁性",
+            "micro_default": "单侧嘴角上扬,眼神斜睨有钩",
+            "reference": "《唐人街》Evelyn、《银翼杀手》Rachael",
+        },
+        "innocent": {
+            "cn": "纯真者",
+            "posture": "身姿开放不设防,动作直接无修饰",
+            "voice_tempo": "语速自然,语调上扬",
+            "micro_default": "眉眼完全舒展,嘴角自然弯,目光清亮",
+            "reference": "《天使爱美丽》Amélie、《千与千寻》千寻",
+        },
+        "antagonist_cold": {
+            "cn": "冷酷反派",
+            "posture": "姿态对称精准,动作极省,绝不慌乱",
+            "voice_tempo": "语速平稳,音量恒定,不带起伏",
+            "micro_default": "面部肌肉控制到极致,只在关键时刻一闪而过的笑",
+            "reference": "《沉默的羔羊》Hannibal、《老无所依》Chigurh",
+        },
+    },
+
+    # ========================================================
+    # 运动姿态与肢体句法(扩展Laban)
+    # ========================================================
+    "movement_phrases": {
+        "approach": "重心前移,步伐由远及近,眼神锁定,身体朝向目标——靠近=关系建立或威胁",
+        "retreat": "重心后移,脚步后撤,身体侧转或缩小——远离=拒绝/恐惧/疏离",
+        "collapse_down": "膝盖弯曲身体下沉,重心骤降,手撑地或掩面——坠落=崩溃/屈服/绝望",
+        "rise_up": "从蜷缩/跪/坐中挺直脊背,重心上提,胸口打开——升起=觉醒/重生/夺权",
+        "turn_away": "身体从面向转为背向,头先转肩跟上——转身=决裂/隐藏情绪/离开",
+        "reach_out": "手伸出又停住,指尖朝向对方/物,身体前倾——伸手=渴望/挽留/试探",
+        "withdraw_hand": "伸出的手骤然收回攥紧,身体同步后缩——收手=被拒/克制/伤",
+        "embrace": "双臂打开环绕,身体贴拢,呼吸同步——拥抱=接纳/和解/归属",
+        "strike": "重心骤沉蓄力,手臂鞭打式弹出,核心发力——击打=愤怒/决断/暴力",
+        "freeze": "全身骤停,呼吸几近停止,目光定住——凝固=惊恐/警觉/石化",
+    },
+
+    # ========================================================
+    # 群体表演调度
+    # ========================================================
+    "group_choreography": {
+        "crowd_reaction": {
+            "principle": "群戏中每个背景角色都有自己的反应,不能整齐划一地'震惊'",
+            "technique": "分层反应:前景主要角色完整表演,中景配角2-3种不同反应,远景群体模糊一致",
+        },
+        "power_geometry": {
+            "principle": "角色的站位几何即权力关系",
+            "examples": [
+                "三角形站位:顶点者为权力核心,底边两人为从属/对峙",
+                "圆形环绕:被围者为被审判/被保护的中心",
+                "直线对立:两人正面对峙,无第三人调和",
+                "高低分层:高位者俯视,低位者仰视,垂直即阶级",
+            ],
+        },
+        "synchronized_motion": {
+            "principle": "群体的同步动作=集体意志/仪式感/压迫感",
+            "examples": ["军事化队列", "宗教仪式", "邪教集会", "舞厅群舞"],
+        },
+    },
+}
+
+
+# ============================================================
+# 表演系统决策覆盖层 — 为剩余子模块补7维决策字段
+# (保留原facial_actions/prompt_description/body_language/principles等, 叠加决策)
+# ============================================================
+PERFORMANCE_DECISION = {
+    # ─── 基础9微表情(补决策,与进阶21同schema) ───
+    "happiness": {
+        "trigger": "喜悦/快乐/成功/温暖瞬间/甜宠高光",
+        "failure_modes": ["假笑(无鱼尾纹)=失真", "笑过火=夸张失真", "无Duchenne(眼不笑)=嘴笑眼不笑"],
+        "measurement": "Duchenne真笑(嘴角+眼角鱼尾纹), 由内而外",
+        "alternatives": ["tenderness(更温柔)", "pride(更克制)"],
+        "cross_refs": {"narrative_func": "成功/团聚", "genre": "甜宠/喜剧", "performance": "Duchenne真笑"},
+    },
+    "sadness": {
+        "trigger": "失去/离别/失败/虐点/悲剧",
+        "failure_modes": ["假哭(无内眉上提)=失真", "嚎啕过度=失克制", "无泪眶=失悲"],
+        "measurement": "内眉上提+嘴角下拉+下巴颤+眼眶红, 克制而非嚎啕",
+        "alternatives": ["tender_grief(更带爱)", "despair(更彻底)"],
+        "cross_refs": {"narrative_func": "失去/虐点", "pacing": "悲伤镜头5-12s给呼吸", "genre": "虐恋/悲剧"},
+    },
+    "anger": {
+        "trigger": "冲突/被触犯/不公/对峙/复仇",
+        "failure_modes": ["愤怒过火=咆哮失真", "无眉头下压=失怒", "瞳孔无收缩=失狠"],
+        "measurement": "眉头下压+上唇上提+唇紧+瞳孔缩, 紧绷而非咆哮",
+        "alternatives": ["rage(更失控)", "tender_anger(更带爱)"],
+        "cross_refs": {"narrative_func": "冲突/对峙", "genre": "动作/复仇", "pacing": "愤怒镜头急推特写"},
+    },
+    "fear": {
+        "trigger": "恐怖/危险/未知/逃生/惊吓",
+        "failure_modes": ["假恐(无眼白)=失真", "尖叫过度=失克制", "无后缩=失逃本能"],
+        "measurement": "眉头上提+眼睁露白+唇拉伸+后缩, 本能而非表演",
+        "alternatives": ["panic(更失控)", "anxiety(更未发生)"],
+        "cross_refs": {"narrative_func": "恐怖/逃生", "genre": "恐怖/惊悚", "pacing": "恐惧镜头POV+手持"},
+    },
+    "surprise": {
+        "trigger": "意外/震惊/突发/反转",
+        "failure_modes": ["惊讶过长=失瞬间(须快切反应)", "O嘴过度=夸张", "无后倾定格=失特色"],
+        "measurement": "眉弹+眼睁+O嘴+后倾定格, 瞬间须快切反应",
+        "alternatives": ["shock(更深)", "awe(带崇高)"],
+        "cross_refs": {"narrative_func": "反转/突发", "pacing": "惊讶是快切点", "camera": "急推+反应镜"},
+    },
+    "disgust": {
+        "trigger": "厌恶/恶心/鄙夷/拒绝/生理或道德厌恶",
+        "failure_modes": ["厌恶无皱鼻=失特色", "过火=夸张", "无后仰偏转=失推开本能"],
+        "measurement": "皱鼻+上唇上提+后仰偏转+推开姿态",
+        "alternatives": ["contempt(更轻蔑)", "fear(更恐惧)"],
+        "cross_refs": {"narrative_func": "拒绝/鄙夷", "genre": "恐怖/社会讽刺", "performance": "皱鼻是核心"},
+    },
+    "contempt": {
+        "trigger": "轻蔑/不屑/优越感/俯视/不屑一顾",
+        "failure_modes": ["轻蔑无单侧嘴角=失不对称", "下巴无抬=失优越", "对称微笑=失蔑(须不对称)"],
+        "measurement": "单侧嘴角上提+下巴抬+斜视, 不对称是核心",
+        "alternatives": ["disgust(更厌恶)", "pride(更自傲)"],
+        "cross_refs": {"narrative_func": "对峙/蔑视", "performance": "不对称微笑是标志", "genre": "反派/权谋"},
+    },
+    "determination": {
+        "trigger": "决心/坚定/启程/抉择/决战前",
+        "failure_modes": ["决心无下颌收紧=失坚", "无抿唇=失紧", "目光无聚焦=失定"],
+        "measurement": "下颌收紧+唇抿+目光聚焦+脊背挺, 坚定而非僵硬",
+        "alternatives": ["pride(更成就)", "vengeful_calm(更危险平静)"],
+        "cross_refs": {"narrative_func": "启程/抉择", "pacing": "蓄势段情绪", "performance": "呼吸深长"},
+    },
+    "longing": {
+        "trigger": "思念/渴望/怀念/错过/无法触及",
+        "failure_modes": ["思念无失焦远方=失特色", "无抚摸物件=失锚点", "无唇微分=失欲言又止"],
+        "measurement": "目光失焦远方+唇微分+抚摸物件, 欲言又止",
+        "alternatives": ["nostalgia(更远更淡)", "hope(更主动)"],
+        "cross_refs": {"narrative_func": "思念/错过", "pacing": "余韵段情绪", "genre": "言情/文艺"},
+    },
+    # ─── body_language 4类(每类补决策,以pose子项为内容) ───
+    "power_poses": {
+        "trigger": "权力/权威/自信/威胁/支配地位展示",
+        "failure_modes": ["权力姿态无空间占据=失支配", "威胁无侵入空间=失攻击性", "自信无目光接触=失底气"],
+        "measurement": "空间占据+目光接触+姿态稳定, 权力外化",
+        "alternatives": ["vulnerability_poses(相反)", "character_archetypes.antagonist_cold"],
+        "cross_refs": {"angle": "权力姿态常配仰拍", "performance": "dominance/authority/confidence/threat"},
+    },
+    "vulnerability_poses": {
+        "trigger": "弱势/防御/崩溃/自我安慰/被审视",
+        "failure_modes": ["弱势无身体缩小=失保护", "freeze无呼吸停=失石化", "自我安慰无抚摸=失安抚"],
+        "measurement": "身体缩小+防御姿态+自我安慰动作, 弱势外化",
+        "alternatives": ["power_poses(相反)", "collapse_down"],
+        "cross_refs": {"angle": "弱势常配俯拍", "performance": "protection/collapse/freeze/self_comfort"},
+    },
+    "romantic_signals": {
+        "trigger": "心动/亲密/暧昧/心碎/言情高光",
+        "failure_modes": ["心动无瞳孔扩大=失生理", "亲密无呼吸同步=失契合", "心碎无收手=失收回",
+                          "暧昧无距离忽近忽远=失张力"],
+        "measurement": "瞳孔扩大+呼吸同步+距离变化+微触碰, 亲密生理化",
+        "alternatives": ["tenderness(更温柔)", "longing(更思念)"],
+        "cross_refs": {"genre": "言情标配", "performance": "attraction/tension/intimacy/heartbreak"},
+    },
+    "combat_stances": {
+        "trigger": "战斗/备战/胜利/失败/武打",
+        "failure_modes": ["备战无重心降=失ready", "exhausted无汗=失力竭", "victory无释拳=失释然",
+                          "defeat无跪倒=失溃"],
+        "measurement": "重心降+汗+释拳/跪倒, 战斗状态生理化",
+        "alternatives": ["movement_phrases.strike", "laban_efforts.punch"],
+        "cross_refs": {"genre": "动作/武侠", "performance": "ready/exhausted/victory/defeat"},
+    },
+    # ─── laban_efforts 8种(补决策) ───
+    "punch": {
+        "trigger": "愤怒挥拳/拍桌/摔门/强+急+直接动作",
+        "failure_modes": ["无全身力量=失重锤", "无直接=失直线", "无急=失突发"],
+        "measurement": "强+急+直接, 重锤落下感",
+        "alternatives": ["slash(更弧)", "press(更缓)"],
+        "cross_refs": {"emotion": "anger", "genre": "动作", "performance": "Laban强急直"},
+    },
+    "slash": {
+        "trigger": "失控甩物/绝望挣扎/强+急+曲动作",
+        "failure_modes": ["无弧形=失闪电", "无强=失力", "无曲=失旋转"],
+        "measurement": "强+急+曲, 弧形闪电感",
+        "alternatives": ["punch(更直)", "wring(更缓)"],
+        "cross_refs": {"emotion": "失控/绝望", "genre": "动作/恐怖", "performance": "Laban强急曲"},
+    },
+    "press": {
+        "trigger": "坚持推门/忍耐握拳/缓慢爬行/强+缓+直动作",
+        "failure_modes": ["无对抗阻力=失凝固空气", "无缓=失持续", "无强=失力"],
+        "measurement": "强+缓+直, 对抗阻力感",
+        "alternatives": ["wring(更曲)", "punch(更急)"],
+        "cross_refs": {"emotion": "坚持/忍耐", "genre": "剧情/生存", "performance": "Laban强缓直"},
+    },
+    "wring": {
+        "trigger": "内心煎熬/坐立不安/双手绞/强+缓+曲动作",
+        "failure_modes": ["无拧紧=失无形之力", "无痛苦=失纠结", "无曲=失扭绞"],
+        "measurement": "强+缓+曲, 拧紧痛苦感",
+        "alternatives": ["press(更直)", "float(更轻)"],
+        "cross_refs": {"emotion": "煎熬/纠结", "genre": "剧情/心理", "performance": "Laban强缓曲"},
+    },
+    "dab": {
+        "trigger": "快速按按钮/机敏闪避/轻点肩/轻+急+直动作",
+        "failure_modes": ["无精准=失蜻蜓点水", "无急=失快", "无轻=失巧"],
+        "measurement": "轻+急+直, 精准蜻蜓点水",
+        "alternatives": ["flick(更曲)", "glide(更缓)"],
+        "cross_refs": {"emotion": "机敏/轻巧", "genre": "喜剧/动作", "performance": "Laban轻急直"},
+    },
+    "flick": {
+        "trigger": "弹掉灰尘/不耐烦挥手/轻+急+曲动作",
+        "failure_modes": ["无漫不经心=失不屑(变刻意)", "无腕弹=失特色(变手臂动)", "无急=失灵动(变迟滞)"],
+        "measurement": "轻+急+曲, 漫不经心腕弹",
+        "alternatives": ["dab(更直)", "glide(更缓)"],
+        "cross_refs": {"emotion": "轻蔑/不耐", "genre": "喜剧", "performance": "Laban轻急曲"},
+    },
+    "glide": {
+        "trigger": "从容走向某处/手抚物体表面/轻+缓+直动作",
+        "failure_modes": ["无丝绸流过水面=失优雅(变生硬)", "无从容=失缓(变急促)", "无直=失流畅(变曲折)"],
+        "measurement": "轻+缓+直, 丝绸流淌优雅",
+        "alternatives": ["float(更曲)", "press(更强)"],
+        "cross_refs": {"emotion": "从容/优雅", "genre": "文艺/言情", "performance": "Laban轻缓直"},
+    },
+    "float": {
+        "trigger": "仙侠飘逸/梦境移动/回忆模糊/轻+缓+曲动作",
+        "failure_modes": ["无失重=失气泡(变沉重)", "无曲=失飘(变直线)", "无缓=失梦幻(变急促)"],
+        "measurement": "轻+缓+曲, 失重气泡漂浮",
+        "alternatives": ["glide(更直)", "wring(更强)"],
+        "cross_refs": {"emotion": "飘逸/梦境", "genre": "仙侠/梦境", "performance": "Laban轻缓曲"},
+    },
+    # ─── character_interactions 3类 ───
+    "power_dynamics": {
+        "trigger": "权力关系/上下级/对峙/平等对话",
+        "failure_modes": ["居高临下无从容=失权", "下级无仰视=失弱", "对峙无锁定=失张力"],
+        "measurement": "目光高低+动作从容/躲闪+姿态权力, 权力关系外化",
+        "alternatives": ["spatial_relationships", "character_archetypes"],
+        "cross_refs": {"angle": "仰俯配权力", "performance": "superior/inferior/equals"},
+    },
+    "emotional_contagion": {
+        "trigger": "情感传染/安慰/共悲伤/共欢乐/怒火点燃",
+        "failure_modes": ["安慰无靠近=失温柔", "共悲无肩靠=失陪伴", "怒火点燃无递增=失燃"],
+        "measurement": "靠近+同步呼吸+情绪递增, 情感传染外化",
+        "alternatives": ["power_dynamics", "romantic_signals"],
+        "cross_refs": {"performance": "comfort/grief/joy/anger共享", "genre": "家庭/群戏"},
+    },
+    "spatial_relationships": {
+        "trigger": "空间距离=关系/亲密区/社交区/公共区",
+        "failure_modes": ["亲密区无呼吸可闻=失亲密", "社交区无提高音量=失正式", "公共区无放大表情=失表演"],
+        "measurement": "距离对应关系+动作/音量匹配, 空间=关系外化",
+        "alternatives": ["power_dynamics", "two_shot"],
+        "cross_refs": {"composition": "双人距离=关系", "performance": "intimate/personal/social/public zone"},
+    },
+    # ─── world_interaction 2类 ───
+    "environment_reactions": {
+        "trigger": "环境反应/冷热风雨/窄高暗环境",
+        "failure_modes": ["冷无搓手抱臂=失本能", "暗无摸索=失谨慎", "高无腿软=失恐高"],
+        "measurement": "环境本能反应(搓手/扇风/遮头/侧耳), 环境可信",
+        "alternatives": ["object_interaction"],
+        "cross_refs": {"genre": "生存/写实", "performance": "冷热风雨窄高暗反应"},
+    },
+    "object_interaction": {
+        "trigger": "物件互动/熟悉/珍贵/危险/发现/武器",
+        "failure_modes": ["熟悉物无盲摸=失熟", "珍贵物无轻柔=失珍", "危险物无距离=失警", "武器无重心降=失专注"],
+        "measurement": "物件互动匹配属性(轻柔/距离/握紧), 物件可信",
+        "alternatives": ["environment_reactions"],
+        "cross_refs": {"foreshadow": "物件互动可埋伏笔", "performance": "familiar/precious/dangerous/discovered/weapon"},
+    },
+    # ─── character_archetypes 7类 ───
+    "hero_classic": {
+        "trigger": "经典英雄/脊背挺直/沉稳/史诗主角",
+        "failure_modes": ["无脊背挺直=失英雄", "无目光平视=失稳", "语速无分量=失庄重"],
+        "measurement": "脊背挺直+目光平视+语速稳, 经典英雄基调",
+        "alternatives": ["trickster(更浪)", "mentor(更长)"],
+        "cross_refs": {"genre": "史诗/英雄", "reference": "《角斗士》Maximus"},
+    },
+    "trickster": {
+        "trigger": "智囊浪子/慵懒/灵动/玩味/反英雄",
+        "failure_modes": ["无重心偏一脚=失慵懒", "无手势多快=失灵动", "无似笑非笑=失玩味"],
+        "measurement": "重心偏一脚+手势快+似笑非笑, 浪子基调",
+        "alternatives": ["hero_classic(更正)", "femme_fatale(更控)"],
+        "cross_refs": {"genre": "冒险/犯罪", "reference": "《加勒比海盗》Jack"},
+    },
+    "mentor": {
+        "trigger": "导师长者/微伛挺/仪式感/智慧",
+        "failure_modes": ["无微伛=失岁", "无动作缓慢仪式=失重", "无停顿=失分量"],
+        "measurement": "微伛仍挺+动作缓慢仪式+语速慢停顿, 导师基调",
+        "alternatives": ["hero_classic(更正)", "innocent(更纯)"],
+        "cross_refs": {"genre": "成长/史诗", "reference": "Yoda/甘道夫"},
+    },
+    "tragic_figure": {
+        "trigger": "悲剧人物/肩沉头低/迟滞/郁",
+        "failure_modes": ["无肩沉=失悲", "无头略低=失郁", "语速无断裂=失情绪化"],
+        "measurement": "肩沉头低+手势迟滞+语速断裂, 悲剧基调",
+        "alternatives": ["femme_fatale(更控)", "innocent(更纯)"],
+        "cross_refs": {"genre": "悲剧/文艺", "reference": "程蝶衣/Travis"},
+    },
+    "femme_fatale": {
+        "trigger": "蛇蝎美人/慵懒控制/慢而目的/磁性",
+        "failure_modes": ["无姿态控制=失控", "无慢而目的=失目的", "无斜睨钩=失魅"],
+        "measurement": "姿态控制+动作慢而目的+斜睨钩, 蛇蝎基调",
+        "alternatives": ["trickster(更浪)", "hero_classic(更正)"],
+        "cross_refs": {"genre": "黑色电影", "reference": "《唐人街》Evelyn"},
+    },
+    "innocent": {
+        "trigger": "纯真者/开放不设防/直接/上扬",
+        "failure_modes": ["无开放姿态=失不设防", "无动作直接=失纯", "无目光清亮=失真"],
+        "measurement": "开放姿态+动作直接+目光清亮, 纯真基调",
+        "alternatives": ["hero_classic(更正)", "mentor(更长)"],
+        "cross_refs": {"genre": "成长/童话", "reference": "Amélie/千寻"},
+    },
+    "antagonist_cold": {
+        "trigger": "冷酷反派/对称精准/极省/恒定/控制到极致",
+        "failure_modes": ["无对称精准=失控", "无极省动作=失冷", "音量无恒定=失不变"],
+        "measurement": "对称精准+极省动作+音量恒定, 冷酷反派基调",
+        "alternatives": ["femme_fatale(更魅)", "trickster(更浪)"],
+        "cross_refs": {"genre": "惊悚/犯罪", "reference": "Hannibal/Chigurh"},
+    },
+    # ─── movement_phrases 10种 ───
+    "approach": {
+        "trigger": "靠近=关系建立或威胁/前移锁定",
+        "failure_modes": ["无前移重心=失靠近", "无眼神锁定=失目的", "靠近无理由=炫技"],
+        "measurement": "重心前移+眼神锁定, 靠近=关系/威胁",
+        "alternatives": ["retreat(相反)", "reach_out(更伸手)"],
+        "cross_refs": {"performance": "靠近=关系", "pacing": "靠近常配缓推"},
+    },
+    "retreat": {
+        "trigger": "远离=拒绝/恐惧/疏离/后撤侧转",
+        "failure_modes": ["无后移重心=失退", "无侧转=失避", "退无理由=失逻辑"],
+        "measurement": "重心后移+侧转缩小, 远离=拒绝/恐惧",
+        "alternatives": ["approach(相反)", "turn_away(更转身)"],
+        "cross_refs": {"performance": "远离=拒绝", "emotion": "fear/disgust"},
+    },
+    "collapse_down": {
+        "trigger": "崩溃/屈服/绝望/跪坐瘫倒",
+        "failure_modes": ["无膝弯身沉=失坠落", "无手撑地掩面=失崩溃", "collapse无理由=失重量"],
+        "measurement": "膝弯身沉+手撑/掩面, 坠落=崩溃",
+        "alternatives": ["rise_up(相反)", "freeze(更静)"],
+        "cross_refs": {"emotion": "despair", "narrative_func": "沉沦/低谷"},
+    },
+    "rise_up": {
+        "trigger": "觉醒/重生/夺权/挺直升起",
+        "failure_modes": ["无挺直脊背=失觉醒", "无重心上提=失升", "rise无前置蜷缩=失对照"],
+        "measurement": "脊背挺直+重心上提+胸口打开, 升起=觉醒",
+        "alternatives": ["collapse_down(相反)", "approach(更靠近)"],
+        "cross_refs": {"emotion": "hope/pride", "narrative_func": "觉醒/重生"},
+    },
+    "turn_away": {
+        "trigger": "决裂/隐藏情绪/离开/背向",
+        "failure_modes": ["无头先转肩跟=失转身", "无背向=失决裂", "turn无理由=失逻辑"],
+        "measurement": "头先转肩跟+背向, 转身=决裂/隐藏",
+        "alternatives": ["retreat(更退)", "withdraw_hand(更收手)"],
+        "cross_refs": {"emotion": "tender_anger/决裂", "composition": "背影构图"},
+    },
+    "reach_out": {
+        "trigger": "渴望/挽留/试探/伸手停住",
+        "failure_modes": ["无手伸出停住=失欲触", "无身体前倾=失渴望", "reach无对象=失焦点"],
+        "measurement": "手伸出停住+身体前倾, 伸手=渴望/挽留",
+        "alternatives": ["withdraw_hand(相反)", "approach(更靠近)"],
+        "cross_refs": {"emotion": "longing/tender_anger", "performance": "伸手是挽留标志"},
+    },
+    "withdraw_hand": {
+        "trigger": "被拒/克制/伤/手收回攥紧",
+        "failure_modes": ["无骤收攥紧=失被拒", "无身体后缩=失伤", "withdraw无前置reach=失对照"],
+        "measurement": "手骤收攥紧+身体后缩, 收手=被拒/克制",
+        "alternatives": ["reach_out(相反)", "turn_away(更转身)"],
+        "cross_refs": {"emotion": "tender_grief/被拒", "performance": "收手是伤标志"},
+    },
+    "embrace": {
+        "trigger": "接纳/和解/归属/拥抱环绕",
+        "failure_modes": ["无双臂环绕=失拥抱", "无身体贴拢=失亲密", "无呼吸同步=失契合"],
+        "measurement": "双臂环绕+身体贴拢+呼吸同步, 拥抱=接纳",
+        "alternatives": ["reach_out(更试探)", "approach(更靠近)"],
+        "cross_refs": {"emotion": "tenderness/relief", "narrative_func": "重逢/和解"},
+    },
+    "strike": {
+        "trigger": "愤怒/决断/暴力/重心骤沉蓄力鞭打",
+        "failure_modes": ["无重心骤沉=失蓄力", "无核心发力=失力", "无鞭打弹出=失击"],
+        "measurement": "重心骤沉+核心发力+鞭打弹出, 击打=愤怒/决断",
+        "alternatives": ["punch(laban)", "retreat(相反)"],
+        "cross_refs": {"emotion": "anger/rage", "genre": "动作/复仇"},
+    },
+    "freeze": {
+        "trigger": "惊恐/警觉/石化/骤停呼吸停",
+        "failure_modes": ["无骤停=失凝固", "无呼吸几停=失警觉", "freeze无理由=失逻辑"],
+        "measurement": "骤停+呼吸几停+目光定住, 凝固=惊恐/警觉",
+        "alternatives": ["collapse_down(更坠落)", "retreat(更退)"],
+        "cross_refs": {"emotion": "fear/panic", "narrative_func": "突发危险"},
+    },
+    # ─── group_choreography 3类 ───
+    "crowd_reaction": {
+        "trigger": "群戏反应/背景角色反应/分层反应",
+        "failure_modes": ["群戏整齐划一=失真", "无分层反应=失层次", "背景无各自反应=失信息"],
+        "measurement": "分层反应(前景完整+中景2-3种+远景模糊一致), 群戏真实",
+        "alternatives": ["power_geometry", "synchronized_motion"],
+        "cross_refs": {"performance": "群戏分层", "composition": "纵深分层"},
+    },
+    "power_geometry": {
+        "trigger": "站位=权力关系/三角/圆/直线/高低",
+        "failure_modes": ["站位无权力=失几何", "三角无顶点=失核心", "高低无俯仰=失阶级"],
+        "measurement": "站位几何=权力(三角顶点/圆心被围/直线对立/高低阶级)",
+        "alternatives": ["crowd_reaction", "synchronized_motion"],
+        "cross_refs": {"composition": "站位构图", "angle": "高低=阶级"},
+    },
+    "synchronized_motion": {
+        "trigger": "集体意志/仪式感/压迫感/同步动作",
+        "failure_modes": ["同步无集体意志=失意义", "无仪式=失压迫", "滥用=廉价"],
+        "measurement": "同步=集体意志/仪式/压迫, 有叙事理由",
+        "alternatives": ["crowd_reaction(更杂)", "power_geometry(更权力)"],
+        "cross_refs": {"genre": "军事/宗教/邪教", "performance": "队列/仪式/集会"},
+    },
+}
+
+
+# ============================================================
+# 进阶8字段补全 — 为 laban8 + basic9 补 rationale/execution/masters
+# (双AI审查指出PERFORMANCE_DECISION缺此3字段, 此层补真实专家内容)
+# ============================================================
+PERFORMANCE_DECISION_EXTENDED = {
+    # ─── laban 8 efforts: 补 Laban 运动学原理 + 量化执行(权重/时间/空间) + masters ───
+    "punch": {
+        "rationale": "Laban 强+急+直。最大力量瞬间直线释放, 模仿打击的本能爆发, 是Laban八 efforts中能量最集中者。",
+        "execution": {"weight": "强(最大力量)", "time": "急(瞬间爆发)", "space": "直(线性指向)", "laban": "Strong+Sudden+Direct"},
+        "masters": "Laban运动分析体系, 动作捕捉训练",
+    },
+    "slash": {
+        "rationale": "Laban 强+急+曲。强力量走弧线=失控的甩, 像挥鞭/砍刀, 曲线让力量不可控地扩散。",
+        "execution": {"weight": "强", "time": "急", "space": "曲(弧线)", "laban": "Strong+Sudden+Indirect"},
+        "masters": "Laban体系, 武术/舞蹈甩臂",
+    },
+    "press": {
+        "rationale": "Laban 强+缓+直。持续力量对抗阻力直线推进, 像推重物/挤, 缓慢但不可阻挡, 是耐力型强动作。",
+        "execution": {"weight": "强", "time": "缓(持续)", "space": "直", "laban": "Strong+Sustained+Direct"},
+        "masters": "Laban体系, 推门/爬行训练",
+    },
+    "wring": {
+        "rationale": "Laban 强+缓+曲。持续力量走曲线扭绞, 像拧毛巾/挣扎, 是痛苦内耗的视觉化。",
+        "execution": {"weight": "强", "time": "缓", "space": "曲(扭绞)", "laban": "Strong+Sustained+Indirect"},
+        "masters": "Laban体系, 焦虑/痛苦表演",
+    },
+    "dab": {
+        "rationale": "Laban 轻+急+直。轻力量瞬间直线, 像点按/弹指, 精准轻巧是机敏的视觉化。",
+        "execution": {"weight": "轻", "time": "急", "space": "直", "laban": "Light+Sudden+Direct"},
+        "masters": "Laban体系, 闪避/快速操作",
+    },
+    "flick": {
+        "rationale": "Laban 轻+急+曲。轻力量走弧线瞬间, 像弹灰/甩手, 漫不经心的轻蔑是核心。",
+        "execution": {"weight": "轻", "time": "急", "space": "曲(腕弹)", "laban": "Light+Sudden+Indirect"},
+        "masters": "Laban体系, 轻蔑/不耐表演",
+    },
+    "glide": {
+        "rationale": "Laban 轻+缓+直。轻力量持续直线, 像丝绸流过水面, 是从容优雅的视觉化。",
+        "execution": {"weight": "轻", "time": "缓", "space": "直", "laban": "Light+Sustained+Direct"},
+        "masters": "Laban体系, 舞蹈/礼仪行走",
+    },
+    "float": {
+        "rationale": "Laban 轻+缓+曲。轻力量持续走曲线, 失重飘浮, 是梦境/飘逸的视觉化, 八 efforts中最无重量者。",
+        "execution": {"weight": "轻", "time": "缓", "space": "曲(飘)", "laban": "Light+Sustained+Indirect"},
+        "masters": "Laban体系, 仙侠飘逸/梦境移动",
+    },
+    # ─── basic 9 emotions: 补 Ekman FACS 原理 + execution(AU动作单元) + masters ───
+    "happiness": {
+        "rationale": "Ekman AU6+AU12。真笑(Duchenne)=颧骨上提(AU12)+眼角轮匝肌收缩(AU6鱼尾纹), 眼不笑=假笑, 是快乐的可识别生理标记。",
+        "execution": {"AU": "AU6(眼角轮匝肌)+AU12(颧骨上提)", "Duchenne": "真笑须眼角鱼尾纹", "intensity": "微笑→笑→大笑→狂喜→喜极而泣"},
+        "masters": "Paul Ekman FACS, 《Lie to Me》微表情",
+    },
+    "sadness": {
+        "rationale": "Ekman AU1+AU15。内眉上提(AU1)+嘴角下拉(AU15)是悲伤的固有标记, 下巴颤动是抑制哭泣的生理反应。",
+        "execution": {"AU": "AU1(内眉上提)+AU15(嘴角下拉)", "physical": "下巴颤动+眼睑下垂", "intensity": "惆怅→难过→伤心→痛哭→崩溃"},
+        "masters": "Paul Ekman FACS, 悲剧表演",
+    },
+    "anger": {
+        "rationale": "Ekman AU4+AU10。眉头下压(AU4)+上唇上提(AU10)是愤怒的固有标记, 瞳孔收缩是交感神经激活的生理反应。",
+        "execution": {"AU": "AU4(眉头下压)+AU10(上唇上提)", "physical": "咬肌隆起+瞳孔缩+颈部绷紧", "intensity": "不悦→恼怒→愤怒→暴怒→狂怒"},
+        "masters": "Paul Ekman FACS, 冲突表演",
+    },
+    "fear": {
+        "rationale": "Ekman AU1+2+AU5+AU20。眉上提内收+眼睁露白+唇拉伸是恐惧的固有标记, 是战或逃本能的生理预备。",
+        "execution": {"AU": "AU1+2(眉上提内收)+AU5(眼睁)+AU20(唇拉伸)", "physical": "面色苍白+后缩+僵住", "intensity": "不安→紧张→恐惧→惊恐→癫狂"},
+        "masters": "Paul Ekman FACS, 恐怖片表演",
+    },
+    "surprise": {
+        "rationale": "Ekman AU1+2+AU5+AU26。眉整体上提+眼睁+下颌松是惊讶的固有标记, 是认知卡壳的瞬间, 须快切到后续情绪。",
+        "execution": {"AU": "AU1+2(眉上提)+AU5(眼睁)+AU26(下颌松)", "physical": "O嘴+脸拉长+后倾定格", "intensity": "一瞬(惊讶本身不分强度, 强度在后续情绪)"},
+        "masters": "Paul Ekman FACS, 惊讶须快切反应",
+    },
+    "disgust": {
+        "rationale": "Ekman AU9+AU10。皱鼻(AU9)+上唇上提(AU10)是厌恶的固有标记, 源自对腐败食物的生理排斥, 是最原始的拒绝反应。",
+        "execution": {"AU": "AU9(皱鼻)+AU10(上唇上提)", "physical": "后仰偏转+推开姿态", "intensity": "轻微不适→厌恶→恶心→作呕→呕吐反射"},
+        "masters": "Paul Ekman FACS, 厌恶是原始排斥反应",
+    },
+    "contempt": {
+        "rationale": "Ekman AU12R/L。单侧嘴角上提(不对称)是轻蔑的固有标记, 不对称是核心——对称微笑是喜悦, 不对称才是蔑视。",
+        "execution": {"AU": "AU12R或12L(单侧嘴角上提, 不对称)", "physical": "下巴抬+斜视", "intensity": "微蔑→轻蔑→不屑→鄙夷→傲慢"},
+        "masters": "Paul Ekman FACS, 不对称是轻蔑标志",
+    },
+    "determination": {
+        "rationale": "下颌收紧+唇抿+目光聚焦是决心的复合标记(非单一AU), 是意志力外化的生理反应, 额头绷紧是紧张与专注。",
+        "execution": {"AU": "下颌收紧+唇抿(AU24)+眉头微锁但聚焦", "physical": "脊背挺+呼吸深长+握拳", "intensity": "意向→决心→坚定→执着→不屈"},
+        "masters": "斯坦尼体系, 意志力表演",
+    },
+    "longing": {
+        "rationale": "目光失焦远方+唇微分是思念的复合标记, 源自'欲言又止'与'望向不在场', 是对缺席者的心理投射。",
+        "execution": {"AU": "目光失焦+唇微分+眉头轻柔上扬", "physical": "抚摸物件+面向窗外", "intensity": "想念→思念→渴望→眷恋→执念"},
+        "masters": "文艺片思念表演, 是'缺席的在场'",
+    },
+}
+
+
+def get_performance_with_decision(key):
+    """合并表演系统基础信息 + 决策覆盖层(基础+扩展)"""
+    base = {}
+    for section in ("micro_expressions", "micro_expressions_advanced", "body_language",
+                    "laban_efforts", "character_interactions", "world_interaction",
+                    "character_archetypes", "movement_phrases", "group_choreography"):
+        sec = PERFORMANCE_SYSTEM.get(section, {})
+        if key in sec:
+            val = sec[key]
+            if isinstance(val, dict):
+                base = dict(val)
+            elif isinstance(val, str):
+                base = {"description": val}
+            break
+    # 基础决策 + 扩展(rationale/execution/masters) 合并
+    base.update(PERFORMANCE_DECISION.get(key, {}))
+    base.update(PERFORMANCE_DECISION_EXTENDED.get(key, {}))
+    return base
+

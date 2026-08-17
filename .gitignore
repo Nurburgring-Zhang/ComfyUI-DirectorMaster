@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 测试运行残留
+tests/_archive_tmp/
+*.tmp
+
+# 归档输出（运行时生成）
+output/
+
+# 版本库运行时文件
+_versions/
+.store.lock
+
+# IDE/系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
