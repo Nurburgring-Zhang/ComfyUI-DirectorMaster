@@ -19,3 +19,6 @@ _versions/
 .idea/
 .DS_Store
 Thumbs.db
+
+# 测试输出产物
+tests/*_results.json
