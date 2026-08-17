@@ -68,7 +68,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 | DirectorMasterArchive | 归档（真实写盘 + 磁盘持久化版本控制 + TXT/JSON/MD/HTML 格式多选） |
 | DirectorMasterFinal | Summary 兼容别名 |
 
-旧工作流兼容：设环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 可恢复注册全部 59 节点（收敛前的细粒度节点）。
+V14 之前的 46 个 legacy 细粒度节点已在 V14.3 彻底移除，其能力由 13 超级节点的模式下拉全覆盖。
 
 ## 数据聚合（真实消费，非装饰）
 

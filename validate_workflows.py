@@ -86,11 +86,8 @@ def validate(wf_path):
 
 
 if __name__ == "__main__":
-    # V14.3 (审查P2修复): legacy/ 工作流引用收敛前旧节点类型, 仅在
-    # DIRECTORMASTER_LEGACY_NODES=1 (注册 59 节点) 时校验, 默认只校验现行管线。
+    # V14.3: legacy/ 工作流已随 legacy 节点层移除, 只校验现行管线。
     wfs = sorted(glob.glob(os.path.join("workflows", "*.json")))
-    if os.environ.get("DIRECTORMASTER_LEGACY_NODES", "0") == "1":
-        wfs += sorted(glob.glob(os.path.join("workflows", "legacy", "*.json")))
     total_err = 0
     for wf in wfs:
         errs, unconn, nn, nl = validate(wf)

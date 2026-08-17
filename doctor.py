@@ -101,7 +101,7 @@ AGGREGATOR_MODULES = [
     "llm_engine", "director_master",
 ]
 LIB_MODULES = [
-    "anti_ai_vocab", "director_data_unified", "director_soul",
+    "anti_ai_vocab", "director_data_unified",
     "director_profiles_film", "director_profiles_tv_drama",
     "director_profiles_creative_ad", "director_profiles_short_video",
     "director_profiles_animation", "mv_pro", "picture_book_pro",
@@ -111,7 +111,7 @@ LIB_MODULES = [
     "story_sense_data", "modes_child", "master_orchestrator",
     "pln_random", "format_templates", "modes_book", "modes_drama",
     "modes_storyboard",
-    "comic_drama_pro", "pln_llm", "production_pipeline_v3", "prompt_builder",
+    "comic_drama_pro", "pln_llm",
 ]
 import importlib
 
