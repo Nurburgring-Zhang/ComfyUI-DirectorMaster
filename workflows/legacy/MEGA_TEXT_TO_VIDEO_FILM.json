@@ -1,0 +1,1608 @@
+{
+  "last_node_id": 17,
+  "last_link_id": 21,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "DirectorMasteryNode",
+      "pos": [
+        100,
+        100
+      ],
+      "size": [
+        320,
+        708
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "上游灵魂注入",
+          "type": "STRING",
+          "link": null,
+          "label": "上游灵魂注入"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "灵魂注入_整合",
+          "type": "STRING",
+          "links": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "slot_index": 0,
+          "label": "灵魂注入_整合"
+        },
+        {
+          "name": "审美判断",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1,
+          "label": "审美判断"
+        },
+        {
+          "name": "风格指南",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2,
+          "label": "风格指南"
+        },
+        {
+          "name": "导演意图",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 3,
+          "label": "导演意图"
+        },
+        {
+          "name": "统一电影提示词",
+          "type": "STRING",
+          "links": [
+            21
+          ],
+          "slot_index": 4,
+          "label": "统一电影提示词"
+        },
+        {
+          "name": "导演签名",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 5,
+          "label": "导演签名"
+        },
+        {
+          "name": "反AI清理后",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 6,
+          "label": "反AI清理后"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DirectorMasteryNode"
+      },
+      "widgets_values": [
+        "auto",
+        "auto",
+        "auto",
+        "auto",
+        "auto",
+        "auto",
+        1.0,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.3,
+        0.5,
+        0.7,
+        0.85,
+        0.5,
+        0.0,
+        "Paul Thomas Anderson (PTA)",
+        "父女在厨房, 雨夜, 1998 年哈尔滨, 父亲在切菜, 女儿坐在桌边",
+        "父女在厨房, 雨夜, 1998 年哈尔滨",
+        "梦幻",
+        "Paul Thomas Anderson (PTA)",
+        "情感冲击",
+        "让观众感到复杂, 难说清",
+        true
+      ],
+      "title": "导演能力总控 (灵魂+审美+风格+意图+统一prompt)"
+    },
+    {
+      "id": 2,
+      "type": "ScriptArchitecturePro",
+      "pos": [
+        650,
+        100
+      ],
+      "size": [
+        320,
+        660
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "额外禁用词",
+          "type": "STRING",
+          "link": null,
+          "label": "额外禁用词"
+        },
+        {
+          "name": "启用反AI规则",
+          "type": "BOOLEAN",
+          "link": null,
+          "label": "启用反AI规则"
+        },
+        {
+          "name": "多轮迭代",
+          "type": "BOOLEAN",
+          "link": null,
+          "label": "多轮迭代"
+        },
+        {
+          "name": "灵魂注入",
+          "type": "STRING",
+          "link": 4,
+          "label": "灵魂注入"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "故事架构",
+          "type": "STRING",
+          "links": [
+            8
+          ],
+          "slot_index": 0,
+          "label": "故事架构"
+        },
+        {
+          "name": "反AI规则",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1,
+          "label": "反AI规则"
+        },
+        {
+          "name": "迭代链",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2,
+          "label": "迭代链"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ScriptArchitecturePro"
+      },
+      "widgets_values": [
+        "一段关于父女的故事, 在 1998 年哈尔滨",
+        120,
+        1,
+        "家庭与代际,记忆与时间,孤独与连接",
+        "人与人",
+        "失去的不可逆, 但记忆可以重建",
+        "王家卫",
+        "1990 年代",
+        "东北 / 香港 / 东京",
+        "经典三幕剧",
+        1,
+        "无",
+        1,
+        1,
+        1,
+        "大众",
+        "疏 (留白多)",
+        "10%以下",
+        "淡",
+        "auto",
+        "auto",
+        0.5,
+        "auto",
+        "爱情",
+        "雨夜"
+      ],
+      "title": "架构 3幕"
+    },
+    {
+      "id": 3,
+      "type": "ScriptBodyPro",
+      "pos": [
+        650,
+        380
+      ],
+      "size": [
+        320,
+        468
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "上游_故事架构",
+          "type": "STRING",
+          "link": 8,
+          "label": "上游_故事架构"
+        },
+        {
+          "name": "额外禁用词",
+          "type": "STRING",
+          "link": null,
+          "label": "额外禁用词"
+        },
+        {
+          "name": "生成样例小段",
+          "type": "BOOLEAN",
+          "link": null,
+          "label": "生成样例小段"
+        },
+        {
+          "name": "灵魂注入",
+          "type": "STRING",
+          "link": 5,
+          "label": "灵魂注入"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "剧本正文",
+          "type": "STRING",
+          "links": [
+            9
+          ],
+          "slot_index": 0,
+          "label": "剧本正文"
+        },
+        {
+          "name": "反AI样例",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1,
+          "label": "反AI样例"
+        },
+        {
+          "name": "迭代链",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2,
+          "label": "迭代链"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ScriptBodyPro"
+      },
+      "widgets_values": [
+        "王家卫",
+        "极少 (10%以下)",
+        "几乎不 (5%)",
+        "无",
+        "少",
+        "模糊 (一天)",
+        "模糊",
+        15,
+        "左眼眨眼多 / 走路外八 / 摸下巴",
+        "嘛 / 反正 / 嗯",
+        20,
+        120,
+        "关",
+        "auto",
+        0.6,
+        "auto",
+        "auto"
+      ],
+      "title": "剧本正文"
+    },
+    {
+      "id": 4,
+      "type": "DirectorStoryboardPro",
+      "pos": [
+        650,
+        660
+      ],
+      "size": [
+        320,
+        588
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "上游_剧本正文",
+          "type": "STRING",
+          "link": 9,
+          "label": "上游_剧本正文"
+        },
+        {
+          "name": "额外禁用词",
+          "type": "STRING",
+          "link": null,
+          "label": "额外禁用词"
+        },
+        {
+          "name": "关键道具",
+          "type": "STRING",
+          "link": null,
+          "label": "关键道具"
+        },
+        {
+          "name": "潜文本_情感",
+          "type": "STRING",
+          "link": null,
+          "label": "潜文本_情感"
+        },
+        {
+          "name": "情绪基调",
+          "type": "STRING",
+          "link": null,
+          "label": "情绪基调"
+        },
+        {
+          "name": "导演意图_观众应感到",
+          "type": "STRING",
+          "link": null,
+          "label": "导演意图_观众应感到"
+        },
+        {
+          "name": "生成样例小段",
+          "type": "BOOLEAN",
+          "link": null,
+          "label": "生成样例小段"
+        },
+        {
+          "name": "灵魂_主导情感",
+          "type": "['AUTO', 'JOY_SERENITY', 'JOY_PLEASURE', 'JOY_ECSTASY', 'TRUST_ACCEPTANCE', 'TRUST_ADMIRATION', 'TRUST_SURRENDER', 'FEAR_TIMIDITY', 'FEAR_APPREHENSION', 'FEAR_TERROR', 'SURPRISE_UNCERTAINTY', 'SURPRISE_ASTONISHMENT', 'SURPRISE_AMAZEMENT', 'SADNESS_GLOOMINESS', 'SADNESS_SORROW', 'SADNESS_GRIEF', 'DISGUST_DISLIKE', 'DISGUST_REVULSION', 'DISGUST_LOATHING', 'ANGER_ANNOYANCE', 'ANGER_FRUSTRATION', 'ANGER_FURY', 'ANTICIPATION_INTEREST', 'ANTICIPATION_EXPECTATION', 'ANTICIPATION_VIGILANCE', 'INTEREST', 'SHYNESS', 'GUILT', 'CONTEMPT', 'SHAME', 'PRIDE', 'LOVE', 'HATE', 'AWE', 'AGGRESSIVENESS', 'OPTIMISM', 'DISAPPROVAL', 'REMORSE', 'LONELINESS', 'LONGING', 'BITTERSWEET', 'NOSTALGIA', 'TENSION', 'TENDERNESS', 'RELIEF', 'DESPAIR', 'HOPE', 'GRATITUDE', 'WONDER', 'YUAN', 'CHOUCHANG', 'JI', 'CHOU', 'BITTERSWEET_PAIN', 'WARM_REGRET', 'HOPELESS_HOPE', 'LOVE_HATE', 'LUCID_DESPAIR', 'AWED_FEAR', 'TENDER_CONTRADICTION', 'PERFECT_REGRET']",
+          "link": null,
+          "label": "灵魂_主导情感"
+        },
+        {
+          "name": "灵魂_次要情感",
+          "type": "['AUTO', 'JOY_SERENITY', 'JOY_PLEASURE', 'JOY_ECSTASY', 'TRUST_ACCEPTANCE', 'TRUST_ADMIRATION', 'TRUST_SURRENDER', 'FEAR_TIMIDITY', 'FEAR_APPREHENSION', 'FEAR_TERROR', 'SURPRISE_UNCERTAINTY', 'SURPRISE_ASTONISHMENT', 'SURPRISE_AMAZEMENT', 'SADNESS_GLOOMINESS', 'SADNESS_SORROW', 'SADNESS_GRIEF', 'DISGUST_DISLIKE', 'DISGUST_REVULSION', 'DISGUST_LOATHING', 'ANGER_ANNOYANCE', 'ANGER_FRUSTRATION', 'ANGER_FURY', 'ANTICIPATION_INTEREST', 'ANTICIPATION_EXPECTATION', 'ANTICIPATION_VIGILANCE', 'INTEREST', 'SHYNESS', 'GUILT', 'CONTEMPT', 'SHAME', 'PRIDE', 'LOVE', 'HATE', 'AWE', 'AGGRESSIVENESS', 'OPTIMISM', 'DISAPPROVAL', 'REMORSE', 'LONELINESS', 'LONGING', 'BITTERSWEET', 'NOSTALGIA', 'TENSION', 'TENDERNESS', 'RELIEF', 'DESPAIR', 'HOPE', 'GRATITUDE', 'WONDER', 'YUAN', 'CHOUCHANG', 'JI', 'CHOU', 'BITTERSWEET_PAIN', 'WARM_REGRET', 'HOPELESS_HOPE', 'LOVE_HATE', 'LUCID_DESPAIR', 'AWED_FEAR', 'TENDER_CONTRADICTION', 'PERFECT_REGRET']",
+          "link": null,
+          "label": "灵魂_次要情感"
+        },
+        {
+          "name": "灵魂_场景权重",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_场景权重"
+        },
+        {
+          "name": "灵魂_融合模式",
+          "type": "['AUTO', 'F1_单情感主导', 'F2_双情感主次融合', 'F3_双情感对等融合', 'F4_三情感递进融合', 'F5_矛盾情感爆炸', 'F6_复合情绪三角', 'F7_情感转化']",
+          "link": null,
+          "label": "灵魂_融合模式"
+        },
+        {
+          "name": "灵魂_主导权重",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_主导权重"
+        },
+        {
+          "name": "灵魂_创造力",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_创造力"
+        },
+        {
+          "name": "灵魂_镜头技巧",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_镜头技巧"
+        },
+        {
+          "name": "灵魂_氛围掌控",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_氛围掌控"
+        },
+        {
+          "name": "灵魂_灵感指数",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_灵感指数"
+        },
+        {
+          "name": "灵魂_疲劳指数",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_疲劳指数"
+        },
+        {
+          "name": "灵魂_怀疑指数",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_怀疑指数"
+        },
+        {
+          "name": "灵魂_叛逆指数",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_叛逆指数"
+        },
+        {
+          "name": "灵魂_故事强度",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_故事强度"
+        },
+        {
+          "name": "灵魂_场景进度",
+          "type": "FLOAT",
+          "link": null,
+          "label": "灵魂_场景进度"
+        },
+        {
+          "name": "灵魂注入",
+          "type": "STRING",
+          "link": 6,
+          "label": "灵魂注入"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "分镜",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0,
+          "label": "分镜"
+        },
+        {
+          "name": "反AI样例",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1,
+          "label": "反AI样例"
+        },
+        {
+          "name": "迭代链",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2,
+          "label": "迭代链"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DirectorStoryboardPro"
+      },
+      "widgets_values": [
+        "Paul Thomas Anderson (PTA)",
+        "大量特写",
+        "固定",
+        "自然光 (侯孝贤/是枝裕和)",
+        "高饱和 (王家卫/李安早期)",
+        "无声 + 环境声 (侯孝贤/蔡明亮)",
+        "极慢 (30 秒/镜)",
+        "克制 (无表情)",
+        "几乎不留",
+        "无",
+        "淡",
+        60,
+        "10%以下",
+        "每场",
+        false,
+        false,
+        "关"
+      ],
+      "title": "分镜 (终)"
+    },
+    {
+      "id": 5,
+      "type": "ConceptPitchPro",
+      "pos": [
+        1200,
+        100
+      ],
+      "size": [
+        320,
+        444
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "灵魂注入",
+          "type": "STRING",
+          "link": 1,
+          "label": "灵魂注入"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "概念H3提示词",
+          "type": "STRING",
+          "links": [
+            10
+          ],
+          "slot_index": 0,
+          "label": "概念H3提示词"
+        },
+        {
+          "name": "经验矩阵",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1,
+          "label": "经验矩阵"
+        },
+        {
+          "name": "AI深度处理",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2,
+          "label": "AI深度处理"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ConceptPitchPro"
+      },
+      "widgets_values": [
+        "T2VA (文生视频, 无参考图)",
+        "自动",
+        "父女在厨房, 雨夜, 1998 年哈尔滨, 父亲在切菜, 女儿坐在桌边",
+        "Paul Thomas Anderson (PTA)",
+        "压抑中见希望, 说不清但有重量",
+        "想说对不起但拉不下脸, 想靠近又怕伤害",
+        "让观众感到复杂, 难说清",
+        "一封没寄出的信 / 半瓶白酒 / 老式收音机 / 缝纫机",
+        "《花样年华》色调 / 《一一》节奏 / 《步履不停》家庭",
+        true,
+        "loneliness, longing",
+        "0.5, 0.5",
+        "auto",
+        "creativity=0.85, imagination=0.85, artistic_expression=0.85, camera_skill=0.85, atmosphere_control=0.85, mental_state=lucid-dreamy, inspiration=0.85, rebelliousness=0.70, self_doubt=0.50, breakthrough_courage=0.85",
+        "inspiration=0.85, fatigue=0.30, doubt=0.50, rebelliousness=0.70, mental_state=lucid-dreamy, story_intensity=0.5, scene_progress=0.0",
+        "王家卫"
+      ],
+      "title": "概念"
+    },
+    {
+      "id": 6,
+      "type": "WorldBuildingPro",
+      "pos": [
+        1200,
+        380
+      ],
+      "size": [
+        320,
+        828
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "灵魂注入",
+          "type": "STRING",
+          "link": 10,
+          "label": "灵魂注入"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "世界H3提示词",
+          "type": "STRING",
+          "links": [
+            11
+          ],
+          "slot_index": 0,
+          "label": "世界H3提示词"
+        },
+        {
+          "name": "光影9D设计",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1,
+          "label": "光影9D设计"
+        },
+        {
+          "name": "视觉语言参数",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2,
+          "label": "视觉语言参数"
+        },
+        {
+          "name": "色彩60_30_10",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 3,
+          "label": "色彩60_30_10"
+        },
+        {
+          "name": "摄影8大师",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 4,
+          "label": "摄影8大师"
+        },
+        {
+          "name": "经验矩阵",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 5,
+          "label": "经验矩阵"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "WorldBuildingPro"
+      },
+      "widgets_values": [
+        "T2VA (文生视频, 无参考图)",
+        "自动",
+        "父女在厨房, 雨夜, 1998 年哈尔滨, 父亲在切菜, 女儿坐在桌边",
+        "塔可夫斯基",
+        "罗杰·迪金斯_Roger_Deakins",
+        "14mm_ultra_wide",
+        "T1.4_T2_extreme",
+        "ELS",
+        "rule_of_thirds",
+        "暖橙黄 #D4A24C",
+        "老红 #8B2E1F",
+        "老白绿 #8E9F7E",
+        "自然光 (太阳)",
+        "顺光",
+        "强光",
+        "warm_3200K",
+        "硬光",
+        "高调_2_1",
+        "长阴影",
+        "丁达尔效应",
+        "正午",
+        "压抑中见希望, 说不清但有重量",
+        "想说对不起但拉不下脸, 想靠近又怕伤害",
+        "让观众感到复杂, 难说清",
+        "一封没寄出的信 / 半瓶白酒 / 老式收音机 / 缝纫机",
+        "《花样年华》色调 / 《一一》节奏 / 《步履不停》家庭",
+        true,
+        "auto",
+        0.5,
+        "none",
+        "auto",
+        ""
+      ],
+      "title": "世界"
+    },
+    {
+      "id": 7,
+      "type": "ArtDirectionPro",
+      "pos": [
+        1200,
+        660
+      ],
+      "size": [
+        320,
+        828
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "视觉风格",
+          "type": "STRING",
+          "link": null,
+          "label": "视觉风格"
+        },
+        {
+          "name": "材质重点",
+          "type": "STRING",
+          "link": null,
+          "label": "材质重点"
+        },
+        {
+          "name": "光影",
+          "type": "STRING",
+          "link": null,
+          "label": "光影"
+        },
+        {
+          "name": "颜色",
+          "type": "STRING",
+          "link": null,
+          "label": "颜色"
+        },
+        {
+          "name": "空间布局",
+          "type": "STRING",
+          "link": null,
+          "label": "空间布局"
+        },
+        {
+          "name": "导演风格",
+          "type": "STRING",
+          "link": null,
+          "label": "导演风格"
+        },
+        {
+          "name": "灵魂注入",
+          "type": "STRING",
+          "link": 11,
+          "label": "灵魂注入"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "美术圣经",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0,
+          "label": "美术圣经"
+        },
+        {
+          "name": "视觉语言参数",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1,
+          "label": "视觉语言参数"
+        },
+        {
+          "name": "色彩60_30_10",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2,
+          "label": "色彩60_30_10"
+        },
+        {
+          "name": "光影9D设计",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 3,
+          "label": "光影9D设计"
+        },
+        {
+          "name": "摄影8大师",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 4,
+          "label": "摄影8大师"
+        },
+        {
+          "name": "灵魂注入载荷",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 5,
+          "label": "灵魂注入载荷"
+        },
+        {
+          "name": "H3三字段addon",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 6,
+          "label": "H3三字段addon"
+        },
+        {
+          "name": "电影签名addon",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 7,
+          "label": "电影签名addon"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ArtDirectionPro"
+      },
+      "widgets_values": [
+        "auto",
+        "none",
+        "none",
+        "none",
+        "none",
+        "auto",
+        1.0,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.85,
+        0.3,
+        0.5,
+        0.7,
+        "lucid-dreamy",
+        "王家卫",
+        0.5,
+        0.0,
+        "父女在厨房, 雨夜, 1998 年哈尔滨",
+        "织物",
+        "原木桌面, 有 1998 年的水渍",
+        "1_自然光_日光",
+        "夕阳从窗户进来, 形成 60 度侧光, 影子拉到对面墙",
+        "1_高饱和暖色",
+        "主色橙黄 (60%), 辅色红 (30%), 点缀色老白绿 (10%)",
+        "1_室内_封闭",
+        "厨房 8 平米, 有冰箱/炉灶/餐桌, 老式吊灯",
+        "1998 年, 中国东北",
+        "罗杰·迪金斯_Roger_Deakins",
+        true
+      ],
+      "title": "美术 4D"
+    },
+    {
+      "id": 8,
+      "type": "UNETLoader",
+      "pos": [
+        1750,
+        100
+      ],
+      "size": [
+        320,
+        108
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            12
+          ],
+          "slot_index": 0,
+          "label": "MODEL"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "v1-5-pruned-emaonly.safetensors",
+        "default"
+      ],
+      "title": "加载 UNet"
+    },
+    {
+      "id": 9,
+      "type": "CLIPLoader",
+      "pos": [
+        1750,
+        280
+      ],
+      "size": [
+        320,
+        108
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            13,
+            14
+          ],
+          "slot_index": 0,
+          "label": "CLIP"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "v1-5-pruned-emaonly.safetensors",
+        "stable_diffusion",
+        "default"
+      ],
+      "title": "加载 CLIP"
+    },
+    {
+      "id": 10,
+      "type": "VAELoader",
+      "pos": [
+        1750,
+        460
+      ],
+      "size": [
+        320,
+        84
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            15
+          ],
+          "slot_index": 0,
+          "label": "VAE"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "vae-ft-mse-840000.safetensors"
+      ],
+      "title": "加载 VAE"
+    },
+    {
+      "id": 11,
+      "type": "CLIPTextEncode",
+      "pos": [
+        2300,
+        100
+      ],
+      "size": [
+        320,
+        84
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 13,
+          "label": "CLIP",
+          "slot_index": 0
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 21,
+          "label": "text",
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            16
+          ],
+          "slot_index": 0,
+          "label": "CONDITIONING"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "[从 DirectorMasteryNode.统一电影提示词 复制]"
+      ],
+      "title": "正条件"
+    },
+    {
+      "id": 12,
+      "type": "CLIPTextEncode",
+      "pos": [
+        2300,
+        280
+      ],
+      "size": [
+        320,
+        84
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 14,
+          "label": "CLIP",
+          "slot_index": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            17
+          ],
+          "slot_index": 0,
+          "label": "CONDITIONING"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "low quality, blurry, watermark, text, deformed"
+      ],
+      "title": "负条件"
+    },
+    {
+      "id": 13,
+      "type": "EmptyLatentImage",
+      "pos": [
+        2300,
+        460
+      ],
+      "size": [
+        320,
+        132
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            18
+          ],
+          "slot_index": 0,
+          "label": "LATENT"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        512,
+        768,
+        1
+      ],
+      "title": "空潜空间"
+    },
+    {
+      "id": 14,
+      "type": "CinematicStudio",
+      "pos": [
+        2300,
+        640
+      ],
+      "size": [
+        320,
+        588
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "灵魂注入",
+          "type": "STRING",
+          "link": 7,
+          "label": "灵魂注入"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "23效果总览",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0,
+          "label": "23效果总览"
+        },
+        {
+          "name": "视觉语言参数",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1,
+          "label": "视觉语言参数"
+        },
+        {
+          "name": "色彩60_30_10",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 2,
+          "label": "色彩60_30_10"
+        },
+        {
+          "name": "光影9D设计",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 3,
+          "label": "光影9D设计"
+        },
+        {
+          "name": "摄影8大师",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 4,
+          "label": "摄影8大师"
+        },
+        {
+          "name": "选中模型",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 5,
+          "label": "选中模型"
+        },
+        {
+          "name": "模型弱点规避",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 6,
+          "label": "模型弱点规避"
+        },
+        {
+          "name": "角色一致性工作流",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 7,
+          "label": "角色一致性工作流"
+        },
+        {
+          "name": "11阶段流水线",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 8,
+          "label": "11阶段流水线"
+        },
+        {
+          "name": "H3提示词",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 9,
+          "label": "H3提示词"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CinematicStudio"
+      },
+      "widgets_values": [
+        "venom_symbiote",
+        "赛博朋克城市夜晚, 主角获得超能力",
+        5,
+        "zh",
+        "https://example.com/person.jpg",
+        "赛博朋克夹克配霓虹面罩, 残破牛仔裤",
+        "ROCO",
+        "塔可夫斯基",
+        "罗杰·迪金斯_Roger_Deakins",
+        "14mm_ultra_wide",
+        "T1.4_T2_extreme",
+        "ELS",
+        "rule_of_thirds",
+        "冷蓝 #1A2B3C (主色 60% — 赛博朋克冷色)",
+        "霓虹紫 #9D4EDD (辅色 30% — 城市霓虹)",
+        "毒液红 #FF003D (点缀色 10% — 戏剧时刻)",
+        "自然光 (太阳)",
+        "顺光",
+        "warm_3200K",
+        "高调_2_1",
+        "正午",
+        true
+      ],
+      "title": "电影 (终)"
+    },
+    {
+      "id": 15,
+      "type": "KSampler",
+      "pos": [
+        2300,
+        820
+      ],
+      "size": [
+        320,
+        228
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 12,
+          "label": "模型",
+          "slot_index": 0
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 16,
+          "label": "正面条件",
+          "slot_index": 1
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 17,
+          "label": "负面条件",
+          "slot_index": 2
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 18,
+          "label": "潜空间图像",
+          "slot_index": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            19
+          ],
+          "slot_index": 0,
+          "label": "LATENT"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        42,
+        "random",
+        20,
+        7.5,
+        "euler",
+        "normal",
+        1.0
+      ],
+      "title": "KSampler"
+    },
+    {
+      "id": 16,
+      "type": "VAEDecode",
+      "pos": [
+        2300,
+        1000
+      ],
+      "size": [
+        320,
+        108
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 19,
+          "label": "潜空间",
+          "slot_index": 0
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 15,
+          "label": "VAE",
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            20
+          ],
+          "slot_index": 0,
+          "label": "IMAGE"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": [],
+      "title": "VAE 解码"
+    },
+    {
+      "id": 17,
+      "type": "PreviewImage",
+      "pos": [
+        2300,
+        1180
+      ],
+      "size": [
+        320,
+        84
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 20,
+          "label": "图像",
+          "slot_index": 0
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": [],
+      "title": "预览图"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      5,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      1,
+      0,
+      6,
+      0,
+      "STRING"
+    ],
+    [
+      3,
+      1,
+      0,
+      7,
+      6,
+      "STRING"
+    ],
+    [
+      4,
+      1,
+      0,
+      2,
+      3,
+      "STRING"
+    ],
+    [
+      5,
+      1,
+      0,
+      3,
+      3,
+      "STRING"
+    ],
+    [
+      6,
+      1,
+      0,
+      4,
+      21,
+      "STRING"
+    ],
+    [
+      7,
+      1,
+      0,
+      14,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      2,
+      0,
+      3,
+      0,
+      "STRING"
+    ],
+    [
+      9,
+      3,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      10,
+      5,
+      0,
+      6,
+      0,
+      "STRING"
+    ],
+    [
+      11,
+      6,
+      0,
+      7,
+      6,
+      "STRING"
+    ],
+    [
+      12,
+      8,
+      0,
+      15,
+      0,
+      "MODEL"
+    ],
+    [
+      13,
+      9,
+      0,
+      11,
+      0,
+      "CLIP"
+    ],
+    [
+      14,
+      9,
+      0,
+      12,
+      0,
+      "CLIP"
+    ],
+    [
+      15,
+      10,
+      0,
+      16,
+      1,
+      "VAE"
+    ],
+    [
+      16,
+      11,
+      0,
+      15,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      17,
+      12,
+      0,
+      15,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      18,
+      13,
+      0,
+      15,
+      3,
+      "LATENT"
+    ],
+    [
+      19,
+      15,
+      0,
+      16,
+      0,
+      "LATENT"
+    ],
+    [
+      20,
+      16,
+      0,
+      17,
+      0,
+      "IMAGE"
+    ],
+    [
+      21,
+      1,
+      4,
+      11,
+      1,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "组1: 1 总控节点 (替代 5 起点)",
+      "bounding": [
+        50,
+        50,
+        500,
+        1700
+      ],
+      "color": "#7f9e5a",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "id": 2,
+      "title": "组2: 剧本+概念+世界 (业务链)",
+      "bounding": [
+        600,
+        50,
+        500,
+        1100
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "id": 3,
+      "title": "组3: 美术+概念+世界",
+      "bounding": [
+        1150,
+        50,
+        500,
+        1100
+      ],
+      "color": "#b85a4e",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "id": 4,
+      "title": "组4: 3 模型分别加载 (UNet/CLIP/VAE)",
+      "bounding": [
+        1700,
+        50,
+        500,
+        700
+      ],
+      "color": "#d65a8c",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "id": 5,
+      "title": "组5: 条件编码 + 采样 + 解码 + 终节点",
+      "bounding": [
+        2250,
+        50,
+        500,
+        1300
+      ],
+      "color": "#e08e45",
+      "font_size": 24,
+      "locked": false
+    }
+  ],
+  "config": {},
+  "extra": {
+    "workflow_info": {
+      "name": "电影文生视频 mega-workflow",
+      "description": "1 总控 + 5 起点 + 业务链 + 3 模型加载 + 采样 + 解码",
+      "video_type": "电影 T2V",
+      "target_output_node": "CinematicStudio",
+      "total_nodes": 17,
+      "total_links": 20,
+      "link_ok": 20,
+      "link_fail": 0,
+      "node_types": [
+        "ArtDirectionPro",
+        "CLIPLoader",
+        "CLIPTextEncode",
+        "CinematicStudio",
+        "ConceptPitchPro",
+        "DirectorMasteryNode",
+        "DirectorStoryboardPro",
+        "EmptyLatentImage",
+        "KSampler",
+        "PreviewImage",
+        "ScriptArchitecturePro",
+        "ScriptBodyPro",
+        "UNETLoader",
+        "VAEDecode",
+        "VAELoader",
+        "WorldBuildingPro"
+      ],
+      "phase": "36.6 v5 LiteGraph 中文"
+    }
+  },
+  "version": 0.4
+}

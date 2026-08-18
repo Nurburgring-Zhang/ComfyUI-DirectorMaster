@@ -2,7 +2,13 @@
 
 **导演级影视提示词聚合节点系统** — 16 个超级节点 / 600 导演数据库 / 246+ 创作模式，覆盖剧本 → 创意 → 美术 → 声音 → 分镜 → 角色/资产 → 汇总 → 视频模型路由 → 归档版本控制的完整创作链路。
 
-当前版本：**V16.0-MERGED**（V15.0-MERGED + 全随机 / 秒级时长 / 全方向输出 / AIGC 视频生产适配）。
+当前版本：**V16.0.1-MERGED**（V16.0-MERGED + legacy 兼容层恢复修订）。
+
+## V16.0.1 修订（完整性恢复）
+
+- **恢复 46 个 legacy 细粒度节点可选兼容层**：V16.0 打包时该兼容层被整体移除且未在报告中披露，V16.0.1 从 V14.3 归档完整恢复 73 个文件（46 legacy 节点模块 + 23 legacy 工作流 + 历史文档），并接回 `DIRECTORMASTER_LEGACY_NODES=1` 动态注册机制。实测：默认加载 17 节点；`DIRECTORMASTER_LEGACY_NODES=1` 加载 63 节点（17 超级 + 46 legacy），0 加载错误
+- **保持移除编造内容库**：`aggregator/library/` 下 500 条槽位拼接的编造剧本/分镜 JSON（24.6MB）经抽查确认违反零虚假红线，维持移除，当前代码零引用
+- **数据库完整性核实**：600 导演库、knowledge_base（25 文件）、scene_library / story_sense_data / director_soul 等真实数据库逐字节比对完整，director_data_unified 与 director_soul 较 V14.2 增大（V15 扩容）
 
 ## V16.0 新增能力（四项需求）
 
