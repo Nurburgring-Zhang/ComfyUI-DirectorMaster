@@ -147,7 +147,8 @@ class DirectorMasterSound(DirectorNodeBase):
         _ND = "无(默认)"
         _R = "🎲 随机"
         return {"required": {
-            "声音模式": (SOUND_MODES, {"default": "声音设计"}),
+            "声音模式": (["全部(声音设计+音乐配乐+声音层+沉默)", _R]+SOUND_MODES, {"default": "全部(声音设计+音乐配乐+声音层+沉默)",
+                "tooltip": "V16.0: 默认输出全部 4 个声音方向 (声音设计+音乐配乐+声音层+沉默); 也可单选其一; 🎲 随机"}),
             "启用反AI规则": ("BOOLEAN", {"default": True,
                 "tooltip": "从核心数据包继承, 此处可单独覆盖"}),
             "声音风格": ([_ND,_R,"写实","极简","丰富","电子","民族","环境氛围",
@@ -211,15 +212,27 @@ class DirectorMasterSound(DirectorNodeBase):
     CATEGORY = "PromptLibrary/聚合/声音"
 
     def _do_build(self, **kwargs):
+        _SND_ALL = "全部(声音设计+音乐配乐+声音层+沉默)"
         mode = kwargs.get("声音模式","声音设计")
-        if mode not in SOUND_MODES: mode = "声音设计"
+        # V16.0 需求1: 模式选择器支持 🎲 随机; 需求3: 全部方向
+        if mode == "🎲 随机":
+            import random as _r
+            mode = _r.choice(SOUND_MODES)
+        if mode not in SOUND_MODES and mode != _SND_ALL: mode = _SND_ALL
         core = parse_core_pack(kwargs.get("核心数据包",""))
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
         director = core.get("_导演风格") or kwargs.get("导演风格","王家卫")
         mood = core.get("_情绪基调","孤独")
 
-        builder = TEMPLATES.get(mode, _build_sound_template)
-        main = builder(scene, director, mood, core)
+        # V16.0 需求3: "全部" 模式输出全部 4 个声音方向
+        if mode == _SND_ALL:
+            main = _build_sound_template(scene, director, mood, core)
+            main += "\n\n" + _build_music_template(scene, director, mood, core)
+            main += "\n\n" + _build_sound_layer_template(scene, director, mood, core)
+            main += "\n\n" + _build_silence_template(scene, director, mood, core)
+        else:
+            builder = TEMPLATES.get(mode, _build_sound_template)
+            main = builder(scene, director, mood, core)
         main += self._director_block(director)
         from aggregator.dimensions import apply_dimensions
         main += "\n\n" + apply_dimensions("声音", kwargs)

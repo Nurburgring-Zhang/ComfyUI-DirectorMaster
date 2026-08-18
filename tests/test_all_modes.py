@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-V14.3-MERGED 全量回归测试 — 13 节点 × 全部下拉模式运行时实测
+V15.0-MERGED 全量回归测试 — 17 节点 × 全部下拉模式运行时实测
 ================================================================
 不依赖 pytest:  python3 tests/test_all_modes.py
 覆盖:
@@ -69,7 +69,7 @@ def call(cls, kw):
 
 def main():
     print("=" * 60)
-    print("  V14.3-MERGED 全量回归 (13 节点 × 全模式)")
+    print("  V15.0-MERGED 全量回归 (17 节点 × 全模式)")
     print("=" * 60)
 
     # 1. 加载
@@ -80,9 +80,11 @@ def main():
         "DirectorMasterArt", "DirectorMasterSound", "DirectorMasterCinematic",
         "DirectorMasterCharacters", "DirectorMasterAsset", "DirectorMasterSummary",
         "DirectorMasterRouter", "DirectorMasterVideoRouter", "DirectorMasterArchive",
+        "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
+        "DirectorMasterFusion",
         "DirectorMasterFinal",
     }
-    check("节点集合 == 13 个预期节点", set(M.keys()) == expected,
+    check("节点集合 == 17 个预期节点", set(M.keys()) == expected,
           f"diff={set(M.keys()) ^ expected}")
     check("无重复下拉 (导演库)", len(M['DirectorMasterCore'].INPUT_TYPES()['required']['导演名'][0])
           == len(set(M['DirectorMasterCore'].INPUT_TYPES()['required']['导演名'][0])))

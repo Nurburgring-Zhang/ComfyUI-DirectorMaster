@@ -99,10 +99,11 @@ class DirectorMasterRouter(DirectorNodeBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        _R = "🎲 随机"
         return {"required": {
             "用户意图": ("STRING", {"default": "父女厨房雨夜, 霓虹灯在雨水中反射", "multiline": True,
                 "tooltip": "用户原始意图(可空, 空时从核心数据包继承场景描述)"}),
-            "目标模型": (TARGETS, {"default": "通用 (兼容所有模型)"}),
+            "目标模型": (TARGETS+[_R], {"default": "通用 (兼容所有模型)"}),
         }, "optional": {
             "核心数据包": ("STRING", {"default": "", "multiline": True, "forceInput": True,
                 "tooltip": "★ 必接 Core.核心数据包 — 自动获取导演/场景/情绪/AI配置 (AI自动继承)"}),
@@ -112,14 +113,14 @@ class DirectorMasterRouter(DirectorNodeBase):
                 "tooltip": "接 Script.剧本 — 作为视频生成的内容基础(优先级最高)"}),
             "分镜输入": ("STRING", {"default": "", "multiline": True, "forceInput": True,
                 "tooltip": "接 Cinematic.分镜 或 Summary.分镜脚本 — 视频生成内容基础"}),
-            "视觉风格": (VISUAL_STYLES, {"default": "电影感"}),
+            "视觉风格": ([_R]+VISUAL_STYLES, {"default": "电影感"}),
             "对白": ("STRING", {"default": "", "multiline": True}),
-            "对白语言": (LANGUAGES, {"default": "英语"}),
+            "对白语言": ([_R]+LANGUAGES, {"default": "英语"}),
             "非画内音乐": ("STRING", {"default": "", "multiline": True}),
             "时长秒": ("INT", {"default": 8, "min": 3, "max": 20, "step": 1}),
-            "画幅比例": (ASPECTS, {"default": "16:9 横屏"}),
-            "故事理论": (STORY_THEORIES, {"default": "通用"}),
-            "钩子风格": (HOOKS, {"default": "无"}),
+            "画幅比例": ([_R]+ASPECTS, {"default": "16:9 横屏"}),
+            "故事理论": ([_R]+STORY_THEORIES, {"default": "通用"}),
+            "钩子风格": ([_R]+HOOKS, {"default": "无"}),
             "需要字幕": ("BOOLEAN", {"default": False}),
             "有首帧": ("BOOLEAN", {"default": False}),
             "有尾帧": ("BOOLEAN", {"default": False}),
@@ -138,7 +139,20 @@ class DirectorMasterRouter(DirectorNodeBase):
         core = parse_core_pack(kwargs.get("核心数据包",""))
         intent = kwargs.get("用户意图","")
         target = kwargs.get("目标模型","通用 (兼容所有模型)")
+        # V16.0 需求1: 目标模型与属性下拉支持 🎲 随机
+        import random as _r
+        def _rnd(v, opts):
+            if v == "🎲 随机":
+                return _r.choice([o for o in opts if o != "🎲 随机"])
+            return v
+        if target == "🎲 随机":
+            target = _r.choice(TARGETS)
         if target not in TARGETS: target = "通用 (兼容所有模型)"
+        kwargs["视觉风格"] = _rnd(kwargs.get("视觉风格","电影感"), VISUAL_STYLES)
+        kwargs["对白语言"] = _rnd(kwargs.get("对白语言","英语"), LANGUAGES)
+        kwargs["画幅比例"] = _rnd(kwargs.get("画幅比例","16:9 横屏"), ASPECTS)
+        kwargs["故事理论"] = _rnd(kwargs.get("故事理论","通用"), STORY_THEORIES)
+        kwargs["钩子风格"] = _rnd(kwargs.get("钩子风格","无"), HOOKS)
         # 优先核心数据包, fallback widget
         scene = core.get("_场景描述") or kwargs.get("场景描述") or intent
         emotion = core.get("_情绪基调") or kwargs.get("情绪","通用")

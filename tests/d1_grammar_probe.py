@@ -51,7 +51,7 @@ core_pack = core_res[1]
 
 cine = M["DirectorMasterCinematic"]
 it = cine.INPUT_TYPES()
-modes = it["required"]["画面模式"][0]
+modes = [m for m in it["required"]["画面模式"][0] if m != "🎲 随机"]
 print(f"Cinematic 模式数: {len(modes)}")
 
 SHOT_ROW = re.compile(r"^\s*(\d+)\s+\S")

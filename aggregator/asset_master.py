@@ -160,8 +160,15 @@ def _hellgrind_states():
 def _build_hellgrind_asset(kwargs, project, director):
     """HellGrind 资产库 — 真实引擎输出: descriptor/状态变体/voice/behavior/完整prompt块/压测/锁定."""
     import asset_registry as _ar
+    # V16.0 需求1: HellGrind 资产名/状态版本支持 🎲 随机
+    import random as _r_hg
     name = kwargs.get("HellGrind资产名") or "@roco"
+    if name == "🎲 随机":
+        name = _r_hg.choice(sorted(_ar.ASSET_REGISTRY.keys()))
     state_raw = kwargs.get("HellGrind状态版本") or "(默认)"
+    if state_raw == "🎲 随机":
+        _states = sorted({s for a in _ar.ASSET_REGISTRY.values() for s in a.states.keys()})
+        state_raw = _r_hg.choice(_states) if _states else "(默认)"
     state = None if state_raw == "(默认)" else state_raw
     do_test = bool(kwargs.get("HellGrind压力测试", True))
     do_lock = bool(kwargs.get("HellGrind锁定", False))
@@ -220,8 +227,9 @@ class DirectorMasterAsset(DirectorNodeBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        _R = "🎲 随机"
         return {"required": {
-            "资产模式": (ASSET_MODES, {"default": "角色设定"}),
+            "资产模式": (ASSET_MODES+[_R], {"default": "角色设定"}),
             "项目名": ("STRING", {"default": "我的电影项目"}),
         }, "optional": {
             "核心数据包": ("STRING", {"default": "", "multiline": True, "forceInput": True,
@@ -262,19 +270,19 @@ class DirectorMasterAsset(DirectorNodeBase):
             "参考视频_IMAGE_风格母版": ("IMAGE", {"tooltip": "接 LoadVideo/VHS 的 IMAGE 批次 (风格母版, 多帧)"}),
             "角色名": ("STRING", {"default": "主角", "tooltip": "角色名称"}),
             "角色年龄": ("STRING", {"default": "30", "tooltip": "角色年龄"}),
-            "角色性别": (["男", "女", "不限"], {"default": "男"}),
+            "角色性别": ([_R,"男", "女", "不限"], {"default": "男"}),
             "角色性格": ("STRING", {"default": "沉默寡言, 内敛, 用行动表达", "multiline": True}),
             "角色外貌": ("STRING", {"default": "短发, 瘦削, 颧骨高, 眼窝深, 右手食指有老茧", "multiline": True}),
             "角色服装": ("STRING", {"default": "深蓝色工作服(褪色), 灰色秋衣, 布鞋", "multiline": True}),
-            "环境类型": (["室内", "室外", "太空", "水下", "虚拟"], {"default": "室内"}),
+            "环境类型": ([_R,"室内", "室外", "太空", "水下", "虚拟"], {"default": "室内"}),
             "环境描述": ("STRING", {"default": "厨房8平米, 灶台+砧板+碗柜+餐桌+窗", "multiline": True}),
             "服化道描述": ("STRING", {"default": "旧信(泛黄), 凤梨罐头(过期), 钢笔(没墨水), 收音机", "multiline": True}),
-            "视觉风格": (["写实", "日漫", "美漫", "3D CG", "水彩", "油画", "赛璐璐", "水墨"], {"default": "写实"}),
-            # V14.2: HellGrind 资产库输入 (仅 HellGrind资产库 模式使用)
-            "HellGrind资产名": (_hellgrind_names(), {"default": "@roco",
-                "tooltip": "V14.2: Hell Grind 资产库 — 5角色(@roco/@jax/@rein/@lulu/@kaine) + 2场景(@loc_*) + 1道具(@crystal_sword)"}),
-            "HellGrind状态版本": (_hellgrind_states(), {"default": "(默认)",
-                "tooltip": "V14.2: 资产状态变体 (blood/injured/wet/clothed_change/night/rain...)"}),
+            "视觉风格": ([_R,"写实", "日漫", "美漫", "3D CG", "水彩", "油画", "赛璐璐", "水墨"], {"default": "写实"}),
+            # V14.2: HellGrind 资产库输入 (仅 HellGrind资产库 模式使用); V16.0 需求1: 加 🎲 随机
+            "HellGrind资产名": (["🎲 随机"]+_hellgrind_names(), {"default": "@roco",
+                "tooltip": "V14.2: Hell Grind 资产库 — 5角色(@roco/@jax/@rein/@lulu/@kaine) + 2场景(@loc_*) + 1道具(@crystal_sword); 🎲 随机"}),
+            "HellGrind状态版本": (["🎲 随机"]+_hellgrind_states(), {"default": "(默认)",
+                "tooltip": "V14.2: 资产状态变体 (blood/injured/wet/clothed_change/night/rain...); 🎲 随机"}),
             "HellGrind压力测试": ("BOOLEAN", {"default": True,
                 "tooltip": "V14.2: 运行同帧一致性+失败模式压力测试"}),
             "HellGrind锁定": ("BOOLEAN", {"default": False,
@@ -289,7 +297,20 @@ class DirectorMasterAsset(DirectorNodeBase):
     def build(self, **kwargs):
         import json as _json
         mode = kwargs.get("资产模式", "角色设定")
+        # V16.0 需求1: 模式选择器支持 🎲 随机
+        if mode == "🎲 随机":
+            import random as _r
+            mode = _r.choice(ASSET_MODES)
         if mode not in ASSET_MODES: mode = "角色设定"
+        # V16.0 需求1: 属性下拉支持 🎲 随机
+        import random as _r_attr
+        def _rnd_attr(v, opts):
+            if v == "🎲 随机":
+                return _r_attr.choice([o for o in opts if o != "🎲 随机"])
+            return v
+        kwargs["角色性别"] = _rnd_attr(kwargs.get("角色性别", "男"), ["男", "女", "不限"])
+        kwargs["环境类型"] = _rnd_attr(kwargs.get("环境类型", "室内"), ["室内", "室外", "太空", "水下", "虚拟"])
+        kwargs["视觉风格"] = _rnd_attr(kwargs.get("视觉风格", "写实"), ["写实", "日漫", "美漫", "3D CG", "水彩", "油画", "赛璐璐", "水墨"])
         core = parse_core_pack(kwargs.get("核心数据包", ""))
         project = kwargs.get("项目名", "我的电影项目")
         director = core.get("_导演风格", "王家卫") if core else "王家卫"

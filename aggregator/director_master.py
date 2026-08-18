@@ -28,12 +28,26 @@ try:
                  + sorted([f"[短视频] {n}" for n in SHORT_VIDEO_DIRECTORS_100])
                  + sorted([f"[动画] {n}" for n in ANIMATION_DIRECTORS_100]))
     # V14.3 E5: 补全有档案但不在 5 域下拉的导演 (36 位大师: 王家卫/诺兰/黑泽明/宫崎骏…)
-    #   下拉 = 档案全集 (534), 不再只能靠模糊搜索触达。
+    #   下拉 = 档案全集, 不再只能靠模糊搜索触达。
     # V14.3 (审查P2修复): 动画大师按域贴 [动画] 前缀, 其余 [电影]。
+    # V15.0-MERGED: 扩容池按池域前缀 (当代新锐→[电影], 跨界→[跨界], 非西方→[世界])。
     _ANIMATION_MASTERS = {"今敏", "宫崎骏", "押井守", "新海诚", "高畑勋", "大友克洋"}
+    try:
+        from director_profiles_extended import DIRECTORS_EXTENDED as _V15_EXT
+    except ImportError:
+        _V15_EXT = {}
+    _POOL_TAG = {"当代新锐": "电影", "跨界": "跨界", "非西方": "世界"}
+
+    def _tag_for(name):
+        if name in _ANIMATION_MASTERS:
+            return "动画"
+        if name in _V15_EXT:
+            return _POOL_TAG.get(_V15_EXT[name].get("pool", ""), "电影")
+        return "电影"
+
     _in_dropdown = set(x.split("] ", 1)[1] for x in DIR_NAMES if "] " in x)
     _extra = sorted(set(DIRECTOR_PROFILES_ALL.keys()) - _in_dropdown)
-    DIR_NAMES += [f"[{'动画' if n in _ANIMATION_MASTERS else '电影'}] {n}" for n in _extra]
+    DIR_NAMES += [f"[{_tag_for(n)}] {n}" for n in _extra]
     DIR_NAMES = sorted(set(DIR_NAMES))
     if "[电影] 王家卫" in DIR_NAMES:
         DIR_NAMES.remove("[电影] 王家卫")
@@ -81,6 +95,23 @@ PARAM_PRESETS = {
 }
 PARAM_NAMES = list(PARAM_PRESETS.keys())
 
+# V16.0 需求1: Core 属性下拉选项常量 (供 INPUT_TYPES 与 build 随机解析共用)
+_RND = "🎲 随机"
+CORE_YEAR_OPTS = ["现代","80年代","90年代","2000s","2010s","2020s","未来","架空/奇幻","历史(1900前)"]
+CORE_SEASON_OPTS = ["春","夏","秋","冬","不明"]
+CORE_CULTURE_OPTS = ["中国都市","中国乡镇","日韩","欧美","拉丁","中东","北欧","东南亚","其他"]
+CORE_PLATFORM_OPTS = ["院线长片","流媒体","短视频","竖屏短剧","广告/MV","电视连续剧","网络剧","实验短片"]
+CORE_AUDIENCE_OPTS = ["全年龄","年轻向(15-30)","25-45岁都市","中老年","合家欢","文艺向","二次元","垂类(科幻/悬疑/古装)"]
+CORE_BUDGET_OPTS = ["独立低成本","中等制作","商业大片","A+级(亿元+)","低成本爆款"]
+CORE_RUNTIME_OPTS = ["3-5分钟短片","8-15分钟","30-60分钟","90分钟","120分钟+","系列(总60+)"]
+CORE_ASPECT_OPTS = ["2.39:1 宽银幕","1.85:1 院线","16:9 流媒体","9:16 竖屏","1:1 方形","4:3 经典","2:1 现代宽屏"]
+CORE_CONFLICT_OPTS = ["爱","复仇","救赎","成长","生存","家庭","自由","身份","孤独","战争","阶级","欲望"]
+CORE_THEME_OPTS = ["孤独","爱","希望","绝望","救赎","成长","寻找","失去","自由","时间","记忆","死亡"]
+CORE_MOOD_OPTS = ["孤独","温暖","悲伤","愤怒","希望","史诗","悬疑","浪漫","宁静","恐惧","怀旧","喜剧"]
+CORE_VISUAL_OPTS = ["写实","梦幻","赛博朋克","复古胶片","黑白","水彩","油画","水墨","高饱和","低饱和","霓虹","暖色","冷色"]
+CORE_SUBTEXT_OPTS = ["无","弱","中","强","极强(字字有潜文本)"]
+CORE_PROMISE_OPTS = ["感动落泪","爆笑","震撼","治愈","深度思考","烧脑反转","肾上腺素","沉浸诗意","余味悠长"]
+
 
 class DirectorMasterCore(DirectorNodeBase):
     """V12.6 起点节点 — 世界级导演总控. 32 输入参数 + 2 输出 (统一电影提示词 + 核心数据包)."""
@@ -93,39 +124,39 @@ class DirectorMasterCore(DirectorNodeBase):
         return {"required": {
             "项目名": ("STRING", {"default": "沉默的凤梨",
                 "tooltip": "★ 项目名称 → 写入所有下游输出头部"}),
-            "导演名": (DIR_NAMES, {"default": "[电影] 王家卫",
-                "tooltip": "★ 534 导演库, 选导演即锁定其 12 维风格档案"}),
+            "导演名": (DIR_NAMES + [_RND], {"default": "[电影] 王家卫",
+                "tooltip": "★ 600 导演库, 选导演即锁定其风格档案; 🎲 随机 = 随机选一位导演"}),
             "导演名_自定义": ("STRING", {"default": "",
                 "tooltip": "可选. 填写后覆盖下拉, 支持 534 导演模糊搜索"}),
             "场景描述": ("STRING", {"default": "父女在厨房, 雨夜, 1998年哈尔滨, 父亲切菜, 女儿坐桌边, 桌上有凤梨罐头和旧信", "multiline": True,
                 "tooltip": "★ 核心场景, 1-3 句话"}),
-            "时间年代": ([_NO_DEFAULT,"现代","80年代","90年代","2000s","2010s","2020s","未来","架空/奇幻","历史(1900前)"], {"default": _NO_DEFAULT,
+            "时间年代": ([_NO_DEFAULT,_RND]+CORE_YEAR_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 时间年代 → 决定服化道/语言习惯/视觉风格"}),
-            "季节": ([_NO_DEFAULT,"春","夏","秋","冬","不明"], {"default": _NO_DEFAULT,
+            "季节": ([_NO_DEFAULT,_RND]+CORE_SEASON_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 季节 → 决定光影/色彩/环境音"}),
-            "地区文化": ([_NO_DEFAULT,"中国都市","中国乡镇","日韩","欧美","拉丁","中东","北欧","东南亚","其他"], {"default": _NO_DEFAULT,
+            "地区文化": ([_NO_DEFAULT,_RND]+CORE_CULTURE_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 地区文化 → 决定空间/服化道/语言风格"}),
-            "平台媒介": ([_NO_DEFAULT,"院线长片","流媒体","短视频","竖屏短剧","广告/MV","电视连续剧","网络剧","实验短片"], {"default": _NO_DEFAULT,
+            "平台媒介": ([_NO_DEFAULT,_RND]+CORE_PLATFORM_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 平台 → 决定叙事节奏/视觉规格/市场卖点"}),
-            "目标受众": ([_NO_DEFAULT,"全年龄","年轻向(15-30)","25-45岁都市","中老年","合家欢","文艺向","二次元","垂类(科幻/悬疑/古装)"], {"default": _NO_DEFAULT,
+            "目标受众": ([_NO_DEFAULT,_RND]+CORE_AUDIENCE_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 受众 → 决定情感浓度/节奏/对白密度"}),
-            "预算级别": ([_NO_DEFAULT,"独立低成本","中等制作","商业大片","A+级(亿元+)","低成本爆款"], {"default": _NO_DEFAULT,
+            "预算级别": ([_NO_DEFAULT,_RND]+CORE_BUDGET_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 预算 → 决定调度规模/特效/场景数"}),
-            "成片时长": ([_NO_DEFAULT,"3-5分钟短片","8-15分钟","30-60分钟","90分钟","120分钟+","系列(总60+)"], {"default": _NO_DEFAULT,
+            "成片时长": ([_NO_DEFAULT,_RND]+CORE_RUNTIME_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 时长 → 决定场次/节奏/情节点数"}),
-            "画幅比例": ([_NO_DEFAULT,"2.39:1 宽银幕","1.85:1 院线","16:9 流媒体","9:16 竖屏","1:1 方形","4:3 经典","2:1 现代宽屏"], {"default": _NO_DEFAULT,
+            "画幅比例": ([_NO_DEFAULT,_RND]+CORE_ASPECT_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 画幅 → 决定构图法则/视觉重量"}),
-            "核心冲突": ([_NO_DEFAULT,"爱","复仇","救赎","成长","生存","家庭","自由","身份","孤独","战争","阶级","欲望"], {"default": _NO_DEFAULT,
+            "核心冲突": ([_NO_DEFAULT,_RND]+CORE_CONFLICT_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 核心冲突 → 决定三幕结构的对抗轴"}),
-            "主题词": ([_NO_DEFAULT,"孤独","爱","希望","绝望","救赎","成长","寻找","失去","自由","时间","记忆","死亡"], {"default": _NO_DEFAULT,
+            "主题词": ([_NO_DEFAULT,_RND]+CORE_THEME_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 主题词 → 决定潜台词/意象系统"}),
-            "情绪基调": ([_NO_DEFAULT,"孤独","温暖","悲伤","愤怒","希望","史诗","悬疑","浪漫","宁静","恐惧","怀旧","喜剧"], {"default": _NO_DEFAULT,
+            "情绪基调": ([_NO_DEFAULT,_RND]+CORE_MOOD_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 情绪 → 注入灵魂预设 (10 维参数)"}),
-            "视觉调性": ([_NO_DEFAULT,"写实","梦幻","赛博朋克","复古胶片","黑白","水彩","油画","水墨","高饱和","低饱和","霓虹","暖色","冷色"], {"default": _NO_DEFAULT,
+            "视觉调性": ([_NO_DEFAULT,_RND]+CORE_VISUAL_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 视觉调性 → 决定色彩/光影/材质"}),
-            "潜文本强度": ([_NO_DEFAULT,"无","弱","中","强","极强(字字有潜文本)"], {"default": _NO_DEFAULT,
+            "潜文本强度": ([_NO_DEFAULT,_RND]+CORE_SUBTEXT_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 潜文本 → 决定对白/动作/物件的隐藏意义密度"}),
-            "观众承诺": ([_NO_DEFAULT,"感动落泪","爆笑","震撼","治愈","深度思考","烧脑反转","肾上腺素","沉浸诗意","余味悠长"], {"default": _NO_DEFAULT,
+            "观众承诺": ([_NO_DEFAULT,_RND]+CORE_PROMISE_OPTS, {"default": _NO_DEFAULT,
                 "tooltip": "★ 观众承诺 → 决定全片情绪走向"}),
             "对标作品": ("STRING", {"default": "《饮食男女》×《花样年华》×《小偷家族》", "multiline": True,
                 "tooltip": "★ 对标作品 → 用户/创作者直接给出, 覆盖 Vibe 输出"}),
@@ -142,12 +173,12 @@ class DirectorMasterCore(DirectorNodeBase):
                 "tooltip": "★ V13.2 多选: 情绪随情节推进演变, 用 逗号/箭头 分隔, 顺序即叙事顺序。例: '压抑→爆发→释然' — 第一幕压抑, 高潮爆发, 结尾释然。留空 = 用上方单选情绪基调贯穿全片"}),
             "视觉调性_混合": ("STRING", {"default": "", "multiline": True,
                 "tooltip": "★ V13.2 多选: 多种视觉调性混合/演变, 用 逗号/箭头 分隔。例: '写实→梦幻' 或 '复古胶片, 霓虹'。留空 = 用上方单选视觉调性"}),
-            "参数预设": (["默认(无覆盖)"] + PARAM_NAMES, {"default": "默认(无覆盖)",
-                "tooltip": "可选. 选导演级预设 (王家卫/诺兰/塔可夫斯基/是枝裕和/奉俊昊/库布里克/黑泽明)"}),
+            "参数预设": (["默认(无覆盖)", _RND] + PARAM_NAMES, {"default": "默认(无覆盖)",
+                "tooltip": "可选. 选导演级预设 (王家卫/诺兰/塔可夫斯基/是枝裕和/奉俊昊/库布里克/黑泽明); 🎲 随机"}),
             "高级参数JSON": ("STRING", {"default": "", "multiline": True,
                 "tooltip": "高级参数 JSON, 覆盖预设"}),
-            "灵魂预设": (["无(默认)"] + SOUL_NAMES, {"default": "无(默认)",
-                "tooltip": "选情绪→自动注入 10 维灵魂参数"}),
+            "灵魂预设": (["无(默认)", _RND] + SOUL_NAMES, {"default": "无(默认)",
+                "tooltip": "选情绪→自动注入 10 维灵魂参数; 🎲 随机"}),
             "灵魂注入_自定义": ("STRING", {"default": "", "multiline": True,
                 "tooltip": "自定义灵魂注入 (创造力=0.9, 想象力=0.85, ...)"}),
             "AI接口地址": ("STRING", {"default": "",
@@ -165,7 +196,14 @@ class DirectorMasterCore(DirectorNodeBase):
     def build(self, **kwargs):
         import re as _re
         # 提取全部 32 字段 (V12.6 v7 fix2: "无(默认)" 映射到 V9.5 默认值)
-        def _resolve(v, default):
+        # V16.0 需求1: _resolve 支持 🎲 随机 — 传入 options 时随机选一个真实值
+        def _resolve(v, default, options=None):
+            if v == "🎲 随机" and options:
+                import random as _r
+                real = [o for o in options if o not in ("无(默认)", "🎲 随机", "", "默认(无覆盖)")]
+                if real:
+                    return _r.choice(real)
+                return default
             if v == "无(默认)" or not v: return default
             return v
         project = _resolve(kwargs.get("项目名"), "未命名项目")
@@ -184,42 +222,49 @@ class DirectorMasterCore(DirectorNodeBase):
                 _rnd_c.setstate(_st)
             except Exception:
                 scene = "主角在雨夜的街头, 霓虹灯倒映在积水中"
-        mood = _resolve(kwargs.get("情绪基调"), "孤独")
+        mood = _resolve(kwargs.get("情绪基调"), "孤独", CORE_MOOD_OPTS)
         intent = _resolve(kwargs.get("导演意图_观众应感到"), "")
         anti_ai = kwargs.get("启用反AI规则",True)
         # V13.2: 多选/演变序列 — 留空则用单选值贯穿全片
         mood_arc = parse_multi_select(kwargs.get("情绪基调_演变", ""), default=mood)
-        year = _resolve(kwargs.get("时间年代"), "90年代")
-        season = _resolve(kwargs.get("季节"), "冬")
-        culture = _resolve(kwargs.get("地区文化"), "中国都市")
-        platform = _resolve(kwargs.get("平台媒介"), "院线长片")
-        audience = _resolve(kwargs.get("目标受众"), "25-45岁都市")
-        budget = _resolve(kwargs.get("预算级别"), "中等制作")
-        runtime = _resolve(kwargs.get("成片时长"), "90分钟")
-        aspect = _resolve(kwargs.get("画幅比例"), "1.85:1 院线")
-        conflict = _resolve(kwargs.get("核心冲突"), "家庭")
-        theme = _resolve(kwargs.get("主题词"), "孤独")
-        visual = _resolve(kwargs.get("视觉调性"), "梦幻")
+        year = _resolve(kwargs.get("时间年代"), "90年代", CORE_YEAR_OPTS)
+        season = _resolve(kwargs.get("季节"), "冬", CORE_SEASON_OPTS)
+        culture = _resolve(kwargs.get("地区文化"), "中国都市", CORE_CULTURE_OPTS)
+        platform = _resolve(kwargs.get("平台媒介"), "院线长片", CORE_PLATFORM_OPTS)
+        audience = _resolve(kwargs.get("目标受众"), "25-45岁都市", CORE_AUDIENCE_OPTS)
+        budget = _resolve(kwargs.get("预算级别"), "中等制作", CORE_BUDGET_OPTS)
+        runtime = _resolve(kwargs.get("成片时长"), "90分钟", CORE_RUNTIME_OPTS)
+        aspect = _resolve(kwargs.get("画幅比例"), "1.85:1 院线", CORE_ASPECT_OPTS)
+        conflict = _resolve(kwargs.get("核心冲突"), "家庭", CORE_CONFLICT_OPTS)
+        theme = _resolve(kwargs.get("主题词"), "孤独", CORE_THEME_OPTS)
+        visual = _resolve(kwargs.get("视觉调性"), "梦幻", CORE_VISUAL_OPTS)
         visual_arc = parse_multi_select(kwargs.get("视觉调性_混合", ""), default=visual)
-        subtext_strength = _resolve(kwargs.get("潜文本强度"), "强")
-        promise = _resolve(kwargs.get("观众承诺"), "感动落泪")
+        subtext_strength = _resolve(kwargs.get("潜文本强度"), "强", CORE_SUBTEXT_OPTS)
+        promise = _resolve(kwargs.get("观众承诺"), "感动落泪", CORE_PROMISE_OPTS)
         ref_films = kwargs.get("对标作品","")
         props = kwargs.get("关键道具","")
         subtext_desc = kwargs.get("潜文本_情感","")
         mode = "标准"
 
-        # 导演选择
+        # 导演选择 (V16.0 需求1: 支持 🎲 随机)
         custom = (kwargs.get("导演名_自定义") or "").strip()
         if custom:
             director = match_director_fuzzy(custom)
         else:
             dname = kwargs.get("导演名","[电影] 王家卫")
+            if dname == "🎲 随机":
+                import random as _r
+                dname = _r.choice(DIR_NAMES)
             director = dname.split("] ",1)[1] if "] " in dname else dname
 
-        # 灵魂注入
+        # 灵魂注入 (V16.0 需求1: 灵魂预设支持 🎲 随机)
         raw_soul = (kwargs.get("灵魂注入_自定义") or "").strip()
         if not raw_soul:
-            raw_soul = SOUL_PRESETS.get(kwargs.get("灵魂预设","无(默认)"),"")
+            _soul_preset = kwargs.get("灵魂预设","无(默认)")
+            if _soul_preset == "🎲 随机":
+                import random as _r
+                _soul_preset = _r.choice([s for s in SOUL_NAMES if s != "无(默认)"])
+            raw_soul = SOUL_PRESETS.get(_soul_preset,"")
         # 解析灵魂注入
         soul_vals = {}
         if raw_soul:
@@ -232,8 +277,12 @@ class DirectorMasterCore(DirectorNodeBase):
                 if m:
                     soul_vals[m.group(1)] = m.group(2).strip()
 
-        # 参数预设
-        param_json = PARAM_PRESETS.get(kwargs.get("参数预设","默认(无覆盖)"),"")
+        # 参数预设 (V16.0 需求1: 支持 🎲 随机)
+        _param_preset = kwargs.get("参数预设","默认(无覆盖)")
+        if _param_preset == "🎲 随机":
+            import random as _r
+            _param_preset = _r.choice([p for p in PARAM_NAMES if p != "默认(无覆盖)"])
+        param_json = PARAM_PRESETS.get(_param_preset,"")
         extra = {}
         if param_json:
             try: extra = _json.loads(param_json)

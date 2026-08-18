@@ -153,7 +153,8 @@ class DirectorMasterArt(DirectorNodeBase):
         _ND = "无(默认)"  # V12.6 v7 fix: 兼容老版本 saved workflow
         _R = "🎲 随机"  # V12.6 v8: 随机化选项
         return {"required": {
-            "美术模式": (ART_MODES, {"default": "美术指导"}),
+            "美术模式": (["全部(美术指导+空间一致性+空间布局)", _R]+ART_MODES, {"default": "全部(美术指导+空间一致性+空间布局)",
+                "tooltip": "V16.0: 默认输出全部 3 个美术方向 (美术指导+空间一致性+空间布局); 也可单选其一; 🎲 随机"}),
             "启用反AI规则": ("BOOLEAN", {"default": True,
                 "tooltip": "从核心数据包继承, 此处可单独覆盖"}),
             "色彩风格": ([_ND,_R,"梦幻","赛博朋克","复古胶片","黑白","暖色","冷色","高饱和","低饱和",
@@ -194,8 +195,13 @@ class DirectorMasterArt(DirectorNodeBase):
 
     def build(self, **kwargs):
         from aggregator.node_base import resolve_dropdown
+        _ART_ALL = "全部(美术指导+空间一致性+空间布局)"
         mode = kwargs.get("美术模式","美术指导")
-        if mode not in ART_MODES: mode = "美术指导"
+        # V16.0 需求1: 模式选择器支持 🎲 随机; 需求3: 全部方向
+        if mode == "🎲 随机":
+            import random as _r
+            mode = _r.choice(ART_MODES)
+        if mode not in ART_MODES and mode != _ART_ALL: mode = _ART_ALL
         core = parse_core_pack(kwargs.get("核心数据包",""))
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
         director = core.get("_导演风格") or kwargs.get("导演风格","王家卫")
@@ -234,8 +240,14 @@ class DirectorMasterArt(DirectorNodeBase):
             kwargs["色彩风格"] = color_arc[0]
 
         # 美术圣经模板已含 色彩系统/光影9D/摄影8大师/视觉语言参数, 全部在一个主输出里
-        builder = TEMPLATES.get(mode, _build_art_template)
-        bible = builder(scene, director, mood, core)
+        # V16.0 需求3: "全部" 模式输出全部 3 个美术方向 (美术指导+空间一致性+空间布局)
+        if mode == _ART_ALL:
+            bible = _build_art_template(scene, director, mood, core)
+            bible += "\n\n" + _build_spatial_template(scene, director, mood, core)
+            bible += "\n\n" + _build_spatial_layout_template(scene, director, mood, core)
+        else:
+            builder = TEMPLATES.get(mode, _build_art_template)
+            bible = builder(scene, director, mood, core)
         bible += self._director_block(director)
         from aggregator.dimensions import apply_dimensions, COLOR_MAP
         bible += "\n\n" + apply_dimensions("美术", kwargs)

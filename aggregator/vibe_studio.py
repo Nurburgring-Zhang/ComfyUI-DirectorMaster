@@ -94,10 +94,15 @@ def _build_market_audience(scene, director, mood, core, kwargs):
         predict_box_office, GENRE_AUDIENCE_8, RELEASE_PERIODS_5, MARKET_POSITION_3,
     )
     core = core or {}
-    # 1. 类型/档期/定位: 用户显式选择优先, 否则自动推断
-    genre = (kwargs.get("类型片市场") or "auto").strip()
-    period = (kwargs.get("档期策略") or "auto").strip()
-    position = (kwargs.get("市场定位") or "auto").strip()
+    # 1. 类型/档期/定位: 用户显式选择优先, 否则自动推断 (V16.0 需求1: 支持 🎲 随机)
+    import random as _r_mkt
+    def _rnd_mkt(v, opts):
+        if v == "🎲 随机":
+            return _r_mkt.choice([o for o in opts if o not in ("🎲 随机", "auto")])
+        return v
+    genre = _rnd_mkt((kwargs.get("类型片市场") or "auto").strip(), list(GENRE_AUDIENCE_8.keys()))
+    period = _rnd_mkt((kwargs.get("档期策略") or "auto").strip(), list(RELEASE_PERIODS_5.keys()))
+    position = _rnd_mkt((kwargs.get("市场定位") or "auto").strip(), list(MARKET_POSITION_3.keys()))
     genre_basis, period_basis, position_basis = "", "", ""
     if genre == "auto" or genre not in GENRE_AUDIENCE_8:
         genre, genre_basis = _infer_market_genre(scene, core, mood)
@@ -504,7 +509,7 @@ class DirectorMasterVibe(DirectorNodeBase):
         _ND = "无(默认)"  # V12.6 v7 fix: 兼容老版本 saved workflow
         _R  = "🎲 随机"    # V12.6 v8: 随机选择
         return {"required": {
-            "创意模式": (VIBE_MODES, {"default": "概念立项"}),
+            "创意模式": (VIBE_MODES+[_R], {"default": "概念立项"}),
             "启用反AI规则": ("BOOLEAN", {"default": True,
                 "tooltip": "从核心数据包继承, 此处可单独覆盖"}),
             "创意方向": ([_ND, _R,
@@ -550,13 +555,13 @@ class DirectorMasterVibe(DirectorNodeBase):
         }, "optional": {
             "核心数据包": ("STRING", {"default": "", "multiline": True, "forceInput": True,
                 "tooltip": "★ 必接 Core.核心数据包 — 继承场景/导演/情绪/灵魂/AI/反AI"}),
-            # V14.2: 市场受众分析 输入 (仅 市场受众分析 模式使用)
-            "类型片市场": (["auto", "动作", "喜剧", "爱情", "悬疑", "科幻", "动画", "战争", "现实主义"],
-                {"default": "auto", "tooltip": "市场受众分析: 类型片 (auto=从场景/核心数据包推断)"}),
-            "档期策略": (["auto", "春节档", "暑期档", "国庆档", "贺岁档", "非档期"],
-                {"default": "auto", "tooltip": "市场受众分析: 档期 (auto=按类型最佳档期推断)"}),
-            "市场定位": (["auto", "头部", "腰部", "黑马"],
-                {"default": "auto", "tooltip": "市场受众分析: 定位 (auto=按创意方向推断)"}),
+            # V14.2: 市场受众分析 输入 (仅 市场受众分析 模式使用); V16.0 需求1: 加 🎲 随机
+            "类型片市场": ([_R, "auto", "动作", "喜剧", "爱情", "悬疑", "科幻", "动画", "战争", "现实主义"],
+                {"default": "auto", "tooltip": "市场受众分析: 类型片 (auto=从场景/核心数据包推断); 🎲 随机"}),
+            "档期策略": ([_R, "auto", "春节档", "暑期档", "国庆档", "贺岁档", "非档期"],
+                {"default": "auto", "tooltip": "市场受众分析: 档期 (auto=按类型最佳档期推断); 🎲 随机"}),
+            "市场定位": ([_R, "auto", "头部", "腰部", "黑马"],
+                {"default": "auto", "tooltip": "市场受众分析: 定位 (auto=按创意方向推断); 🎲 随机"}),
             "导演知名度": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.05,
                 "tooltip": "市场受众分析: 导演号召力 0-1"}),
             "演员阵容": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 1.0, "step": 0.05,
@@ -574,6 +579,10 @@ class DirectorMasterVibe(DirectorNodeBase):
 
     def build(self, **kwargs):
         mode = kwargs.get("创意模式","概念立项")
+        # V16.0 需求1: 模式选择器支持 🎲 随机
+        if mode == "🎲 随机":
+            import random as _r
+            mode = _r.choice(VIBE_MODES)
         if mode not in VIBE_MODES: mode = "概念立项"
         core = parse_core_pack(kwargs.get("核心数据包",""))
         scene = core.get("_场景描述") or kwargs.get("场景描述","")

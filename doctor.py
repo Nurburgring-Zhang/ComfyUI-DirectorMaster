@@ -10,8 +10,8 @@ ComfyUI-DirectorMaster V14.3-MERGED 自检脚本
 诊断 6 类问题:
     1. 安装路径 (是否位于 ComfyUI/custom_nodes 下)
     2. Python 环境 (版本/编码)
-    3. 模块导入 (13 节点依赖的全部模块)
-    4. 节点注册 (NODE_CLASS_MAPPINGS 是否恰好 13 个)
+    3. 模块导入 (17 节点依赖的全部模块)
+    4. 节点注册 (NODE_CLASS_MAPPINGS 是否恰好 17 个)
     5. 知识库完整性 (导演数据库/知识库子模块)
     6. 复活接线消费验证 (9 项孤儿库接线真实被调用, 非装饰)
 
@@ -99,6 +99,8 @@ AGGREGATOR_MODULES = [
     "scene_engine", "pacing_engine", "feature_film_engine", "cinema_craft",
     "ref_media",
     "llm_engine", "director_master",
+    "style_fusion", "intuition_engine", "soul_engine", "multimodal_engine",
+    "failure_memory", "cocreator_engine", "v15_nodes",
 ]
 LIB_MODULES = [
     "anti_ai_vocab", "director_data_unified",
@@ -112,6 +114,8 @@ LIB_MODULES = [
     "pln_random", "format_templates", "modes_book", "modes_drama",
     "modes_storyboard",
     "comic_drama_pro", "pln_llm",
+    # V15.0-MERGED 引擎与数据
+    "director_profiles_extended",
 ]
 import importlib
 
@@ -147,10 +151,12 @@ try:
         "DirectorMasterArt", "DirectorMasterSound", "DirectorMasterCinematic",
         "DirectorMasterCharacters", "DirectorMasterAsset", "DirectorMasterSummary",
         "DirectorMasterRouter", "DirectorMasterVideoRouter", "DirectorMasterArchive",
+        "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
+        "DirectorMasterFusion",
         "DirectorMasterFinal",
     }
     if set(mappings.keys()) == expected:
-        ok(f"NODE_CLASS_MAPPINGS 恰好 13 个节点")
+        ok(f"NODE_CLASS_MAPPINGS 恰好 17 个节点 (16 超级 + Final 别名)")
     else:
         missing = expected - set(mappings.keys())
         extra = set(mappings.keys()) - expected
@@ -338,6 +344,92 @@ try:
 except Exception as e:
     err(f"asset_registry_data 检查失败: {e!r}")
 
+# ---------- 7. V15.0 引擎运行时消费验证 ----------
+section("7. V15.0 引擎运行时消费验证")
+try:
+    import director_data_unified as _ddu
+    if len(_ddu.DIRECTOR_PROFILES_ALL) >= 600:
+        ok(f"导演库扩容 {len(_ddu.DIRECTOR_PROFILES_ALL)} 档案 (≥600)")
+    else:
+        err(f"导演库仅 {len(_ddu.DIRECTOR_PROFILES_ALL)} 档案 (<600)")
+except Exception as e:
+    err(f"导演库扩容检查失败: {e!r}")
+
+try:
+    from aggregator.style_fusion import fuse_styles
+    _fr = fuse_styles("[电影] 王家卫", "是枝裕和", "滨口龙介", scene="雨夜厨房", mood="孤独")
+    if _fr["text"] and not _fr["error"] and _fr["break_directive"]:
+        ok("风格融合引擎 (主/次/反 + 突破指令)")
+    else:
+        err(f"风格融合异常: {_fr.get('error') or '突破指令缺失'}")
+except Exception as e:
+    err(f"风格融合检查失败: {e!r}")
+
+try:
+    from aggregator.intuition_engine import apply_intuition
+    _shots = [{"n": i, "size": "特写", "move": "跟拍", "focal": "85mm", "dur": "5s",
+               "dur_sec": 5.0, "focus": "焦", "sound": "声", "tension_level": 8 if i == 3 else 5,
+               "angle": "平视", "cut": "硬切"} for i in range(1, 7)]
+    _m, _log = apply_intuition(_shots, mood="孤独", scene="父女对话", risk_level="bold", seed="doctor")
+    _m2, _ = apply_intuition(_shots, mood="孤独", scene="父女对话", risk_level="bold", seed="doctor")
+    if _log and _m == _m2:
+        ok(f"直觉引擎 (触发 {len(_log)} 条规则, 确定性)")
+    else:
+        err("直觉引擎触发为空或非确定性")
+except Exception as e:
+    err(f"直觉引擎检查失败: {e!r}")
+
+try:
+    from aggregator.soul_engine import inject_soul
+    _sr = inject_soul("剧本: 父亲藏着一个秘密。", creator_experience="奶奶的旧怀表, 一次没来得及的告别",
+                      emotional_intent="思念", scene="厨房, 旧信", objects=["旧信"], characters=["父亲"])
+    if _sr["fragments"] and "奶奶的旧怀表" in str(_sr["fragments"]):
+        ok("灵魂引擎 (母题从创作者体验派生, 零罐头)")
+    else:
+        err("灵魂引擎母题未从输入派生")
+except Exception as e:
+    err(f"灵魂引擎检查失败: {e!r}")
+
+try:
+    import numpy as _np
+    from aggregator.multimodal_engine import analyze_image
+    _img = _np.zeros((32, 32, 3)); _img[:16, :, :] = [200, 50, 50]
+    _ia = analyze_image(_img)
+    if _ia["ok"] and _ia["palette"]:
+        ok("多模态图像分析 (真实计算)")
+    else:
+        err(f"多模态分析失败: {_ia.get('error')}")
+except ImportError:
+    warn("numpy 不可用 — 多模态图像分析降级 (不影响其他功能)")
+except Exception as e:
+    err(f"多模态检查失败: {e!r}")
+
+try:
+    import tempfile as _tf, shutil as _sh
+    from aggregator.cocreator_engine import co_create
+    _tmp = _tf.mkdtemp(prefix="dm_doctor_cc_")
+    try:
+        _cc = co_create("妹妹寻找失踪的姐姐, 真相被藏起来", emotional_intent="悬疑中的温情",
+                        mood="悬疑", store_dir=_tmp)
+        if _cc["chosen"] and len(_cc["directions"]) == 3 and all(g["pass"] for g in _cc["gate_report"]):
+            ok(f"共创引擎 (T0确定性档, 3方向分支, 门全过, 选定[{_cc['chosen']}])")
+        else:
+            err("共创引擎分支/门控异常")
+    finally:
+        _sh.rmtree(_tmp, ignore_errors=True)
+except Exception as e:
+    err(f"共创引擎检查失败: {e!r}")
+
+try:
+    from anti_ai_vocab import count_regex_hits
+    _n, _ = count_regex_hits("综上所述, 在这个故事中, 时光荏苒")
+    if _n >= 2:
+        ok(f"反AI正则检测层 (命中 {_n} 处)")
+    else:
+        err("反AI正则检测层未命中")
+except Exception as e:
+    err(f"反AI正则检测检查失败: {e!r}")
+
 # ---------- 汇总 ----------
 print("\n" + "=" * 50)
 print(f"自检结果: {len(PASSES)} 通过, {len(WARNINGS)} 警告, {len(ERRORS)} 错误")
@@ -349,5 +441,5 @@ if ERRORS:
     print("      并在启动日志中搜索 DirectorMaster 关键词。")
     sys.exit(1)
 else:
-    print("\n全部通过 — 重启 ComfyUI 即可使用 13 个 DirectorMaster 节点。")
+    print("\n全部通过 — 重启 ComfyUI 即可使用 17 个 DirectorMaster 节点。")
     sys.exit(0)

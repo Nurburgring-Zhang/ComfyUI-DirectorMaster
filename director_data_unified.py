@@ -962,6 +962,15 @@ DIRECTOR_PROFILES_ALL.update(CREATIVE_AD_DIRECTORS_100)
 DIRECTOR_PROFILES_ALL.update(SHORT_VIDEO_DIRECTORS_100)
 DIRECTOR_PROFILES_ALL.update(ANIMATION_DIRECTORS_100)
 
+# V15.0-MERGED: 扩容池 (66 位真实导演: 当代新锐/跨界/非西方, 17 维档案)
+try:
+    from director_profiles_extended import DIRECTORS_EXTENDED
+    DIRECTOR_PROFILES_ALL.update(DIRECTORS_EXTENDED)
+    _HAS_V15_EXTENDED = True
+except ImportError:
+    DIRECTORS_EXTENDED = {}
+    _HAS_V15_EXTENDED = False
+
 ALL_DIRECTOR_NAMES = sorted(DIRECTOR_PROFILES_ALL.keys())
 
 
@@ -988,6 +997,7 @@ _DIRECTOR_ALIASES = {
     "hayoomiyazaki": "宫崎骏", "miyazaki": "宫崎骏",
     "martinscorsese": "马丁·斯科塞斯", "scorsese": "马丁·斯科塞斯",
     "ridleyscott": "雷德利·斯科特", "ridleyscott": "雷德利·斯科特",
+    "antoncorbijn": "安东·寇班", "corbijn": "安东·寇班",
 }
 
 

@@ -68,8 +68,9 @@ class DirectorMasterArchive(DirectorNodeBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        _R = "🎲 随机"
         return {"required": {
-            "归档模式": (ARCHIVE_MODES, {"default": "自动保存全部资产"}),
+            "归档模式": (ARCHIVE_MODES+[_R], {"default": "自动保存全部资产"}),
             "项目名": ("STRING", {"default": "我的电影项目"}),
         }, "optional": {
             "核心数据包": ("STRING", {"default": "", "multiline": True, "forceInput": True,
@@ -109,6 +110,10 @@ class DirectorMasterArchive(DirectorNodeBase):
     def build(self, **kwargs):
         from aggregator.version_store import open_store, compute_archive_scores
         mode = kwargs.get("归档模式","自动保存全部资产")
+        # V16.0 需求1: 归档模式支持 🎲 随机
+        if mode == "🎲 随机":
+            import random as _r
+            mode = _r.choice(ARCHIVE_MODES)
         if mode not in ARCHIVE_MODES: mode = "自动保存全部资产"
         core = parse_core_pack(kwargs.get("核心数据包",""))
         project = kwargs.get("项目名","我的电影项目")

@@ -1491,7 +1491,7 @@ class DirectorMasterScript(DirectorNodeBase):
         _ND = "无(默认)"  # V12.6 v7 fix: 兼容老版本 saved workflow
         _R  = "🎲 随机"    # V12.6 v8: 随机选择
         return {"required": {
-            "剧本模式": (SCRIPT_MODES, {"default": "完整长片剧本"}),
+            "剧本模式": (SCRIPT_MODES+[_R], {"default": "完整长片剧本"}),
             "启用反AI规则": ("BOOLEAN", {"default": True,
                 "tooltip": "从核心数据包继承, 此处可单独覆盖"}),
             "叙事结构": ([_ND, _R,
@@ -1559,8 +1559,8 @@ class DirectorMasterScript(DirectorNodeBase):
                 "tooltip": "接 Characters.角色圣经 — 角色设定注入对白/动作"}),
             "资产输入": ("STRING", {"default": "", "multiline": True, "forceInput": True,
                 "tooltip": "接 Asset.资产设定 — 道具/环境设定注入叙事"}),
-            "目标时长(分钟)": ("INT", {"default": 0, "min": 0, "max": 240, "step": 5,
-                "tooltip": "★ 目标电影/剧集时长. 0=自动(形态模式用其典型时长, 否则用核心数据包成片时长). 120→35场; 90→26场; 60→18场; 30→9场; 5-15→5场."}),
+            "目标时长(分钟)": ("FLOAT", {"default": 0, "min": 0, "max": 240, "step": 0.05,
+                "tooltip": "★ 目标成片时长(分钟). V16.0: 支持秒级 (0.25=15秒, 0.5=30秒, 1=60秒). 0=自动(形态模式用其典型时长, 否则用核心数据包成片时长). 短视频用小数, 长片用整数."}),
         }}
 
     RETURN_TYPES = ("STRING",)
@@ -1570,6 +1570,10 @@ class DirectorMasterScript(DirectorNodeBase):
 
     def build(self, **kwargs):
         mode = kwargs.get("剧本模式","完整剧本")
+        # V16.0 需求1: 模式选择器支持 🎲 随机
+        if mode == "🎲 随机":
+            import random as _r
+            mode = _r.choice(SCRIPT_MODES)
         if mode not in SCRIPT_MODES: mode = "完整剧本"
         core = parse_core_pack(kwargs.get("核心数据包",""))
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
@@ -1589,14 +1593,14 @@ class DirectorMasterScript(DirectorNodeBase):
                 target_minutes = max(int(x) for x in _nums)
         tm_input = kwargs.get("目标时长(分钟)", None)
         if tm_input is not None and str(tm_input).strip() not in ("", "0", "None"):
-            try: target_minutes = int(float(tm_input))
+            try: target_minutes = float(tm_input)
             except: pass
-        # 5/30/60/90/120/150/180 → 长/中/短片归并
+        # V16.0 需求2: 秒级支持 — 短时长(<20min)直通小数, 长时长归一标准桶
         if target_minutes >= 110: target_minutes = 120
         elif target_minutes >= 80: target_minutes = 90
         elif target_minutes >= 50: target_minutes = 60
         elif target_minutes >= 20: target_minutes = 30
-        elif target_minutes > 0: target_minutes = 5
+        elif target_minutes > 0: target_minutes = max(0.05, target_minutes)  # 短视频保留小数(秒级)
 
         # V14.1: 形态类模式驱动时长 — 用户未显式设 目标时长 时, 用模式的典型时长
         # (修复模式坍缩: Vlog/绘本/MV/纪录片 等形态模式此前全生成 120min 电影长片)

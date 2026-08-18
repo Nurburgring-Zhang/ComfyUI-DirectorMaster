@@ -606,8 +606,8 @@ class DirectorMasterCinematic(DirectorNodeBase):
         _ND = "无(默认)"
         _R = "🎲 随机"
         return {"required": {
-            "画面模式": (CINE_MODES, {"default": "电影工作室",
-                "tooltip": "5 模式: 电影工作室/30秒6段/表演块/选片决策/漫剧分镜. Cinematic 是'导演语言翻译' — 把剧本/场景翻译为带景别/运镜/焦段/光影/材质的分镜表, 不是重新生成"}),
+            "画面模式": (CINE_MODES+[_R], {"default": "电影工作室",
+                "tooltip": "63 模式: 电影工作室/节奏大师/短剧/动漫/绘本/MV/广告/纪录片分镜. Cinematic 是'导演语言翻译' — 把剧本/场景翻译为带景别/运镜/焦段/光影/材质的分镜表, 不是重新生成; 🎲 随机"}),
             "启用反AI规则": ("BOOLEAN", {"default": True,
                 "tooltip": "从核心数据包继承, 此处可单独覆盖"}),
             "景别偏好": ([_ND,_R,"大远景","远景","全景","中全景","中景","中近景","近景","特写","大特写",
@@ -652,8 +652,8 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "tooltip": "接 Characters.角色圣经 — 角色锚定到分镜"}),
             "资产输入": ("STRING", {"default": "", "multiline": True, "forceInput": True,
                 "tooltip": "接 Asset.资产设定 — 道具/环境到分镜"}),
-            "目标时长(分钟)": ("INT", {"default": 120, "min": 5, "max": 240, "step": 5,
-                "tooltip": "★ 目标电影/剧集时长. 镜数由模式×时长共同决定 (长镜类少镜长时/快闪类多镜短时), 总时长恒覆盖片长 (±1% 内, 90/120min 全模式实测)."}),
+            "目标时长(分钟)": ("FLOAT", {"default": 120, "min": 0.05, "max": 240, "step": 0.05,
+                "tooltip": "★ 目标成片时长(分钟). V16.0: 支持秒级 (0.25=15秒, 0.5=30秒, 1=60秒, 5=5分钟, 90=90分钟). 短视频用小数, 长片用整数. 总时长恒覆盖片长."}),
             "节奏风格": ([_ND, _R,
                 # === 快闪类 (0.3-1s) ===
                 "一秒三闪", "抖音超快", "子弹时间", "蒙太奇", "定格凝固", "延时摄影", "POV 主观", "航拍大师",
@@ -665,6 +665,11 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "车戏分镜", "枪战分镜", "演唱会纪录", "MV 慢镜", "舞蹈编排",
             ], {"default": _ND,
                 "tooltip": "★ V12.6 v9 新增: 强制全场戏用某节奏 (默认 ND 走 auto 自动选). 一秒三闪=0.3s×3 嗨爆; 固定/对话/游走长镜=60-180s 不切; 慢镜高光=1/8 慢放; 蒙太奇=0.5-3s×N; 抖音=0.5-1s×10+"}),
+            "直觉风险": ([_ND, _R, "safe", "medium", "bold", "chaotic"], {"default": _ND,
+                "tooltip": "V15.0 直觉引擎: 确定性反常规镜头语法 (高潮静止/亲密远景/喧闹后静默/孤独不对称/物件代反应/对白后留白, 均有真实作者电影依据). ND=不启用; 🎲 随机"}),
+            "AIGC生产模式": (["自动判别", "文生视频", "首帧生视频", "首尾帧生视频", "多参考图生视频", "参考视频生视频"],
+                {"default": "自动判别",
+                "tooltip": "V16.0 需求4: AIGC 视频生产适配. 自动判别=按首尾帧/参考图/参考视频输入自动判定; 或手动指定. 分镜JSON按模式适配输出"}),
         }}
 
     RETURN_TYPES = ("STRING", "STRING")
@@ -676,6 +681,10 @@ class DirectorMasterCinematic(DirectorNodeBase):
         from aggregator.pro_format import format_shot_table, build_standard_shots, strip_decor
         import json as _json
         mode = kwargs.get("画面模式","电影工作室")
+        # V16.0 需求1: 模式选择器支持 🎲 随机
+        if mode == "🎲 随机":
+            import random as _r
+            mode = _r.choice(CINE_MODES)
         if mode not in CINE_MODES: mode = "电影工作室"
         core = parse_core_pack(kwargs.get("核心数据包",""))
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
@@ -693,13 +702,14 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 target_minutes = max(int(x) for x in _nums)
         tm_input = kwargs.get("目标时长(分钟)", None)
         if tm_input is not None and str(tm_input).strip() not in ("", "0", "None"):
-            try: target_minutes = int(float(tm_input))
+            try: target_minutes = float(tm_input)
             except: pass
+        # V16.0 需求2: 秒级支持 — 短时长(<20min)直通小数, 长时长归一标准桶
         if target_minutes >= 110: target_minutes = 120
         elif target_minutes >= 80: target_minutes = 90
         elif target_minutes >= 50: target_minutes = 60
         elif target_minutes >= 20: target_minutes = 30
-        elif target_minutes > 0: target_minutes = 5
+        elif target_minutes > 0: target_minutes = max(0.05, target_minutes)  # 短视频保留小数(秒级)
 
         # V12.6 v7: 故事理论 + 叙事结构 (从 Script 节点的输出自动获取, 或用默认值)
         story_theory = kwargs.get("故事理论", "三幕剧")  # 由 Script 节点输出传入
@@ -745,6 +755,16 @@ class DirectorMasterCinematic(DirectorNodeBase):
         shots = build_standard_shots(scene, director, mood, target_minutes=target_minutes,
                                      story_theory=story_theory, pacing_mode=pacing_mode,
                                      density_scale=density_scale, mode_seed=mode)
+        # V15.0: 直觉引擎 — 确定性反常规镜头语法 (风险档位, 真实作者电影依据); V16.0 需求1: 支持 🎲 随机
+        _intuition_risk = kwargs.get("直觉风险", "无(默认)")
+        if _intuition_risk == "🎲 随机":
+            import random as _r
+            _intuition_risk = _r.choice(["safe", "medium", "bold", "chaotic"])
+        if _intuition_risk and _intuition_risk != "无(默认)":
+            from aggregator.intuition_engine import apply_intuition
+            shots, _intuition_log = apply_intuition(shots, mood=mood, scene=scene,
+                                                    risk_level=_intuition_risk,
+                                                    seed=f"{mode}|{scene}|{mood}")
         # 6 维 anchors 真正整合到每镜字段
         for i, s in enumerate(shots):
             s = _integrate_6d_into_shot_fields(s, i, len(shots), vibe_a, art_a, sound_a, char_a, asset_a, 30)
@@ -979,11 +999,33 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 _curve_clean.append(int(_cvr) if float(_cvr).is_integer() else _cvr)
             except Exception:
                 _curve_clean.append(_cv)
+
+        # V16.0 需求4: AIGC 视频生产适配 — 判别生产模式 + 每镜适配
+        try:
+            from aggregator.aigc_adapter import detect_production_mode, build_aigc_block, adapt_shot_for_mode, MODE_T2V
+            _aigc_mode_in = kwargs.get("AIGC生产模式", "自动判别")
+            if _aigc_mode_in and _aigc_mode_in != "自动判别":
+                _prod_mode = _aigc_mode_in
+                _prod_basis = "手动指定"
+            else:
+                # Cinematic 无首尾帧/参考图/参考视频输入 → 自动判别为文生视频
+                _prod_mode, _prod_basis = detect_production_mode(
+                    has_first=False, has_last=False, has_ref_images=False, has_ref_video=False)
+            # 每镜 AIGC 适配提示词
+            for _sj in shots_json:
+                _sj["AIGC适配提示词"] = adapt_shot_for_mode(_sj, _prod_mode)
+        except Exception as _aigc_e:
+            import sys as _aigc_s
+            _aigc_s.stderr.write(f"[DirectorMaster] AIGC适配降级: {type(_aigc_e).__name__}\n")
+            _prod_mode, _prod_basis = "文生视频", "降级"
+
         json_str = _json.dumps({
             "分镜数": len(shots_json),
             "总时长秒": _total_dur,
             "导演": director, "情绪": mood, "画面模式": mode,
             "故事理论": story_theory, "叙事结构": narrative_mode,
+            "AIGC生产模式": _prod_mode,
+            "AIGC判别依据": _prod_basis,
             "情感曲线": _curve_clean,
             "叙事元数据": narrative_meta,
             "分镜表": shots_json,
@@ -996,6 +1038,12 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "Asset": "已应用" if asset_in else "未连接",
             },
         }, ensure_ascii=False, indent=2)
+
+        # V16.0 需求4: AIGC 生产适配块 (注入分镜文本输出)
+        try:
+            main += "\n\n" + build_aigc_block(_prod_mode, shots_json, scene=scene, director=director)
+        except Exception:
+            pass
 
         # V14.2: 启用反AI规则 真实生效 (此前硬编码"开"且未消费); 节点开关优先于核心包
         _anti_ai_flag = kwargs.get("启用反AI规则", None)

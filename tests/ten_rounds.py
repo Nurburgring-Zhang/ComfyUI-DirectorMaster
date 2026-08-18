@@ -2,7 +2,7 @@
 """
 V14.3-MERGED 十轮全量测试编排器
 ================================
-T1  部署运行: doctor 6类 + 13节点/59legacy 加载 + 工作流JSON
+T1  部署运行: doctor 7类 + 17节点加载 + 工作流JSON
 T2  全量功能使用: 246 模式全执行 (唯一性)
 T3  数据聚合: 14+ 数据源真实消费验证
 T4  能力增强: 9 项复活接线注入出现率
@@ -67,7 +67,7 @@ print("=" * 70)
 rc, out = run_script(os.path.join(ROOT, "doctor.py"))
 record("T1", "doctor.py 6类自检", rc == 0, out[-300:])
 mod = load_pkg("dm_t1")
-record("T1", "默认加载 13 节点", len(mod.NODE_CLASS_MAPPINGS) == 13, str(len(mod.NODE_CLASS_MAPPINGS)))
+record("T1", "默认加载 17 节点", len(mod.NODE_CLASS_MAPPINGS) == 17, str(len(mod.NODE_CLASS_MAPPINGS)))
 bad_contract = [n for n, c in mod.NODE_CLASS_MAPPINGS.items()
                 if not getattr(c, "RETURN_TYPES", None) or not callable(getattr(c, getattr(c, "FUNCTION", ""), None))]
 record("T1", "RETURN/FUNCTION 契约", not bad_contract, str(bad_contract))

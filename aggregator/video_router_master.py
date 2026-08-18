@@ -34,10 +34,11 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        _R = "🎲 随机"
         return {"required": {
-            "目标视频模型": (["全部生成"] + VIDEO_ROUTER_MODES, {"default": "全部生成"}),
+            "目标视频模型": (["全部生成"] + VIDEO_ROUTER_MODES + [_R], {"default": "全部生成"}),
             "视频时长_秒": ("INT", {"default": 8, "min": 3, "max": 30, "step": 1}),
-            "画幅比例": (["16:9 横屏", "9:16 竖屏", "1:1 方形", "21:9 电影宽屏"], {"default": "16:9 横屏"}),
+            "画幅比例": ([_R, "16:9 横屏", "9:16 竖屏", "1:1 方形", "21:9 电影宽屏"], {"default": "16:9 横屏"}),
             "帧率": ("INT", {"default": 24, "min": 12, "max": 60, "step": 1}),
         }, "optional": {
             "核心数据包": ("STRING", {"default": "", "multiline": True, "forceInput": True,
@@ -86,8 +87,14 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
 
     def build(self, **kwargs):
         target = kwargs.get("目标视频模型", "全部生成")
-        duration = kwargs.get("视频时长_秒", 8)
+        # V16.0 需求1: 目标视频模型与画幅支持 🎲 随机
+        import random as _r
+        if target == "🎲 随机":
+            target = _r.choice(VIDEO_ROUTER_MODES)
         aspect = kwargs.get("画幅比例", "16:9 横屏")
+        if aspect == "🎲 随机":
+            aspect = _r.choice(["16:9 横屏", "9:16 竖屏", "1:1 方形", "21:9 电影宽屏"])
+        duration = kwargs.get("视频时长_秒", 8)
         fps = kwargs.get("帧率", 24)
 
         # 解析 forceInput
@@ -136,6 +143,23 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
         ref_library["统计"]["参考图总数"] = sum(1 for v in ref_library.get("参考图", {}).values() if v)
         ref_library["统计"]["参考视频总数"] = sum(1 for v in ref_library.get("参考视频", {}).values() if v)
 
+        # V16.0 需求4: AIGC 生产模式自动判别 (基于首帧/尾帧/参考图/参考视频)
+        try:
+            from aggregator.aigc_adapter import detect_production_mode, get_mode_guidance
+            _has_first = bool(ref_library.get("参考图", {}).get("首帧"))
+            _has_last = bool(ref_library.get("参考图", {}).get("尾帧"))
+            _ref_img_count = sum(1 for k, v in ref_library.get("参考图", {}).items()
+                                 if v and k not in ("首帧", "尾帧"))
+            _has_ref_video = ref_library["统计"]["参考视频总数"] > 0
+            _prod_mode, _prod_basis = detect_production_mode(
+                has_first=_has_first, has_last=_has_last,
+                has_ref_images=_ref_img_count > 0, has_ref_video=_has_ref_video,
+                ref_image_count=_ref_img_count)
+        except Exception as _pm_e:
+            import sys as _pm_s
+            _pm_s.stderr.write(f"[DirectorMaster] AIGC生产模式判别降级: {type(_pm_e).__name__}\n")
+            _prod_mode, _prod_basis = "文生视频", "降级"
+
         # 内容基础 (V13.3: 加入剧本输入优先级)
         if storyboard:
             content = storyboard
@@ -180,6 +204,8 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
 
         meta = _json.dumps({
             "目标模型": target,
+            "AIGC生产模式": _prod_mode,
+            "AIGC判别依据": _prod_basis,
             "Seedance能力边界": _seed_caps,
             "时长秒": duration,
             "画幅": aspect,
