@@ -12,6 +12,8 @@ if _PARENT not in _sys.path: _sys.path.insert(0, _PARENT)
 if _HERE not in _sys.path: _sys.path.insert(0, _HERE)
 from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy
 from aggregator.cinema_craft import build_life_texture, build_edit_decision_text
+from aggregator.narrative_arrangement import (arrange_scenes, ARRANGEMENT_MODES, NARRATIVE_LINE_MODES)
+from aggregator import aigc_prompt_builder as _aigc_pb
 import re as _re
 # 同时暴露 re 给本文件后续 helper 使用
 re = _re
@@ -1359,6 +1361,55 @@ def _build_interactive_branch_tree(raw_scene, mood, core):
     return _json_bt.dumps(tree, ensure_ascii=False, indent=2)
 
 
+def _build_aigc_five_section(scene, director, mood, core, scenes, dims):
+    """V16.1: 短形态 AIGC 五段结构块 (Mx-Shell 方法) — 把场次转为时间拍 + 五段外壳.
+    写法A(时间切片)用于单镜/长镜, 写法B(分镜四件套)用于多分镜。这里按时间拍输出。"""
+    try:
+        from aggregator.scene_engine import parse_scene as _ps5
+        _parsed = _ps5(scene) if scene else {}
+    except Exception:
+        _parsed = {}
+    chars = _parsed.get("characters") or ["主角"]
+    era_ctx = {"scene": scene, "director": director, "mood": mood,
+               "characters": chars, "platform": dims.get("平台", ""),
+               "era": _aigc_pb.detect_era({"scene": scene})}
+    # 把场次转为时间拍 (每场一拍, 时长均分)
+    n = max(1, len(scenes))
+    total_sec = max(5.0, float((core.get("_成片秒", 0) if core else 0) or 0))
+    if total_sec <= 0:
+        # 从 target 推断 (短形态 ≤3min → 取 30s 作为示范基准)
+        total_sec = 30.0
+    per = total_sec / n
+    beats = []
+    t0 = 0.0
+    for sc in scenes:
+        action = str(sc.get("action", "") or "").split("\n")[0][:60]
+        dial = sc.get("dialogues") or []
+        dial_txt = ""
+        if dial:
+            try:
+                who, paren, line = dial[0]
+                dial_txt = f"{who}:「{line}」"
+            except Exception:
+                dial_txt = ""
+        beats.append({
+            "name": str(sc.get("story_function", "推进"))[:12],
+            "time": f"{t0:.0f}-{t0 + per:.0f}秒",
+            "action": action or dial_txt,
+            "camera": "按分镜表执行",
+            "sound": "",
+        })
+        t0 += per
+    # 结尾元素: 取最后一场的物件
+    ending_elem = ""
+    if scenes:
+        objs = scenes[-1].get("objects") or []
+        ending_elem = objs[0] if objs else "环境声"
+    single_shot = (n <= 2)
+    return _aigc_pb.build_five_section_block(era_ctx, beats, single_shot=single_shot,
+                                             ending_elem=ending_elem)
+
+
 def _build_full_screenplay(scene, director, mood, core, target_minutes=120, story_theory="三幕剧", dims=None, mode=None):
     """完整剧本 — 专业剧本格式 + 架构 + 角色弧. 可直接拍摄.
     V12.6 v9: target_minutes 决定 35场/26场/18场/9场 长/中/短片体量.
@@ -1401,12 +1452,45 @@ def _build_full_screenplay(scene, director, mood, core, target_minutes=120, stor
                                                mode_seed=mode or "", scene_target=_scene_target)
     _scenes = _apply_format_scene_skeleton(_scenes, mode)
     _scenes = _apply_format_execution_layer(_scenes, mode, scene)
+
+    # === V16.1: 叙事编排 — 把节拍时序重排为银幕时序 + 时间线/线索标注注入场次头 ===
+    _arrangement = dims.get("叙事编排", "跟随叙事结构")
+    _line_mode = dims.get("叙事线型", "单线")
+    _arrange_plan = {}
+    if _scenes:
+        try:
+            _ordered, _arrange_plan = arrange_scenes(_scenes, _arrangement, _line_mode,
+                                                     seed=f"{scene}_{director}_{mode}")
+            # 时间线/线索/编排批注 注入每场 heading (只标注非"现在"或非"A"线, 避免噪声)
+            for sc in _ordered:
+                tl = sc.get("timeline", "现在")
+                ln = sc.get("line", "A")
+                pov = sc.get("pov", "全知")
+                tags = []
+                if tl and tl != "现在":
+                    tags.append(f"时间线:{tl}")
+                if ln and ln != "A":
+                    tags.append(f"线:{ln}")
+                if pov and pov not in ("全知", "") and _line_mode == "POV切换":
+                    tags.append(f"POV:{pov}")
+                if tags:
+                    sc["heading"] = f"{sc.get('heading','')}  [{' | '.join(tags)}]"
+                if sc.get("arrangement_note"):
+                    sc["heading"] = f"{sc.get('heading','')}\n    〔编排: {sc['arrangement_note']}〕"
+            _scenes = _ordered
+        except Exception as _ar_e:
+            import sys as _ar_s
+            _ar_s.stderr.write(f"[DirectorMaster] 叙事编排降级: {type(_ar_e).__name__}\n")
+
     screenplay = format_screenplay(title, director, mood, intent, _scenes,
                                     subtext_strength=dims.get("潜文本强度", "强"))
     # 架构 + 角色弧 (清洁版, 去装饰符)
     arch = strip_decor(_build_architecture_template(scene, director, mood, core))
     char = strip_decor(_build_character_template(scene, director, mood, core))
     out = f"{screenplay}\n\n{'─'*40}\n【剧本架构】\n{arch}\n\n{'─'*40}\n【角色弧光】\n{char}"
+
+    # V16.1 注: 导演叙事设计块 + AIGC 五段结构 已提升到 build() 层统一追加 (对所有模式生效),
+    # 此处仅保留场次重排 + heading 时间线/线索标注。
 
     # V13.3: 主题深度 → 主题陈述块 (深/极深/存在主义 才展开哲学内核)
     depth = dims.get("主题深度", "")
@@ -1509,6 +1593,15 @@ class DirectorMasterScript(DirectorNodeBase):
                 "史诗(命运递进)", "黑色电影(道德下坠)", "公路片(旅程递进)",
                 "反英雄(道德模糊)", "成长(蜕变递进)", "复仇(快意递进)",
             ], {"default": _ND, "tooltip": "30+ 叙事结构 — 经典+现代+类型化"}),
+            "叙事编排": ([_ND, _R] + [m for m in ARRANGEMENT_MODES if m != "跟随叙事结构"], {
+                "default": _ND,
+                "tooltip": "★ V16.1 叙事编排 — 把节拍时序重排为银幕时序。正叙=按时间推进; "
+                           "倒叙(结果先行)=先给结局碎片再回溯; 穿插倒叙=现在线+情感谷峰处闪回; "
+                           "穿插乱叙=钩子开场+中段多时间线打散; 循环叙事=终点即起点。ND=跟随叙事结构原生顺序"}),
+            "叙事线型": ([_ND, _R] + [m for m in NARRATIVE_LINE_MODES if m != "单线"], {
+                "default": _ND,
+                "tooltip": "★ V16.1 叙事线型 — 单线=一条主线贯穿; 双线并行=A线外部目标+B线内部情感, 中点/高潮合流; "
+                           "三线交织=三组人物命运交叉; POV切换=同一事件多视角折射。ND=单线"}),
             "对白密度": ([_ND, _R,
                 # === 按密度分层 ===
                 "零对白(纯视觉)", "极简(≤10字/句, ≤10句/场)", "精简(≤20字/句, ≤30句/场)",
@@ -1647,6 +1740,13 @@ class DirectorMasterScript(DirectorNodeBase):
         kwargs["潜文本强度"] = resolve_dropdown(kwargs.get("潜文本强度"), "中(每句1层潜文本)", _SUBT_OPTS)
         kwargs["节奏控制"] = resolve_dropdown(kwargs.get("节奏控制"), "中速(标准)", _RHYTHM_OPTS)
         kwargs["主题深度"] = resolve_dropdown(kwargs.get("主题深度"), "中(人物成长)", _THEME_OPTS)
+        # V16.1: 叙事编排 + 叙事线型 下拉解析 (支持 🎲 随机; ND 时回退核心数据包继承值)
+        _ARRANGE_OPTS = [m for m in ARRANGEMENT_MODES if m != "跟随叙事结构"]
+        _LINE_OPTS = [m for m in NARRATIVE_LINE_MODES if m != "单线"]
+        _core_arrange = (core.get("_叙事编排", "跟随叙事结构") if core else "跟随叙事结构") or "跟随叙事结构"
+        _core_line = (core.get("_叙事线型", "单线") if core else "单线") or "单线"
+        kwargs["叙事编排"] = resolve_dropdown(kwargs.get("叙事编排"), _core_arrange, _ARRANGE_OPTS)
+        kwargs["叙事线型"] = resolve_dropdown(kwargs.get("叙事线型"), _core_line, _LINE_OPTS)
 
         # V12.6 v8: 5 个维度值应用到上下文 (供模板使用)
         story_theory = kwargs["叙事结构"]
@@ -1654,6 +1754,8 @@ class DirectorMasterScript(DirectorNodeBase):
         subtext_strength = kwargs["潜文本强度"]
         rhythm_control = kwargs["节奏控制"]
         theme_depth = kwargs["主题深度"]
+        narrative_arrangement = kwargs["叙事编排"]
+        narrative_line = kwargs["叙事线型"]
 
         # V14.1: 结构类模式驱动叙事结构 — 模式名优先于"叙事结构"下拉
         # (修复模式坍缩: 三幕剧长片/五幕剧长片/救猫咪15拍长片 等此前全落到默认三幕剧)
@@ -1690,6 +1792,11 @@ class DirectorMasterScript(DirectorNodeBase):
             "潜文本强度": subtext_strength,
             "节奏控制": rhythm_control,
             "主题深度": theme_depth,
+            # V16.1: 叙事编排 + 叙事线型 传入生成器 (场次重排 + 时间线标注)
+            "叙事编排": narrative_arrangement,
+            "叙事线型": narrative_line,
+            "场景": scene,
+            "平台": (core.get("_平台媒介", "") if core else ""),
         }
         try:
             main = builder(enhanced_scene, director, mood, core, target_minutes, story_theory, dims, mode=mode)
@@ -1741,6 +1848,41 @@ class DirectorMasterScript(DirectorNodeBase):
             main += f"\n【上游 5 维内容 (附录)】\n"
             for tag, content in upstream_injected:
                 main += f"\n【{tag}】\n{content}\n"
+
+        # === V16.1: 导演叙事设计块 + AIGC 五段结构 (build层统一追加, 对所有模式生效) ===
+        try:
+            if narrative_arrangement != "跟随叙事结构":
+                from aggregator.feature_film_engine import generate_feature_scenes as _gfs_b
+                from aggregator.scene_engine import parse_scene as _ps_b
+                _parsed_b = _ps_b(scene)
+                _scenes_b = _gfs_b(_parsed_b, director, mood, "", target_minutes, story_theory)
+                _ordered_b, _plan_b = arrange_scenes(_scenes_b, narrative_arrangement, narrative_line,
+                                                     seed=f"{scene}_{director}_{mode}")
+                if _plan_b.get("导演批注"):
+                    _sub_b = _plan_b.get("字幕位", [])
+                    _sub_txt_b = "; ".join(f"位置{s.get('位置')}: {s.get('字幕')}" for s in _sub_b) if _sub_b else "无"
+                    main += (
+                        f"\n\n{'─'*40}\n【导演叙事设计 · V16.1】\n"
+                        f"叙事编排: {_plan_b.get('方式','跟随叙事结构')}\n"
+                        f"叙事线型: {_plan_b.get('叙事结构','单线')}\n"
+                        f"时间线图谱: {_plan_b.get('时间线图谱','现在')}\n"
+                        f"线索图谱: {_plan_b.get('线索图谱','A')}\n"
+                        f"字幕位: {_sub_txt_b}\n"
+                        f"导演批注: {_plan_b.get('导演批注','')}"
+                    )
+        except Exception as _nd_e:
+            import sys as _nd_s
+            _nd_s.stderr.write(f"[DirectorMaster] 叙事设计块降级: {type(_nd_e).__name__}\n")
+        try:
+            if target_minutes <= 3:
+                from aggregator.scene_engine import parse_scene as _ps_f
+                from aggregator.pro_format import build_standard_screenplay_scenes as _bssc_f
+                _scenes_f = _bssc_f(scene, director, mood, "", target_minutes, story_theory)
+                main += "\n\n" + "─"*40 + "\n" + _build_aigc_five_section(
+                    scene, director, mood, core, _scenes_f, dims)
+        except Exception as _fs_e:
+            import sys as _fs_s
+            _fs_s.stderr.write(f"[DirectorMaster] AIGC五段式降级: {type(_fs_e).__name__}\n")
 
         # === V14.3-MERGED: 复活数据库深度注入 (场景库/大师DNA/故事感/儿童/真实案例) ===
         try:
@@ -1824,6 +1966,8 @@ class DirectorMasterScript(DirectorNodeBase):
                 "ref_films": core.get("_对标作品", ""),
                 "anti_ai": anti_ai,
                 "story_theory": story_theory,
+                "narrative_arrangement": narrative_arrangement,
+                "narrative_line": narrative_line,
                 "story_beats": story_beats_text,
                 "spatial_3d": spatial_3d_text,
                 "char_arcs": char_arcs,

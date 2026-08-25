@@ -22,13 +22,15 @@ _HERE = _os.path.dirname(_os.path.abspath(__file__))
 _PARENT = _os.path.dirname(_HERE)
 if _PARENT not in _sys.path: _sys.path.insert(0, _PARENT)
 if _HERE not in _sys.path: _sys.path.insert(0, _HERE)
-from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, get_director_profile_text
+from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, get_director_profile_text, resolve_dropdown
 from aggregator.pro_format import strip_decor, strip_director_block
 from aggregator.scene_engine import parse_scene, generate_shots
 from aggregator.prompt_layers import (build_all_layered_prompts, format_layered_prompts_text,
                                        build_beat_table, format_beat_table_text,
                                        build_tension_curve, format_tension_curve_text,
                                        build_arc_tracking, format_arc_tracking_text)
+from aggregator.narrative_arrangement import (arrange_scenes, ARRANGEMENT_MODES, NARRATIVE_LINE_MODES)
+from aggregator import aigc_prompt_builder as _aigc_pb
 
 
 class DirectorMasterSummary(DirectorNodeBase):
@@ -214,6 +216,64 @@ class DirectorMasterSummary(DirectorNodeBase):
         # AI 强化已在 Script/Cinematic 节点完成 (整本剧本/分镜润色)
         # Summary 节点只引用上游已润色好的内容, 汇总成完整成片文档
 
+        # === V16.1: AIGC 分镜提示词生成 (每镜七要素, 模型可直接消费) ===
+        # 叙事编排从核心数据包继承 (方式/线型), 并直接从上游分镜的真实时间线/线索标签反推图谱,
+        # 保证 Summary JSON 的叙事编排块与 Cinematic 节点实际应用的编排完全一致。
+        _arr_mode = (core.get("_叙事编排", "跟随叙事结构") if core else "跟随叙事结构") or "跟随叙事结构"
+        _line_mode = (core.get("_叙事线型", "单线") if core else "单线") or "单线"
+        _sum_arrange_plan = {
+            "方式": _arr_mode,
+            "叙事结构": _line_mode,
+            "时间线图谱": "现在",
+            "线索图谱": "A",
+            "导演批注": "",
+            "字幕位": [],
+        }
+        if layered_shots:
+            try:
+                _tls = [str(s.get("timeline", "现在") or "现在") for s in layered_shots]
+                _lines = [str(s.get("line", "A") or "A") for s in layered_shots]
+                _tl_map, _lines_seen = [], []
+                for t in _tls:
+                    if t not in _tl_map:
+                        _tl_map.append(t)
+                for ln in _lines:
+                    if ln not in _lines_seen:
+                        _lines_seen.append(ln)
+                _sum_arrange_plan.update({
+                    "方式": _arr_mode,
+                    "叙事结构": _line_mode,
+                    "时间线图谱": " / ".join(_tl_map) if _tl_map else "现在",
+                    "线索图谱": " × ".join(_lines_seen) if _lines_seen else "A",
+                    "导演批注": "",
+                    "字幕位": [],
+                })
+            except Exception as _sae:
+                _sys.stderr.write(f"[DirectorMaster] Summary叙事编排推导降级: {type(_sae).__name__}\n")
+        # AIGC 上下文
+        _era_sum = _aigc_pb.detect_era({"scene": scene})
+        _aigc_ctx_sum = {
+            "scene": scene, "director": director, "mood": mood,
+            "characters": character_names,
+            "platform": platform, "era": _era_sum,
+            "production_mode": "文生视频",
+        }
+        _aigc_shot_prompts = []
+        for _i, _s in enumerate(layered_shots):
+            try:
+                _sp = dict(_s)
+                _sp.setdefault("n", _i + 1)
+                _aigc_shot_prompts.append({
+                    "镜号": _sp.get("n", _i + 1),
+                    "AIGC提示词": _aigc_pb.build_shot_aigc_prompt(_sp, _aigc_ctx_sum),
+                    "首帧提示词": _aigc_pb.build_first_frame_prompt(_sp, _aigc_ctx_sum),
+                    "音频描述": _aigc_pb.build_audio_desc(_sp, _aigc_ctx_sum),
+                })
+            except Exception:
+                _aigc_shot_prompts.append({"镜号": _i + 1, "AIGC提示词": "", "首帧提示词": "", "音频描述": ""})
+        _char_anchor = _aigc_pb.build_character_anchor(_aigc_ctx_sum)
+        _neg_block = _aigc_pb.build_negative_block(_aigc_ctx_sum)
+
         # === JSON 交付包 (程序解析用, 包含 32 字段项目信息 + 分镜 + 节拍 + 张力 + 弧) ===
         json_data = {
             "项目": {
@@ -234,6 +294,24 @@ class DirectorMasterSummary(DirectorNodeBase):
                          "声音":s.get("sound"),"色彩":s.get("stage_color",""),"光影":s.get("stage_light",""),
                          "材质":s.get("stage_material",""),"氛围":s.get("stage_atmosphere",""),
                          "情绪":s.get("stage_emotion",""),"转场":s.get("cut"),"叙事目的":s.get("purpose")} for s in layered_shots]),
+            # V16.1 新增: AIGC 分镜提示词三件套 + 叙事编排 + AIGC 生产设置
+            "AIGC分镜提示词": _aigc_shot_prompts,
+            "叙事编排": {
+                "方式": _sum_arrange_plan.get("方式", _arr_mode),
+                "叙事线型": _sum_arrange_plan.get("叙事结构", _line_mode),
+                "时间线图谱": _sum_arrange_plan.get("时间线图谱", "现在"),
+                "线索图谱": _sum_arrange_plan.get("线索图谱", "A"),
+                "导演批注": _sum_arrange_plan.get("导演批注", ""),
+                "字幕位": _sum_arrange_plan.get("字幕位", []),
+            },
+            "AIGC生产设置": {
+                "生产模式": "文生视频",
+                "画幅": aspect,
+                "推荐时长": runtime,
+                "角色一致性锚": _char_anchor,
+                "全局负面约束": _neg_block,
+                "推荐模型": "Seedance 2.5 / Wan 3.0 / 可灵 / MiniMax H3",
+            },
             "节拍表": [{"拍":b["beat"],"入点":b["in_sec"],"出点":b["out_sec"],"阶段":b["stage"],
                         "情绪":b["emotion"],"强度":b["intensity"],"信息量":b["info_density"]} for b in beat_table],
             "张力曲线": [{"时间":c["time_sec"],"张力":c["tension"],"阶段":c["stage"]} for c in tension_curve],

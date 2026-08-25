@@ -139,6 +139,9 @@ def adapt_shot_for_mode(shot, mode):
 def build_aigc_block(mode, shots, scene="", director=""):
     """构建 AIGC 生产适配块 (注入分镜输出), 含生产模式判别 + 每镜适配.
 
+    V16.1: 优先输出富七要素提示词 (shot["AIGC提示词"], 由 aigc_prompt_builder 生成),
+    无富字段时回退 adapt_shot_for_mode 的单行模式适配。
+
     返回: 文本块
     """
     lines = [
@@ -148,9 +151,12 @@ def build_aigc_block(mode, shots, scene="", director=""):
         "",
     ]
     if shots:
-        lines.append("每镜 AIGC 适配提示词:")
+        lines.append("每镜 AIGC 提示词 (可直接投喂视频模型):")
         for s in shots[:60]:  # 限制输出量
             n = s.get("n") or s.get("镜号") or ""
-            adapted = adapt_shot_for_mode(s, mode)
-            lines.append(f"  镜{n}: {adapted}")
+            rich = s.get("AIGC提示词") or ""
+            if rich:
+                lines.append(f"  镜{n}: {rich}")
+            else:
+                lines.append(f"  镜{n}: {adapt_shot_for_mode(s, mode)}")
     return "\n".join(lines)

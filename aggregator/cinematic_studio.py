@@ -12,6 +12,9 @@ if _HERE not in _sys.path: _sys.path.insert(0, _HERE)
 from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy, parse_multi_select, resolve_dropdown
 from aggregator.cinema_craft import build_life_texture, build_edit_decision_list, build_edit_decision_text
 from aggregator.script_studio import _parse_vibe_anchors, _parse_art_anchors, _parse_sound_anchors, _parse_char_anchors, _parse_asset_anchors
+from aggregator.narrative_arrangement import (arrange_scenes, arrange_shots_by_scenes,
+                                              ARRANGEMENT_MODES, NARRATIVE_LINE_MODES)
+from aggregator import aigc_prompt_builder as _aigc_pb
 import re as _re
 
 # V12.6 v8: 画面模式按 长/短/微/竖/短视/动漫/绘本/MV/广告 10 大类拆分
@@ -667,6 +670,11 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "tooltip": "★ V12.6 v9 新增: 强制全场戏用某节奏 (默认 ND 走 auto 自动选). 一秒三闪=0.3s×3 嗨爆; 固定/对话/游走长镜=60-180s 不切; 慢镜高光=1/8 慢放; 蒙太奇=0.5-3s×N; 抖音=0.5-1s×10+"}),
             "直觉风险": ([_ND, _R, "safe", "medium", "bold", "chaotic"], {"default": _ND,
                 "tooltip": "V15.0 直觉引擎: 确定性反常规镜头语法 (高潮静止/亲密远景/喧闹后静默/孤独不对称/物件代反应/对白后留白, 均有真实作者电影依据). ND=不启用; 🎲 随机"}),
+            "叙事编排": ([_ND, _R] + [m for m in ARRANGEMENT_MODES if m != "跟随叙事结构"], {"default": _ND,
+                "tooltip": "★ V16.1 叙事编排 — 把镜头按时序重排为银幕序 (正叙/倒叙/穿插倒叙/穿插乱叙/循环). "
+                           "同场镜头不拆散, 重排后镜号按银幕序重编。ND=跟随叙事结构原生顺序"}),
+            "叙事线型": ([_ND, _R] + [m for m in NARRATIVE_LINE_MODES if m != "单线"], {"default": _ND,
+                "tooltip": "★ V16.1 叙事线型 — 单线/双线并行/三线交织/POV切换。驱动镜头的线标签与交织顺序。ND=单线"}),
             "AIGC生产模式": (["自动判别", "文生视频", "首帧生视频", "首尾帧生视频", "多参考图生视频", "参考视频生视频"],
                 {"default": "自动判别",
                 "tooltip": "V16.0 需求4: AIGC 视频生产适配. 自动判别=按首尾帧/参考图/参考视频输入自动判定; 或手动指定. 分镜JSON按模式适配输出"}),
@@ -717,6 +725,14 @@ class DirectorMasterCinematic(DirectorNodeBase):
         # V14.2: 结构类电影分镜模式 → 故事理论 (修复结构模式同构; story_theory 已下场到节拍生成)
         if mode in CINE_MODE_THEORY:
             story_theory = CINE_MODE_THEORY[mode]
+
+        # V16.1: 叙事编排 + 叙事线型 下拉解析 (支持 🎲 随机; ND 时回退核心数据包继承值)
+        _ARRANGE_OPTS = [m for m in ARRANGEMENT_MODES if m != "跟随叙事结构"]
+        _LINE_OPTS = [m for m in NARRATIVE_LINE_MODES if m != "单线"]
+        _core_arrange = (core.get("_叙事编排", "跟随叙事结构") if core else "跟随叙事结构") or "跟随叙事结构"
+        _core_line = (core.get("_叙事线型", "单线") if core else "单线") or "单线"
+        arrangement_mode = resolve_dropdown(kwargs.get("叙事编排"), _core_arrange, _ARRANGE_OPTS)
+        line_mode = resolve_dropdown(kwargs.get("叙事线型"), _core_line, _LINE_OPTS)
 
         # 上游 6 路 forceInput
         script_in = kwargs.get("剧本输入","")
@@ -883,6 +899,21 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 line_pov = f"线:{meta['line']} POV:{meta['pov']} 时间:{meta['timeline']}"
                 s["purpose"] = f"{old_p} | {line_pov}" if old_p else line_pov
 
+        # === V16.1: 叙事编排 — 镜头按时序重排为银幕序 (同场镜头不拆散, 镜号重编) ===
+        _arrange_plan = {}
+        if arrangement_mode != "跟随叙事结构" or line_mode != "单线":
+            try:
+                from aggregator.scene_engine import parse_scene as _ps_arr
+                from aggregator.feature_film_engine import generate_feature_scenes as _gfs_arr
+                _parsed_arr = _ps_arr(scene)
+                _scenes_arr = _gfs_arr(_parsed_arr, director, mood, "", target_minutes, story_theory)
+                _ordered_scenes, _arrange_plan = arrange_scenes(_scenes_arr, arrangement_mode, line_mode,
+                                                                seed=f"{scene}_{director}_{mode}")
+                shots = arrange_shots_by_scenes(shots, _ordered_scenes)
+            except Exception as _ar_e:
+                import sys as _ar_s
+                _ar_s.stderr.write(f"[DirectorMaster] 分镜叙事编排降级: {type(_ar_e).__name__}\n")
+
         main = format_shot_table(director, mood, shots)
 
         # 视觉参数 — V13.3 场景/年代驱动 (不再固定蓝绿雨夜)
@@ -930,6 +961,19 @@ class DirectorMasterCinematic(DirectorNodeBase):
         for i, meta in enumerate(narrative_meta):
             main += f"\n  镜{i+1}: 线={meta['line']} POV={meta['pov']} 时间={meta['timeline']}"
 
+        # === V16.1: 导演叙事设计展示 (编排方式/时间线图谱/线索图谱/批注/字幕位) ===
+        if _arrange_plan and _arrange_plan.get("导演批注"):
+            _sub_slots = _arrange_plan.get("字幕位", [])
+            _sub_txt = "; ".join(f"位置{s.get('位置')}: {s.get('字幕')}" for s in _sub_slots) if _sub_slots else "无"
+            main += (
+                f"\n\n【导演叙事设计 · V16.1】\n"
+                f"叙事编排: {_arrange_plan.get('方式','跟随叙事结构')} | 叙事线型: {_arrange_plan.get('叙事结构','单线')}\n"
+                f"时间线图谱: {_arrange_plan.get('时间线图谱','现在')}\n"
+                f"线索图谱: {_arrange_plan.get('线索图谱','A')}\n"
+                f"字幕位: {_sub_txt}\n"
+                f"导演批注: {_arrange_plan.get('导演批注','')}"
+            )
+
         # 附录
         upstream_injected = []
         if script_in: upstream_injected.append(("Script", script_in[:500]))
@@ -966,6 +1010,7 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "audience": core.get("_目标受众", ""), "runtime": core.get("_成片时长", ""),
                 "aspect": core.get("_画幅比例", ""), "ref_films": core.get("_对标作品", ""),
                 "story_theory": story_theory, "narrative_mode": narrative_mode,
+                "narrative_arrangement": arrangement_mode, "narrative_line": line_mode,
                 "emotion_curve": emotion_curve, "narrative_meta": narrative_meta,
                 "upstream_context": upstream_ctx,
                 "rewrite_instruction": f"请作为世界顶级导演的分镜师, 基于 6 路上游 + 故事理论 {story_theory} + 叙事模式 {narrative_mode} + 情感曲线 + 多线/POV, 整体润色分镜. 要求: 1) 镜头情感 (运镜+景别+时长+情感强度按曲线推进) 2) 故事线 (多线/POV/非线性按叙事模式标注) 3) 剧情推进 (按 {story_theory} 节拍点) 4) 空间位置 (screen-left/right/center 标注人物位置) 5) 氛围渲染 (5 维锚定融入) 6) 叙事节奏 (节拍+张力+情感曲线).",
@@ -973,10 +1018,53 @@ class DirectorMasterCinematic(DirectorNodeBase):
             main = self._ensure_ai_output(main, ctx, ai_url, ai_key, ai_model)
 
         # === 分镜 JSON (V12.6 v7 加 情感强度 + 线/POV/时间) ===
+        # V16.0 需求4: AIGC 视频生产适配 — 判别生产模式 (先判别, 供每镜提示词构建用)
+        try:
+            from aggregator.aigc_adapter import detect_production_mode, build_aigc_block, adapt_shot_for_mode, MODE_T2V
+            _aigc_mode_in = kwargs.get("AIGC生产模式", "自动判别")
+            if _aigc_mode_in and _aigc_mode_in != "自动判别":
+                _prod_mode = _aigc_mode_in
+                _prod_basis = "手动指定"
+            else:
+                # Cinematic 无首尾帧/参考图/参考视频输入 → 自动判别为文生视频
+                _prod_mode, _prod_basis = detect_production_mode(
+                    has_first=False, has_last=False, has_ref_images=False, has_ref_video=False)
+        except Exception as _aigc_e:
+            import sys as _aigc_s
+            _aigc_s.stderr.write(f"[DirectorMaster] AIGC适配降级: {type(_aigc_e).__name__}\n")
+            _prod_mode, _prod_basis = "文生视频", "降级"
+
+        # === V16.1: AIGC 提示词构建上下文 (七要素) ===
+        try:
+            _chars_ctx = _chars if _chars else ["主角"]
+            _aigc_ctx = {
+                "scene": scene, "director": director, "mood": mood,
+                "characters": _chars_ctx,
+                "platform": (core.get("_平台媒介", "") if core else ""),
+                "era": _aigc_pb.detect_era({"scene": scene}),
+                "production_mode": _prod_mode,
+            }
+        except Exception:
+            _aigc_ctx = {"scene": scene, "director": director, "mood": mood,
+                         "characters": ["主角"], "production_mode": _prod_mode}
+
         shots_json = []
         for i, s in enumerate(shots):
             meta = narrative_meta[i] if i < len(narrative_meta) else {"line":"A","pov":"全知","timeline":"现在"}
             intensity = s.get("emotion_intensity", emotion_curve[i] if i < len(emotion_curve) else 5)
+            # V16.1: 优先用叙事编排写入镜头的时间线/线/POV (重排后的真实值), 否则用 narrative_meta
+            _tl = s.get("timeline") or meta["timeline"]
+            _ln = s.get("line") or meta["line"]
+            _pv = s.get("pov") or meta["pov"]
+            # V16.1: 每镜 AIGC 提示词 (七要素, 模型可直接消费) + 首帧提示词 + 音频描述
+            try:
+                _shot_for_pb = dict(s)
+                _shot_for_pb.setdefault("timeline", _tl)
+                _aigc_prompt = _aigc_pb.build_shot_aigc_prompt(_shot_for_pb, _aigc_ctx)
+                _ff_prompt = _aigc_pb.build_first_frame_prompt(_shot_for_pb, _aigc_ctx)
+                _audio_desc = _aigc_pb.build_audio_desc(_shot_for_pb, _aigc_ctx)
+            except Exception:
+                _aigc_prompt, _ff_prompt, _audio_desc = "", "", ""
             shots_json.append({
                 "镜号": s.get("n"), "阶段": s.get("stage"), "类型阶段": s.get("stage_name"),
                 "景别": s.get("size"), "角度": s.get("angle"), "运镜": s.get("move"),
@@ -988,7 +1076,13 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "首帧描述": s.get("首帧描述", s.get("stage_name", "")),
                 # V12.6 v7 新增 (V14.3 E1: 1位小数)
                 "情感强度": intensity,  # 0-10
-                "线": meta["line"], "POV": meta["pov"], "时间线": meta["timeline"],
+                "线": _ln, "POV": _pv, "时间线": _tl,
+                # V16.1 新增: 银幕序/时序位 + AIGC 提示词三件套
+                "银幕序": s.get("screen_order", s.get("n")),
+                "时序位": s.get("story_order", s.get("n")),
+                "AIGC提示词": _aigc_prompt,
+                "首帧提示词": _ff_prompt,
+                "音频描述": _audio_desc,
             })
         # V14.3 E1: 浮点统一 1 位小数 (总时长/情感曲线)
         _total_dur = round(sum(float(str(s.get("时长", 0)).replace("s", "") or 0) for s in shots_json), 1)
@@ -1000,24 +1094,23 @@ class DirectorMasterCinematic(DirectorNodeBase):
             except Exception:
                 _curve_clean.append(_cv)
 
-        # V16.0 需求4: AIGC 视频生产适配 — 判别生产模式 + 每镜适配
+        # V16.0 需求4: 每镜 AIGC 适配提示词 (保留原字段, 与 V16.1 七要素提示词并存)
         try:
-            from aggregator.aigc_adapter import detect_production_mode, build_aigc_block, adapt_shot_for_mode, MODE_T2V
-            _aigc_mode_in = kwargs.get("AIGC生产模式", "自动判别")
-            if _aigc_mode_in and _aigc_mode_in != "自动判别":
-                _prod_mode = _aigc_mode_in
-                _prod_basis = "手动指定"
-            else:
-                # Cinematic 无首尾帧/参考图/参考视频输入 → 自动判别为文生视频
-                _prod_mode, _prod_basis = detect_production_mode(
-                    has_first=False, has_last=False, has_ref_images=False, has_ref_video=False)
-            # 每镜 AIGC 适配提示词
             for _sj in shots_json:
                 _sj["AIGC适配提示词"] = adapt_shot_for_mode(_sj, _prod_mode)
-        except Exception as _aigc_e:
-            import sys as _aigc_s
-            _aigc_s.stderr.write(f"[DirectorMaster] AIGC适配降级: {type(_aigc_e).__name__}\n")
-            _prod_mode, _prod_basis = "文生视频", "降级"
+        except Exception as _aam_e:
+            import sys as _aam_s
+            _aam_s.stderr.write(f"[DirectorMaster] AIGC适配提示词降级: {type(_aam_e).__name__}\n")
+
+        # V16.1: 叙事编排信息块 (方式/时间线图谱/线索图谱/导演批注/字幕位)
+        _arrange_block = {
+            "方式": _arrange_plan.get("方式", arrangement_mode),
+            "叙事线型": _arrange_plan.get("叙事结构", line_mode),
+            "时间线图谱": _arrange_plan.get("时间线图谱", "现在"),
+            "线索图谱": _arrange_plan.get("线索图谱", "A"),
+            "导演批注": _arrange_plan.get("导演批注", ""),
+            "字幕位": _arrange_plan.get("字幕位", []),
+        }
 
         json_str = _json.dumps({
             "分镜数": len(shots_json),
@@ -1026,6 +1119,7 @@ class DirectorMasterCinematic(DirectorNodeBase):
             "故事理论": story_theory, "叙事结构": narrative_mode,
             "AIGC生产模式": _prod_mode,
             "AIGC判别依据": _prod_basis,
+            "叙事编排": _arrange_block,
             "情感曲线": _curve_clean,
             "叙事元数据": narrative_meta,
             "分镜表": shots_json,
@@ -1042,8 +1136,9 @@ class DirectorMasterCinematic(DirectorNodeBase):
         # V16.0 需求4: AIGC 生产适配块 (注入分镜文本输出)
         try:
             main += "\n\n" + build_aigc_block(_prod_mode, shots_json, scene=scene, director=director)
-        except Exception:
-            pass
+        except Exception as _bab_e:
+            import sys as _bab_s
+            _bab_s.stderr.write(f"[DirectorMaster] AIGC生产适配块降级: {type(_bab_e).__name__}\n")
 
         # V14.2: 启用反AI规则 真实生效 (此前硬编码"开"且未消费); 节点开关优先于核心包
         _anti_ai_flag = kwargs.get("启用反AI规则", None)

@@ -101,6 +101,8 @@ AGGREGATOR_MODULES = [
     "llm_engine", "director_master",
     "style_fusion", "intuition_engine", "soul_engine", "multimodal_engine",
     "failure_memory", "cocreator_engine", "v15_nodes",
+    # V16.1 叙事编排引擎 + AIGC 提示词构建器 + AIGC 适配器
+    "narrative_arrangement", "aigc_prompt_builder", "aigc_adapter",
 ]
 LIB_MODULES = [
     "anti_ai_vocab", "director_data_unified",

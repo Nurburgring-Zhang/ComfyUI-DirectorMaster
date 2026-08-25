@@ -12,6 +12,7 @@ if _PARENT not in _sys.path: _sys.path.insert(0, _PARENT)
 if _HERE not in _sys.path: _sys.path.insert(0, _HERE)
 
 from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy, parse_multi_select
+from aggregator.narrative_arrangement import ARRANGEMENT_MODES, NARRATIVE_LINE_MODES
 
 # 导演分类
 CATS = ["电影","电视","广告","短视频","动画","全部"]
@@ -173,6 +174,12 @@ class DirectorMasterCore(DirectorNodeBase):
                 "tooltip": "★ V13.2 多选: 情绪随情节推进演变, 用 逗号/箭头 分隔, 顺序即叙事顺序。例: '压抑→爆发→释然' — 第一幕压抑, 高潮爆发, 结尾释然。留空 = 用上方单选情绪基调贯穿全片"}),
             "视觉调性_混合": ("STRING", {"default": "", "multiline": True,
                 "tooltip": "★ V13.2 多选: 多种视觉调性混合/演变, 用 逗号/箭头 分隔。例: '写实→梦幻' 或 '复古胶片, 霓虹'。留空 = 用上方单选视觉调性"}),
+            "叙事编排": ([_NO_DEFAULT, _RND] + [m for m in ARRANGEMENT_MODES if m != "跟随叙事结构"], {
+                "default": _NO_DEFAULT,
+                "tooltip": "★ V16.1 叙事编排 — 打包进核心数据包, 下游剧本/分镜节点继承。正叙/倒叙(结果先行)/穿插倒叙/穿插乱叙/循环叙事。留空=跟随叙事结构"}),
+            "叙事线型": ([_NO_DEFAULT, _RND] + [m for m in NARRATIVE_LINE_MODES if m != "单线"], {
+                "default": _NO_DEFAULT,
+                "tooltip": "★ V16.1 叙事线型 — 打包进核心数据包, 下游继承。双线并行/三线交织/POV切换。留空=单线"}),
             "参数预设": (["默认(无覆盖)", _RND] + PARAM_NAMES, {"default": "默认(无覆盖)",
                 "tooltip": "可选. 选导演级预设 (王家卫/诺兰/塔可夫斯基/是枝裕和/奉俊昊/库布里克/黑泽明); 🎲 随机"}),
             "高级参数JSON": ("STRING", {"default": "", "multiline": True,
@@ -195,14 +202,22 @@ class DirectorMasterCore(DirectorNodeBase):
 
     def build(self, **kwargs):
         import re as _re
+        import random as _rng_mod
+        import hashlib as _rng_hash
+        # V16.1: 所有"🎲 随机"选项使用项目名+场景描述作为确定性种子,
+        #        同输入同输出, 同时保留不同输入之间的多样性。
+        _project_seed = str(kwargs.get("项目名", "未命名项目") or "未命名项目")
+        _scene_seed = str(kwargs.get("场景描述", "") or "")
+        _seed_val = int(_rng_hash.md5(f"{_project_seed}_{_scene_seed}".encode("utf-8", "replace")).hexdigest(), 16) % (2 ** 32)
+        _rng = _rng_mod.Random(_seed_val)
+
         # 提取全部 32 字段 (V12.6 v7 fix2: "无(默认)" 映射到 V9.5 默认值)
         # V16.0 需求1: _resolve 支持 🎲 随机 — 传入 options 时随机选一个真实值
         def _resolve(v, default, options=None):
             if v == "🎲 随机" and options:
-                import random as _r
                 real = [o for o in options if o not in ("无(默认)", "🎲 随机", "", "默认(无覆盖)")]
                 if real:
-                    return _r.choice(real)
+                    return _rng.choice(real)
                 return default
             if v == "无(默认)" or not v: return default
             return v
@@ -246,24 +261,28 @@ class DirectorMasterCore(DirectorNodeBase):
         subtext_desc = kwargs.get("潜文本_情感","")
         mode = "标准"
 
-        # 导演选择 (V16.0 需求1: 支持 🎲 随机)
+        # V16.1: 叙事编排 + 叙事线型 (打包进核心数据包, 下游继承)
+        _ARRANGE_OPTS = [m for m in ARRANGEMENT_MODES if m != "跟随叙事结构"]
+        _LINE_OPTS = [m for m in NARRATIVE_LINE_MODES if m != "单线"]
+        narrative_arrangement = _resolve(kwargs.get("叙事编排"), "跟随叙事结构", _ARRANGE_OPTS)
+        narrative_line = _resolve(kwargs.get("叙事线型"), "单线", _LINE_OPTS)
+
+        # 导演选择 (V16.0 需求1: 支持 🎲 随机; V16.1 改用确定性种子)
         custom = (kwargs.get("导演名_自定义") or "").strip()
         if custom:
             director = match_director_fuzzy(custom)
         else:
             dname = kwargs.get("导演名","[电影] 王家卫")
             if dname == "🎲 随机":
-                import random as _r
-                dname = _r.choice(DIR_NAMES)
+                dname = _rng.choice(DIR_NAMES)
             director = dname.split("] ",1)[1] if "] " in dname else dname
 
-        # 灵魂注入 (V16.0 需求1: 灵魂预设支持 🎲 随机)
+        # 灵魂注入 (V16.0 需求1: 灵魂预设支持 🎲 随机; V16.1 改用确定性种子)
         raw_soul = (kwargs.get("灵魂注入_自定义") or "").strip()
         if not raw_soul:
             _soul_preset = kwargs.get("灵魂预设","无(默认)")
             if _soul_preset == "🎲 随机":
-                import random as _r
-                _soul_preset = _r.choice([s for s in SOUL_NAMES if s != "无(默认)"])
+                _soul_preset = _rng.choice([s for s in SOUL_NAMES if s != "无(默认)"])
             raw_soul = SOUL_PRESETS.get(_soul_preset,"")
         # 解析灵魂注入
         soul_vals = {}
@@ -277,11 +296,10 @@ class DirectorMasterCore(DirectorNodeBase):
                 if m:
                     soul_vals[m.group(1)] = m.group(2).strip()
 
-        # 参数预设 (V16.0 需求1: 支持 🎲 随机)
+        # 参数预设 (V16.0 需求1: 支持 🎲 随机; V16.1 改用确定性种子)
         _param_preset = kwargs.get("参数预设","默认(无覆盖)")
         if _param_preset == "🎲 随机":
-            import random as _r
-            _param_preset = _r.choice([p for p in PARAM_NAMES if p != "默认(无覆盖)"])
+            _param_preset = _rng.choice([p for p in PARAM_NAMES if p != "默认(无覆盖)"])
         param_json = PARAM_PRESETS.get(_param_preset,"")
         extra = {}
         if param_json:
@@ -416,6 +434,8 @@ class DirectorMasterCore(DirectorNodeBase):
             "_核心冲突": conflict, "_主题词": theme, "_视觉调性": visual, "_视觉调性弧": visual_arc,
             "_潜文本强度": subtext_strength, "_观众承诺": promise,
             "_对标作品": ref_films, "_关键道具": props, "_潜文本_情感": subtext_desc,
+            # === V16.1 叙事编排 (下游剧本/分镜节点继承) ===
+            "_叙事编排": narrative_arrangement, "_叙事线型": narrative_line,
             # === AI 配置 (★ 用户唯一 AI 入口) ===
             "_ai_api_url": api_url, "_ai_api_key": api_key, "_ai_api_model": ai_model,
         }, ensure_ascii=False)

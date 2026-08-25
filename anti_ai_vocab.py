@@ -713,6 +713,123 @@ def build_iteration_chain(theme: str, characters: str, structure: str, pacing: s
     ]
 
 
+# ============================================================
+# 7. V16.1 文本质量层 — 空洞词具象翻译 / 后缀去复读 / 元语言出清 / 焦点拼接清理
+# ============================================================
+
+# 情绪空洞词 → 具象现象翻译表 (来源: 真实视频提示词.skill 氛围翻译表)
+# 原则: 温暖/孤独/紧张这类词无法被摄影机拍到, 必须翻译成可拍到的现象
+ATMOSPHERE_TRANSLATION = {
+    "温馨": "阳光透过树叶在桌面晃动, 杯口冒着热气, 人物随手拨了一下头发",
+    "温暖": "暖光落在织物上, 热气从杯口升起, 两个人的距离比刚才近了半步",
+    "感人": "角色没哭, 只是把那样东西收好, 动作比平时慢了两拍",
+    "治愈": "风把帘子掀起又放下, 人物长长地呼出一口气, 肩膀松下来",
+    "泪目": "眼眶红了但没有落泪, 视线移到别处停了两秒",
+    "震撼": "人物站在原地没有动, 只有衣角被气浪掀动",
+    "史诗感": "天地占满画面, 人物只是其中一个黑点, 风声压过一切",
+    "史诗": "天地占满画面, 人物只是其中一个黑点, 风声压过一切",
+    "绝美": "光恰好落在主体边缘, 背景虚成一片柔和的色块",
+    "完美": "每个细节都在它该在的位置, 没有一处多余",
+    "帅气": "动作干脆, 收尾利落, 做完之后停了一拍",
+    "质感拉满": "材质的纹理、磨损与反光都清晰可辨",
+    "氛围感拉满": "光影、声音与人物状态指向同一种情绪",
+    "高级感": "色彩克制, 留白充足, 画面里只有必要的元素",
+    "氛围感": "光影与声音指向同一种情绪",
+}
+
+# 创作正文禁止的空洞词键表 (用于扫描)
+CHINESE_EMPTY_WORDS = list(ATMOSPHERE_TRANSLATION.keys())
+
+
+def translate_empty_words(text):
+    """把情绪空洞词翻译为具象现象 (仅处理独立成词的用法, 避免误伤词组)."""
+    import re
+    result = text
+    for word, concrete in sorted(ATMOSPHERE_TRANSLATION.items(), key=lambda x: -len(x[0])):
+        # 前后不接汉字时替换 (避免 "温馨的家" 这类偏正结构被生硬截断 → 仍替换, 但保留后续)
+        result = result.replace(word, concrete)
+    return result
+
+
+def count_empty_words(text):
+    """统计空洞词命中数 (质检用)."""
+    if not text:
+        return 0
+    return sum(text.count(w) for w in CHINESE_EMPTY_WORDS)
+
+
+_SUFFIX_POOL = ("·深入", "·升级", "·回响", "·变形", "·变奏", "·再现")
+
+
+def reduce_suffix_repetition(text, max_per_suffix=3):
+    """同后缀 (·深入/·升级/…) 全片最多 max_per_suffix 次, 超限替换为序号化短语."""
+    if not text:
+        return text
+    result = text
+    for suf in _SUFFIX_POOL:
+        count = result.count(suf)
+        while count > max_per_suffix:
+            idx = -1
+            seen = 0
+            # 找到第 max+1 个出现位置
+            for _ in range(max_per_suffix + 1):
+                idx = result.find(suf, idx + 1)
+            if idx == -1:
+                break
+            result = result[:idx] + "·延续" + result[idx + len(suf):]
+            count = result.count(suf)
+    return result
+
+
+_META_PATTERNS = [
+    r"张力曲线\s*[:：]?\s*\d+(?:\.\d+)?/10",
+    r"戏剧张力\s*[:：]?\s*\d+(?:\.\d+)?/10",
+    r"情感强度\s*[:：]?\s*\d+(?:\.\d+)?/10",
+    r"\[故事阶段[:：][^\]]*\]",
+    r"故事阶段\s*[:：]\s*\S+",
+    r"V1[2-6]\.\d(?:\s*v\d+)?",
+]
+
+
+def strip_meta_language(text):
+    """创作正文出清元语言 (张力数值/阶段标注/版本号) — 保留在设计行与JSON, 不进创作文本."""
+    import re
+    if not text:
+        return text
+    result = text
+    for pat in _META_PATTERNS:
+        result = re.sub(pat, "", result)
+    # 清理替换后残留的孤立分隔符
+    result = re.sub(r"\[\s*\]", "", result)
+    result = re.sub(r"\|\s*\|", "|", result)
+    result = re.sub(r"[ \t]+\n", "\n", result)
+    return result
+
+
+def clean_focus_junction(focus):
+    """把 '|' 拼接的焦点串整理为自然语句 (去重, 逗号连接)."""
+    if not focus or "|" not in focus:
+        return focus
+    parts = [p.strip() for p in str(focus).split("|")]
+    seen, out = set(), []
+    for p in parts:
+        if not p or p in seen:
+            continue
+        seen.add(p)
+        out.append(p)
+    return ", ".join(out)
+
+
+def polish_creative_text(text, max_per_suffix=3):
+    """创作文本一站式质量处理: 空洞词翻译 + 后缀去复读 + 元语言出清."""
+    if not text:
+        return text
+    result = translate_empty_words(text)
+    result = reduce_suffix_repetition(result, max_per_suffix)
+    result = strip_meta_language(result)
+    return result
+
+
 if __name__ == "__main__":
     # 简单测试
     print(f"反 AI 词表条目: {len(ANTI_AI_PHRASES)}")

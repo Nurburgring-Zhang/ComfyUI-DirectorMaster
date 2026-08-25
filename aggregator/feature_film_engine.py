@@ -1448,11 +1448,6 @@ def generate_story_beats(num_scenes, target_minutes, type_str=None, mood=None, d
 # ============================================================
 import random as _random_mod
 
-# ============================================================
-# 故事场景/物件/人物 池子 (确定性hash选择, 同输入→同输出)
-# ============================================================
-import random as _random_mod
-
 def _seeded_choice(pool, seed):
     """基于 seed 确定性选 1 个."""
     if not pool:
@@ -1981,7 +1976,9 @@ def _detect_era(scene_raw):
     # 无年份 → 按关键词
     if any(k in s for k in ["手机", "电脑", "外卖", "地铁", "快递", "口罩", "便利店", "写字楼", "程序员"]):
         return "现代"
-    if any(k in s for k in ["收音机", "粮票", "磁带", "搪瓷", "老照片", "旗袍", "军装"]):
+    if any(k in s for k in ["收音机", "粮票", "磁带", "搪瓷", "老照片", "旗袍", "军装",
+                              # V16.1: 民国意象 — 民国上海/百乐门/歌女 走复古池, 不出手机/便签
+                              "民国", "百乐门", "歌女", "舞厅", "租界", "十里洋场", "黄包车", "旧上海", "留声机"]):
         return "复古"
     return "现代"  # 默认现代
 
@@ -2659,6 +2656,9 @@ def generate_feature_scenes(scene_parsed, director, mood, intent, target_minutes
         c3 = _seeded_choice(_rest or _comp_pool, _seed_chars + "_c3")
     chars = [c1, c2, c3]
 
+    # V16.1 Review修复: 先快照用户真实道具; objs 为空时会被年代默认道具填充,
+    #   若用填充后的 objs 做 gate, "首尾场必出用户道具"实际强制的是默认道具。
+    _user_objs = list(p.get("objects", []) or [])
     objs = p.get("objects", [])
     if not objs:
         # V13.3: 默认道具按年代 (不再硬编码凤梨三件套)
@@ -2700,6 +2700,19 @@ def generate_feature_scenes(scene_parsed, director, mood, intent, target_minutes
     # V13.3: 模板复用预算 — 同一动作模板/潜文本变体 全片最多用 3 次 (消除复读感)
     _tpl_use = {}
 
+    # V16.1: 场景锚点 — 用户描述的地点/时间/天气 必须主导生成 (此前全随机取池 → 输入"民国上海后台"
+    #   却生成"邮局营业厅大雪"等无关场景)。池子仅作少量变化补充, 开场/收束场强制锚定。
+    _anchor_loc = str(p.get("location", "") or "")
+    if _anchor_loc in ("", "场景"):
+        _anchor_loc = ""
+    # V16.1 Review修复: parse_scene 无时间词时默认返回"夜", 若直接锚定会把未写时间的输入
+    #   全片锁死在夜里 (对旧随机 TIME_POOL 行为的回归)。仅当 raw 含显式时间词才锚定。
+    _TIME_TOKENS = ("清晨", "早晨", "早上", "上午", "中午", "正午", "午后", "下午", "黄昏", "傍晚",
+                    "夜晚", "深夜", "午夜", "黎明", "日出", "日落", "白天", "夜", "凌晨")
+    _raw_txt = str(p.get("raw", "") or "")
+    _anchor_time = str(p.get("time", "") or "") if any(t in _raw_txt for t in _TIME_TOKENS) else ""
+    _anchor_weather = str(p.get("weather", "") or "")
+
     scenes = []
     cumulative_min = 0.0
     for (act, scene_index), (story_function, dialogue_density, tension_level, duration_min, shots_target) in beat_map.items():
@@ -2739,24 +2752,46 @@ def generate_feature_scenes(scene_parsed, director, mood, intent, target_minutes
 
         # 确定性选择
         seed_base = f"{scene_parsed.get('raw','')}_{director}_{scene_mood}_{act}_{scene_index}_{scene_num}_{mode_seed}"
-        location = _seeded_choice(loc_pool, seed_base + "_loc")
-        time = _seeded_choice(TIME_POOL, seed_base + "_time")
+        # V16.1: 地点锚定 — 有用户场景锚点时, 全部场次都锚定在"同一世界":
+        #   开场/收束场强制纯锚点; 其余场在 锚点(加权)与 锚点派生相邻空间 间确定性选取,
+        #   不再跳到无关通用地点池 (修复输入"民国上海后台"却出"邮局营业厅大雪"的场景脱节)。
+        _is_edge_scene = (scene_num == 1 or scene_num == total_scenes)
+        if _anchor_loc:
+            if _is_edge_scene:
+                location = _anchor_loc
+            else:
+                _anchor_variants = ([_anchor_loc, _anchor_loc, _anchor_loc,
+                                      f"{_anchor_loc}一角", f"{_anchor_loc}门口",
+                                      f"通往{_anchor_loc}的过道", f"{_anchor_loc}外", f"{_anchor_loc}窗边"])
+                location = _seeded_choice(_anchor_variants, seed_base + "_locvar")
+        else:
+            location = _seeded_choice(loc_pool, seed_base + "_loc")
+        # V16.1: 时间锚定 — 75% 用用户场景时间, 25% 池内变化
+        if _anchor_time and (_is_edge_scene or _seeded_choice([True, True, True, False], seed_base + "_time_anchor")):
+            time = _anchor_time
+        else:
+            time = _seeded_choice(TIME_POOL, seed_base + "_time")
         # V13.4: 天气场景一致 — 沙漠/戈壁场景不出现雪 (从源头消除沙漠踏雪矛盾)
         _weather_pool = WEATHER_POOL
         _raw_scene = scene_parsed.get("raw", "") or ""
         if any(_d in _raw_scene for _d in ["沙漠", "大漠", "黄沙", "戈壁"]):
             _weather_pool = [w for w in WEATHER_POOL if "雪" not in w]
-        weather = _seeded_choice(_weather_pool, seed_base + "_weather") if _seeded_choice([True, False], seed_base + "_has_weather") else ""
+        # V16.1: 天气锚定 — 用户写了"雨夜/沙暴/云海"等天气时, 75% 场次沿用, 25% 走池内变化
+        if _anchor_weather and (_is_edge_scene or _seeded_choice([True, True, True, False], seed_base + "_weather_anchor")):
+            weather = _anchor_weather
+        else:
+            weather = _seeded_choice(_weather_pool, seed_base + "_weather") if _seeded_choice([True, False], seed_base + "_has_weather") else ""
         ie = p.get("ie", "内")
         # 高潮场景强制外景
         if "高潮" in story_function or "对决" in story_function or "失去" in story_function or "黑夜" in story_function:
             ie = "外"
 
-        # 物件 — 30% 场次用用户输入的核心道具, 70% 用 OBJECT_POOL 补充 (但所有核心道具必出现 ≥ 3 次)
-        use_user_objs = _seeded_choice([True, False, False, False, False, False, False], seed_base + "_use_user")
-        if use_user_objs and objs:
+        # 物件 — V16.1: 用户核心道具提升到 ~50% 场次并保证开场/收束必现 (此前 ~14% 导致场景标志道具缺席),
+        #   其余用年代适配 OBJECT_POOL 补充。V16.1 Review: gate 用 _user_objs 快照, 避免把年代默认道具误当用户道具强制出场。
+        use_user_objs = bool(_user_objs) and (_is_edge_scene or _seeded_choice([True, False], seed_base + "_use_user"))
+        if use_user_objs and _user_objs:
             # 优先用用户核心道具
-            scene_objs = _seeded_sample(objs, 1, seed_base + "_user_objs", no_repeat=False)
+            scene_objs = _seeded_sample(_user_objs, 1, seed_base + "_user_objs", no_repeat=False)
             if scene_objs:
                 # 配 1 个年代适配的物件池物件
                 supplement = _seeded_sample(era_obj_pool, 1, seed_base + "_sup", no_repeat=True)
