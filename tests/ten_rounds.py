@@ -277,7 +277,8 @@ try:
     record("T7", "并发8线程×2提交零丢失",
            not _t7_errs and len(_t7_vids) == 16 and len(_t7_log) == _t7_base + 16
            and not _t7_lost and not _t7_bad,
-           f"提交{len(_t7_vids)}/16 历史{len(_t7_log)}/{_t7_base + 16} 丢失{len(_t7_lost)} sha异常{len(_t7_bad)} 错误{_t7_errs[:1]}")
+           f"提交{len(_t7_vids)}/16 历史{len(_t7_log)}/{_t7_base + 16} 丢失{len(_t7_lost)} sha异常{len(_t7_bad)} "
+           f"并发后体积{os.path.getsize(st2.path)}B 错误{_t7_errs[:1]}")
 finally:
     shutil.rmtree(tmpdir)
 

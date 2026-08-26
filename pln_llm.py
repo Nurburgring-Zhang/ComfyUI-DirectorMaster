@@ -104,7 +104,11 @@ class _PinnedHTTPConnection(http.client.HTTPConnection):
         self._pinned_ips = list(pinned_ips or [])
 
     def _connect_targets(self):
-        return self._pinned_ips if self._pinned_ips else [self.host]
+        # V16.1.1 审计修复 L-B2: 钉扎集为空即拒绝连接 (fail-closed) —
+        # 禁止回退到二次 DNS 解析, 否则 SSRF 钉扎保证形同虚设
+        if not self._pinned_ips:
+            raise OSError("IP 钉扎集为空, 拒绝连接 (SSRF 防护 fail-closed)")
+        return self._pinned_ips
 
     def connect(self):
         last_err = None

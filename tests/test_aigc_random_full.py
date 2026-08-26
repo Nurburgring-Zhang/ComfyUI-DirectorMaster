@@ -280,6 +280,22 @@ def main():
         print("失败明细 (前30):")
         for e in ERRORS[:30]:
             print("  -", e)
+    # V16.1.1 (审计修复 D-1): 实测结果落盘存档 — README「实测 PASS/FAIL」口径的证据锚点
+    try:
+        _result = {
+            "version": "V16.1.1-MERGED",
+            "cases": n_cases,
+            "seed": 20260820,
+            "PASS": PASS,
+            "FAIL": FAIL,
+            "unique_cine_hashes": len(cine_hashes),
+            "failures": ERRORS[:30],
+        }
+        with open(os.path.join(HERE, "aigc_random_full_results.json"), "w", encoding="utf-8") as f:
+            json.dump(_result, f, ensure_ascii=False, indent=2)
+        print("结果存档已写入: tests/aigc_random_full_results.json")
+    except Exception as _re:
+        print(f"警告: 结果存档写入失败 {type(_re).__name__}: {_re}")
     sys.exit(1 if FAIL else 0)
 
 

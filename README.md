@@ -81,12 +81,12 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 
 ## 质量验证（实测指标）
 
-- 全模式执行：258 个下拉选项全通过（246 创作模式为精选口径：剔除随机项与聚合项，详见 tests/test_all_modes.py），唯一输出按节点实测 46/23/4/5/63/42/41/7/5/12（Script/Vibe/Art/Sound/Cine/Chars/Asset/Router/VideoRouter/Archive）
-- AIGC 场景贴合：40 例全量随机测试 A–H 八维断言 PASS=543 FAIL=0（维度 H：≥60% 镜头提示词命中输入场景锚点）
+- 全模式执行：258 个下拉选项全通过（246 创作模式为精选口径：剔除随机项与聚合项，详见 tests/test_all_modes.py），唯一输出按节点实测 46/23/4/5/63/42/41/7/6/12（Script/Vibe/Art/Sound/Cine/Chars/Asset/Router/VideoRouter/Archive）
+- AIGC 场景贴合：40 例全量随机测试 A–H 八维断言 PASS=543 FAIL=0（证据存档 tests/aigc_random_full_results.json；维度 H：≥60% 镜头提示词命中输入场景锚点）
 - Cinematic 镜头语法指纹（景别/运镜/焦段/时长）：63/63 唯一（含 4 个同节奏簇）
-- 同档期形态模式正文相似度：0.295-0.610（16 对实测，最大为纪录片对，门槛 <0.7）
+- 同档期形态模式正文相似度：0.295-0.606（16 对实测，最大为纪录片对，门槛 <0.7）
 - 互动剧分支树：可解析 JSON，2 选择点 × ≥2 选项，3 结局，零悬空引用
-- 版本存储：commit/state/tag/diff/rollback 全操作实测，回滚逐字节还原（sha256 校验）；19 个版本（含 8 线程×2 并发提交）仅 2.4KB（blob 去重 + gzip）；并发零丢失为 T7 实测断言（16/16 可取回、内容 sha 逐一相符、历史数精确）
+- 版本存储：commit/state/tag/diff/rollback 全操作实测，回滚逐字节还原（sha256 校验）；19 个版本（含 8 线程×2 并发提交）仅 2458 B（blob 去重 + gzip，T7 实测记录）；并发零丢失为 T7 实测断言（16/16 可取回、内容 sha 逐一相符、历史数精确）
 - 时长覆盖：90min 核心包分镜总时长实测偏差 0.16%（T10 断言 ±1% 内）
 - 浮点伪影：0（情感强度/张力/节拍表统一 1 位小数）
 - 结构硬指标：中点 48-53%、灵魂黑夜 68-76%（含此节拍的结构）、高潮 76-84%（T10 四结构断言全过）
@@ -129,6 +129,7 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 - **Cinematic 修复**：总时长输入继承逻辑修正（非默认值优先）；POV 切换保留后缀；删除零消费死代码（情绪曲线模板/叙事结构表）
 - **诚实口径统一**：534→600 导演库文案/诊断全面对齐；doctor 6→7 类诊断；MEGA 工作流元数据 total_links 修正；workflows/README 按实测重写（含 legacy 存档 23 个工作流实测节点/链接数）
 - **T10 结构断言补齐**：新增灵魂黑夜位置断言（稳健匹配"灵魂黑夜/灵魂的黑夜"双写法），英雄之旅 12 阶段纳入四结构断言；实测区间中点 48-53%、黑夜 68-76%、高潮 76-84%
+- **终审增强（双 AI 终审闭环）**：IP 钉扎集为空即拒绝连接（fail-closed，禁止回退二次 DNS 解析）；测试证据存档机制（AIGC 全量结果 JSON 落盘、T7 并发后体积入记录）；README 实测数字与存档逐一对齐（VideoRouter 唯一 6、相似度最大 0.606、19 版本并发后 2458 B）
 
 ### V16.1.0-MERGED（最终输出 AIGC 化 + 场景锚定）
 
