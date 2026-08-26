@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-V15.0-MERGED 全量回归测试 — 17 节点 × 全部下拉模式运行时实测
+V16.1.1-MERGED 全量回归测试 — 17 节点 × 全部下拉模式运行时实测
 ================================================================
 不依赖 pytest:  python3 tests/test_all_modes.py
 覆盖:
   1. 金标准加载 (spec_from_file_location, 模拟 ComfyUI loader)
   2. E2E 管线 (Core → 7 上游 → Summary → Router/VideoRouter → Archive)
-  3. 全模式扫描 (230 模式逐一执行, 输出非空 + 跨模式哈希去重)
+  3. 全模式扫描 (258 模式逐一执行, 输出非空 + 逐节点哈希唯一性统计, 共 277 断言)
 退出码: 0 = 全部通过, 1 = 有失败
 """
 import os
@@ -69,7 +69,7 @@ def call(cls, kw):
 
 def main():
     print("=" * 60)
-    print("  V15.0-MERGED 全量回归 (17 节点 × 全模式)")
+    print("  V16.1.1-MERGED 全量回归 (17 节点 × 全模式)")
     print("=" * 60)
 
     # 1. 加载

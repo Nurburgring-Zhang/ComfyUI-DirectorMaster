@@ -2,7 +2,8 @@
 """
 ① DirectorMasterCore — 起点·核心总控
 =====================================
-11 输出: 灵魂+审美+风格+意图+提示词+签名+反AI+维度+8原则+色板+核心数据包.
+2 输出: 统一电影提示词 + 核心数据包.
+11 能力块 (灵魂+审美+风格+意图+提示词+签名+反AI+维度+8原则+色板+元数据) 折入核心数据包 JSON.
 AI 配置打包进核心数据包, 下游连接即继承.
 """
 import os as _os, sys as _sys, json as _json
@@ -128,7 +129,7 @@ class DirectorMasterCore(DirectorNodeBase):
             "导演名": (DIR_NAMES + [_RND], {"default": "[电影] 王家卫",
                 "tooltip": "★ 600 导演库, 选导演即锁定其风格档案; 🎲 随机 = 随机选一位导演"}),
             "导演名_自定义": ("STRING", {"default": "",
-                "tooltip": "可选. 填写后覆盖下拉, 支持 534 导演模糊搜索"}),
+                "tooltip": "可选. 填写后覆盖下拉, 支持 600 导演模糊搜索"}),
             "场景描述": ("STRING", {"default": "父女在厨房, 雨夜, 1998年哈尔滨, 父亲切菜, 女儿坐桌边, 桌上有凤梨罐头和旧信", "multiline": True,
                 "tooltip": "★ 核心场景, 1-3 句话"}),
             "时间年代": ([_NO_DEFAULT,_RND]+CORE_YEAR_OPTS, {"default": _NO_DEFAULT,
@@ -304,11 +305,14 @@ class DirectorMasterCore(DirectorNodeBase):
         extra = {}
         if param_json:
             try: extra = _json.loads(param_json)
-            except: pass
+            except Exception as _e_pp:
+                # V16.1.1 审计修复 L-8: 不再静默吞 JSON 解析错误
+                _sys.stderr.write("[DirectorMaster] 参数预设JSON解析失败, 回落默认: {}\n".format(str(_e_pp)[:100]))
         user_json = kwargs.get("高级参数JSON","")
         if user_json:
             try: extra.update(_json.loads(user_json))
-            except: pass
+            except Exception as _e_uj:
+                _sys.stderr.write("[DirectorMaster] 高级参数JSON解析失败, 回落默认: {}\n".format(str(_e_uj)[:100]))
 
         # 构建 10 维参数
         c = extra.get("创造力", soul_vals.get("创造力",0.85))

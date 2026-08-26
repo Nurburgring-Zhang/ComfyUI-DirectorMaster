@@ -698,7 +698,7 @@
       "name": "MEGA_PIPELINE_V8.3",
       "description": "Core→5Studio→Final(剧本+分镜)→Router(视频payload+EDL)→Archive(真存盘)",
       "total_nodes": 9,
-      "total_links": 19
+      "total_links": 18
     }
   },
   "version": 0.4

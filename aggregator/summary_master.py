@@ -10,10 +10,10 @@
   - 角色弧追踪(Arc Tracking)
   - 美术/声音/资产注入
 
-slot0 剧本: 上游Script.剧本 + 导演锚定 + Vibe主题 + L1-L7 + 节拍表 + 张力曲线 + 角色弧
-slot1 分镜脚本: 上游Cinematic.分镜 + 美术/声音注入 + L1-L7(每镜7层)
-slot2 完整制作手册: 全能力汇总(去重复导演块)
-slot3 JSON结构化数据: 干净结构化字段
+V16.1.1 审计修复 L-7: 输出如实描述 — RETURN_TYPES 为 3 路 (剧本/分镜原文折入手册与JSON交付包):
+slot0 完整制作手册: 全能力汇总(去重复导演块), 含 剧本全文 + 分镜表 + 节拍表 + 张力曲线 + 角色弧 + 成片指标
+slot1 JSON交付包: 干净结构化字段 (剧本/分镜/节拍/曲线/元数据)
+slot2 项目索引: 归档索引用项目卡片
 
 AI双轨: 有AI→3个创意输出(剧本+分镜+手册)全走LLM原生; 无AI→模板输出零降级
 """
@@ -22,6 +22,17 @@ _HERE = _os.path.dirname(_os.path.abspath(__file__))
 _PARENT = _os.path.dirname(_HERE)
 if _PARENT not in _sys.path: _sys.path.insert(0, _PARENT)
 if _HERE not in _sys.path: _sys.path.insert(0, _HERE)
+
+
+def _shot_dur_seconds(s):
+    """V16.1.1 审计修复 L-9: 稳健时长提取 — 兼容 数值/"3.5s"/"3秒" 等单位写法,
+    非法值归 0 (旧实现 float("3秒") 会抛 ValueError 冒泡)。"""
+    import re as _re_dur
+    try:
+        m = _re_dur.search(r"(\d+(?:\.\d+)?)", str(s.get("dur") or s.get("时长") or 0))
+        return float(m.group(1)) if m else 0.0
+    except Exception:
+        return 0.0
 from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, get_director_profile_text, resolve_dropdown
 from aggregator.pro_format import strip_decor, strip_director_block
 from aggregator.scene_engine import parse_scene, generate_shots
@@ -344,7 +355,7 @@ class DirectorMasterSummary(DirectorNodeBase):
             f"关键道具: {props}\n"
             f"═══════════════════════════════════════════════════════════\n"
             f"【成片指标】\n"
-            f"分镜数: {len(layered_shots)} | 总时长: {sum(float(str((s.get('dur') or s.get('时长') or 0)).replace('s','') or 0) for s in layered_shots):.1f}s | 分镜来源: {shots_source}\n"
+            f"分镜数: {len(layered_shots)} | 总时长: {sum(_shot_dur_seconds(s) for s in layered_shots):.1f}s | 分镜来源: {shots_source}\n"
             f"剧本字数: {len(script) if script else 0} | 制作手册字数: {len(manual_text)}\n"
             f"═══════════════════════════════════════════════════════════"
         )

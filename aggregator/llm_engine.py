@@ -2,7 +2,7 @@
 """
 aggregator/llm_engine.py — V8.0 LLM 原生生成引擎
 =============================================
-7 域规则 + 534 导演档案 + Hell Grind 约束.
+7 域规则 + 600 导演档案 + Hell Grind 约束.
 
 每个节点在无 AI 时使用内置深度模板 (本文件含模板降级逻辑).
 """
@@ -75,7 +75,7 @@ DOMAIN_RULES = {
 
 
 def _get_director_block(director):
-    """从 534 导演库提取档案块."""
+    """从 600 导演库提取档案块."""
     try:
         from director_data_unified import get_director_profile, get_director, COLOR_STYLES_5, COMPOSITION_RULES_9
         prof = get_director_profile(director) or get_director(director)

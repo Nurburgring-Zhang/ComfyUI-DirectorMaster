@@ -6,7 +6,7 @@ aggregator/node_base.py — ComfyUI 节点公共基类 + 双轨逻辑
   1. ComfyUI 合规 (INPUT_TYPES classmethod 检测, IS_CHANGED 自动生成)
   2. AI 双轨: 有 LLM 走 generate_native, 无 LLM 走 built-in template
   3. 核心数据包解析 + AI 配置继承
-  4. 534 导演模糊匹配
+  4. 600 导演模糊匹配
 
 V8.0 彻底重建版 — 无 legacy 依赖.
 """
@@ -124,7 +124,7 @@ def resolve_ai_config(kwargs, core):
 
 
 def get_director_profile_text(director):
-    """从 534 导演库提取该导演的 12 维档案文本 (镜头/光/节奏/色彩/表演/构图/声音/情绪/物件/年代/5维标签).
+    """从 600 导演库提取该导演的 12 维档案文本 (镜头/光/节奏/色彩/表演/构图/声音/情绪/物件/年代/5维标签).
 
     用于把导演风格知识注入节点输出, 实现"世界顶级导演能力".
     """
@@ -148,7 +148,7 @@ def get_director_profile_text(director):
 
 
 def match_director_fuzzy(text):
-    """534 导演模糊匹配."""
+    """600 导演模糊匹配."""
     if not text or not isinstance(text, str):
         return "王家卫"
     text = text.strip()
@@ -204,7 +204,7 @@ class DirectorNodeBase:
         if not txt:
             return ""
         return (f"\n\n═══════════════════════════════════════════════════════════\n"
-                f"【导演风格锚定 · {director} — 534导演库12维档案】\n"
+                f"【导演风格锚定 · {director} — 600导演库12维档案】\n"
                 f"═══════════════════════════════════════════════════════════\n{txt}")
 
     def _apply_anti_ai(self, text, kwargs, core):

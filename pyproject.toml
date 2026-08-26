@@ -1,10 +1,10 @@
 [project]
 name = "comfyui-DirectorMaster"
-version = "16.1.0"
-description = "ComfyUI 导演级提示词聚合节点系统 — V16.1.0-MERGED: 17 个 DirectorMaster 超级节点 (V14.2基线+V14.1合并+V15引擎+V16随机/秒级时长/全方向/AIGC适配+场景锚定), 600 导演数据库驱动"
+version = "16.1.1"
+description = "ComfyUI 导演级提示词聚合节点系统 — V16.1.1-MERGED: 17 个 DirectorMaster 超级节点 (V14.2基线+V14.1合并+V15引擎+V16随机/秒级时长/全方向/AIGC适配+场景锚定+审计修复), 600 导演数据库驱动"
 authors = [{name = "DirectorMaster"}]
 requires-python = ">=3.8"
 
 [tool.comfyui]
-nodes = 13
-director_database = 534
+nodes = 17
+director_database = 600

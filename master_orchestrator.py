@@ -6,7 +6,7 @@ Phase 14 - 终极主整合器 (Ultimate Master Orchestrator)
 
 把 8 大世界顶级导演能力 + 42 环节 8 阶段 + L1-L7 七层架构
 + 6 层生产系统 + 15 块刚性骨架 + 6 份文件 + 3 留白 + 3 运镜
-全部深度整合到 ComfyUI-PromptLibraryNode 节点里。
+全部深度整合到 ComfyUI-DirectorMaster 节点里 (前身为 ComfyUI-PromptLibraryNode)。
 
 ## 8 大顶级导演能力 (8 Core Abilities)
 - AB1 叙事架构力 (Narrative Architecture) - PTA/Nolan/奉俊昊

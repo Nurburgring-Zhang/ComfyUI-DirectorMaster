@@ -49,7 +49,8 @@ def parse_shot_table(text):
             else:
                 body = stripped
                 for key in _SHOT_SUBKEYS:
-                    m = _re.search(rf"{key}:\s*([^|]*?)(?=\s*\|\s*(?:{'|'.join(_SHOT_SUBKEYS)}):|$)", body)
+                    # V16.1.1 审计修复 L-1: 兼容全角冒号 (与焦点键一致), 外部表格不再丢子键
+                    m = _re.search(rf"{key}[:：]\s*([^|]*?)(?=\s*\|\s*(?:{'|'.join(_SHOT_SUBKEYS)})[:：]|$)", body)
                     if m:
                         cur[key] = m.group(1).strip()
             continue

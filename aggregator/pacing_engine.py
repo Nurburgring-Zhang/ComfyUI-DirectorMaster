@@ -2,7 +2,7 @@
 """
 V12.6 v9: 节奏引擎 (Pacing Engine) — 世界顶级导演的镜头语言
 =========================================================
-覆盖 15+ 节奏风格, 从 0.3s 一秒三闪到 180s 一镜到底:
+覆盖 19 种节奏风格, 从 0.3s 一秒三闪到 600s 一镜到底:
 
   快闪类 (cutting, 0.3-1s):
     1. 一秒三闪 (one_sec_three)       — 0.3s × 3 镜, 情绪爆发/嗨爆/MV 高潮
@@ -64,7 +64,7 @@ def _normalize_director(director):
 
 
 # ============================================================
-# 15+ 节奏风格池 — 每种定义 (镜头序列模板, 适用场景, 大师参考)
+# 19 种节奏风格池 — 每种定义 (镜头序列模板, 适用场景, 大师参考)
 # ============================================================
 PACING_STYLES = {
     # === 快闪类 (0.3-1s) ===
@@ -439,10 +439,12 @@ DIRECTOR_PACING_BIAS = {
 
 
 def _classify_pacing(pacing_style):
-    """把节奏风格归类到大类: 慢镜/长镜/快剪/蒙太奇"""
-    if pacing_style in ("极慢抒情", "慢镜高光", "子弹时间", "一镜到底", "游走长镜", "极慢抒情", "极慢抒情"):
+    """把节奏风格归类到大类: 慢镜/长镜/快剪/蒙太奇
+    V16.1.1 审计修复 L-2: 对齐 PACING_STYLES 真实键名 (旧版 "定格凝固"/"航拍大师" 不存在,
+    恒落默认大类; "极慢抒情" 重复) — 现 "定格"/"航拍" 正确归入长镜类参与导演偏置判定。"""
+    if pacing_style in ("极慢抒情", "慢镜高光", "子弹时间", "一镜到底", "游走长镜"):
         return "慢镜"
-    if pacing_style in ("固定长镜", "对话长镜", "POV 主观", "航拍大师", "延时摄影", "定格凝固"):
+    if pacing_style in ("固定长镜", "对话长镜", "POV 主观", "航拍", "延时摄影", "定格"):
         return "长镜"
     if pacing_style in ("一秒三闪", "抖音超快", "MV 慢镜", "车戏分镜", "枪战分镜", "演唱会纪录"):
         return "快剪"
@@ -517,7 +519,7 @@ def expand_pacing_shots(pacing_style, scene, c1, c2, location, weather, obj_str,
     target_total_dur = duration_min * 60.0
 
     # 原始模板的 dur 总和 (按 shots_target / len(seq) 重复)
-    repeat_count = max(1, shots_target // len(seq) + 1)
+    # V16.1.1 审计修复 L-3: 移除死变量 repeat_count (计算后从未使用, 实际重复由模板偏移取模完成)
     total_template_dur = sum(s.get("dur", 1.0) for s in seq) * (shots_target / len(seq))
     # 缩放因子: 让总秒数 ≈ 场戏时长
     if total_template_dur > 0:

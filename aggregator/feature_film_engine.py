@@ -933,7 +933,7 @@ DIRECTOR_OVERRIDES = {
 def _normalize_director(director):
     """V12.6 v13 + V13.3: 归一化导演名 → 15 种派别.
     V13.3: 新增 张艺谋(视觉仪式)/维伦纽瓦(巨物沉默)/宫崎骏(自然灵动)/周星驰(无厘头节奏) 4 派,
-    并把 534 导演库中的常见导演按风格亲和度映射到派别, 不再大量落入 default.
+    并把 600 导演库中的常见导演按风格亲和度映射到派别, 不再大量落入 default.
     """
     if not director:
         return "default"
@@ -3241,6 +3241,15 @@ def generate_feature_shots(scenes, total_minutes=120, director="导演", mood="�
     _seed_off = 0
     if mode_seed:
         _seed_off = int(_hashlib.md5(str(mode_seed).encode("utf-8", errors="replace")).hexdigest(), 16)
+    # V16.1.1 审计修复 L-6: 总计划镜数 (各场 shots_target 之和) — 供每镜弧位按比例判定
+    _total_shots_plan = 0
+    for _sc_plan in scenes:
+        try:
+            _total_shots_plan += max(1, int(_sc_plan.get("shots_target", 8) or 8))
+        except Exception:
+            _total_shots_plan += 8
+    for _sc_plan in scenes:
+        _sc_plan["_total_shots"] = max(1, _total_shots_plan)
     all_shots = []
     shot_n = 0
 
@@ -3489,20 +3498,19 @@ def _make_shot(shot_n, scene, tpl, c1, c2, location, weather, obj_str, all_shots
     primary_obj = obj_str.split("、")[0] if obj_str else "关键道具"
     secondary_obj = obj_str.split("、")[1] if obj_str and len(obj_str.split("、")) > 1 else ""
     # 身体细节池 (按 c1/c2 角色)
+    # V16.1.1 审计修复 M-4: 旧版 "父亲" 键重复定义, Python dict 静默覆盖丢失 8 条细节 — 已合并为单一 10 条池
     body_details = {
         "父亲": [
             "右手食指老茧触到砧板", "切菜的手指顿了一下, 刀尖垂下半寸",
             "肩微微耸起, 像承受什么", "没抬头, 但呼吸变沉",
             "擦灶台的手停在半空", "夹菜时先夹给别人",
             "茶端起来又放下", "门框上的手指收紧了",
+            "刀停砧板上, 手指颤", "窗前站立, 背影在逆光中",
         ],
         "女儿": [
             "手机屏幕光映在脸上", "翻出旧信的手轻微颤抖",
             "眼神闪到门缝, 停半拍", "把碗推到桌中央",
             "夹起凤梨, 放进父亲碗里", "肩膀微微缩了一下",
-        ],
-        "父亲": [
-            "刀停砧板上, 手指颤", "窗前站立, 背影在逆光中",
         ],
     }
     body_pool = body_details.get(c1, body_details["父亲"])
@@ -3681,8 +3689,17 @@ def _make_shot(shot_n, scene, tpl, c1, c2, location, weather, obj_str, all_shots
         7: "对峙/爆发", 8: "决战场面/震撼", 9: "情感最高点/灵魂黑夜", 10: "爆发/极致/燃烧"
     }.get(tension, "日常/平静")
 
-    # 故事弧线
-    arc_pos = "建立" if shot_n <= 60 else ("铺垫" if shot_n <= 140 else ("转折" if shot_n <= 200 else ("高潮" if shot_n <= 250 else "收束")))
+    # 故事弧线 — V16.1.1 审计修复 L-6: 按镜号占总计划镜数的比例定弧位
+    # (旧版绝对阈值 60/140/200/250 与片长规模脱钩: 30 分钟片与 180 分钟片共用一把尺)
+    try:
+        _total_shots_plan = max(1, int(scene.get("_total_shots", 0) or 0))
+    except Exception:
+        _total_shots_plan = 0
+    if _total_shots_plan > 1:
+        _arc_p = shot_n / _total_shots_plan
+        arc_pos = "建立" if _arc_p <= 0.2 else ("铺垫" if _arc_p <= 0.45 else ("转折" if _arc_p <= 0.65 else ("高潮" if _arc_p <= 0.85 else "收束")))
+    else:
+        arc_pos = "建立" if shot_n <= 60 else ("铺垫" if shot_n <= 140 else ("转折" if shot_n <= 200 else ("高潮" if shot_n <= 250 else "收束")))
 
     # === V12.6 v10: 5 个深度字段 (顶级导演级描述) ===
     # 1. director_note (导演批注) - 王家卫式具体描写

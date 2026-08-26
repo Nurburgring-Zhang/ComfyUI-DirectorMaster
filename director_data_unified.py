@@ -3,6 +3,9 @@
 Phase 36.6 v5h: 统一导演数据中枢 (Director Data Hub)
 ================================================================
 
+V16.1.1 审计实测声明: DIRECTOR_PROFILES_35 实际含 38 位导演档案
+(符号名 _35 为 Phase 36.6 历史遗留, 为兼容全部消费者保持不变)。
+
 **问题 (零虚假发现)**:
 - 35 联网导演档案 + 100 场景 + 30 名言 数据被锁在 director_soul.py 内部
 - 5+ 个核心节点 (CinematicStudio, DirectorMasteryNode, UniversalDirectorPromptNode, StyleGuidePro, AestheticJudgmentPro) 都没引用

@@ -227,32 +227,8 @@ CINE_MODE_THEORY = {
     "电影关键场次分镜": "三幕剧",
 }
 
-# V12.6 v7: 导演情感曲线 (每镜情感强度 0-10, 世界顶级导演分镜必备)
-EMOTION_CURVE_TEMPLATES = {
-    "三幕剧": {
-        "建置": 3, "第一情节点": 5, "上升动作": 6, "中点": 7,
-        "第二情节点": 8, "高潮": 10, "下降动作": 6, "解决": 4,
-    },
-    "救猫咪15拍": {
-        "开场画面": 3, "主题陈述": 4, "铺垫": 4, "触发": 5,
-        "争论": 5, "第二幕开始": 6, "副线": 5, "乐趣与游戏": 5,
-        "中点": 7, "反派逼近": 8, "失去一切": 9, "灵魂的黑夜": 9,
-        "第三幕开始": 8, "高潮": 10, "结尾": 4,
-    },
-    "英雄之旅": {
-        "平凡世界": 2, "冒险召唤": 4, "拒绝召唤": 5, "导师出现": 4,
-        "跨越门槛": 5, "试炼盟友与敌人": 6, "深渊逼近": 7,
-        "最大考验": 9, "获得宝物": 8, "归途": 6, "复活": 7, "携宝归来": 5,
-    },
-}
-
-# V12.6 v7: 多线叙事 / POV 切换 / 非线性时间线
-NARRATIVE_STRUCTURE_MODES = {
-    "单线": "默认单线叙事 (V12.6 v6 行为)",
-    "双线并行": "A线 + B线 平行, 中间交汇, 结尾合并 (例: 父亲线 + 女儿线)",
-    "POV切换": "同一事件从多个角色 POV 视角切换 (例: 先父亲看, 再女儿看)",
-    "非线性": "时间线打乱, 倒叙/插叙/闪前 (例: 雨夜场景中插入旧日回忆)",
-}
+# V16.1.1 审计修复 L-4: 移除零消费死常量 EMOTION_CURVE_TEMPLATES / NARRATIVE_STRUCTURE_MODES
+# (情感曲线实际由 DIRECTOR_CURVES 驱动; 叙事模式由 叙事编排/叙事线型 下拉驱动)
 
 
 def _build_emotion_curve(shot_idx, total_shots, story_theory="三幕剧", director="王家卫", narrative_meta=None):
@@ -496,13 +472,17 @@ def _build_narrative_structure(narrative_mode, total_shots, scenes=None, chars=N
                 break
             # 在同一场戏内, 偶尔切 POV (增加丰富度)
             if j > 0 and j % 4 == 0 and narrative_mode in ("POV切换", "双线并行"):
-                # 切到另一种 POV
-                if sc_meta["pov"] == "父亲 POV":
-                    pov_j = "女儿 POV"
-                elif sc_meta["pov"] == "女儿 POV":
-                    pov_j = "父亲 POV"
+                # V16.1.1 审计修复 L-5: 基于真实角色名 cA/cB 对称切换 —
+                # 旧版只认字面 "父亲/女儿", V13.3 改用真实角色名后恒为 no-op
+                _cur_pov = sc_meta["pov"]
+                _pa = "{} POV".format(cA)
+                _pb = "{} POV".format(cB)
+                if _cur_pov.startswith(_pa):
+                    pov_j = _pb + _cur_pov[len(_pa):]
+                elif _cur_pov.startswith(_pb):
+                    pov_j = _pa + _cur_pov[len(_pb):]
                 else:
-                    pov_j = sc_meta["pov"]
+                    pov_j = _cur_pov
             else:
                 pov_j = sc_meta["pov"]
             result.append({
@@ -709,9 +689,19 @@ class DirectorMasterCinematic(DirectorNodeBase):
             if _nums:
                 target_minutes = max(int(x) for x in _nums)
         tm_input = kwargs.get("目标时长(分钟)", None)
+        # V16.1.1 审计修复 M-5: 核心数据包 _成片时长 真实继承 —
+        # 旧版 widget (default=120, ComfyUI 恒传数值) 总是覆盖 core 时长, 使 core 的
+        # "_成片时长" 永远无法传导到 Cinematic (90 分钟项目恒按 120 分钟出分镜)。
+        # 现规则: core 有时长 → 优先 core; 用户显式改 widget (≠120 默认) → widget 覆盖;
+        # core 无时长 → 用 widget 值。
+        _TM_WIDGET_DEFAULT = 120.0
         if tm_input is not None and str(tm_input).strip() not in ("", "0", "None"):
-            try: target_minutes = float(tm_input)
-            except: pass
+            try:
+                _tm_val = float(tm_input)
+                if abs(_tm_val - _TM_WIDGET_DEFAULT) > 1e-9 or not runtime_str:
+                    target_minutes = _tm_val
+            except Exception:
+                pass
         # V16.0 需求2: 秒级支持 — 短时长(<20min)直通小数, 长时长归一标准桶
         if target_minutes >= 110: target_minutes = 120
         elif target_minutes >= 80: target_minutes = 90

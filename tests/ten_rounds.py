@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-V14.3-MERGED 十轮全量测试编排器
+V16.1.1-MERGED 十轮全量测试编排器
 ================================
 T1  部署运行: doctor 7类 + 17节点加载 + 工作流JSON
-T2  全量功能使用: 246 模式全执行 (唯一性)
+T2  全量功能使用: 258 模式全执行 + 逐节点唯一性统计 (277 断言)
 T3  数据聚合: 14+ 数据源真实消费验证
 T4  能力增强: 9 项复活接线注入出现率
 T5  功能维度矩阵: 多输入×多模式 确定性/降级/结构
@@ -65,7 +65,7 @@ print("=" * 70)
 print("T1 部署运行")
 print("=" * 70)
 rc, out = run_script(os.path.join(ROOT, "doctor.py"))
-record("T1", "doctor.py 6类自检", rc == 0, out[-300:])
+record("T1", "doctor.py 7类自检", rc == 0, out[-300:])
 mod = load_pkg("dm_t1")
 record("T1", "默认加载 17 节点", len(mod.NODE_CLASS_MAPPINGS) == 17, str(len(mod.NODE_CLASS_MAPPINGS)))
 bad_contract = [n for n, c in mod.NODE_CLASS_MAPPINGS.items()
@@ -75,10 +75,10 @@ rc, out = run_script(os.path.join(ROOT, "tests", "test_workflows.py"))
 record("T1", "工作流 JSON 有效性", rc == 0, out[-200:])
 
 print("=" * 70)
-print("T2 全量功能使用 (246 模式)")
+print("T2 全量功能使用 (258 模式 · 277 断言)")
 print("=" * 70)
 rc, out = run_script(os.path.join(ROOT, "tests", "test_all_modes.py"))
-record("T2", "全模式回归 265 断言", rc == 0, out[-300:])
+record("T2", "全模式回归 277 断言", rc == 0, out[-300:])
 
 print("=" * 70)
 print("T3 数据聚合 (真实消费)")
@@ -150,6 +150,29 @@ record("T4", "执行层 进短视频剧本", "短视频镜头执行" in script_o
 s_kw3 = defaults(M["DirectorMasterScript"]); s_kw3["剧本模式"] = "互动剧分支剧本"; s_kw3["核心数据包"] = core_pack
 it_out = call(M["DirectorMasterScript"], s_kw3)[0]
 record("T4", "互动剧分支树 可解析", "分支树 JSON" in it_out)
+# V16.1.1 M2: 真实解析分支树 JSON — 结构完整性 + 零悬空引用 (审计修复)
+try:
+    _bt_seg = it_out.split("【分支树 JSON (可解析)】", 1)[1]
+    _bt_obj, _ = json.JSONDecoder().raw_decode(_bt_seg[_bt_seg.index("{"):])
+    _bt_ids = {n["id"] for n in _bt_obj["nodes"]}
+    _bt_choices = [n for n in _bt_obj["nodes"] if n.get("type") == "choice"]
+    _bt_dangling = []
+    for _bt_n in _bt_obj["nodes"]:
+        for _bt_o in (_bt_n.get("options") or []):
+            if _bt_o.get("target") not in _bt_ids:
+                _bt_dangling.append(f"{_bt_n['id']}->{_bt_o.get('target')}")
+        if _bt_n.get("next") and _bt_n["next"] not in _bt_ids:
+            _bt_dangling.append(f"{_bt_n['id']}.next->{_bt_n['next']}")
+    _bt_st = _bt_obj.get("stats", {})
+    _bt_ok = (_bt_st.get("choice_points") == 2 and len(_bt_choices) == 2
+              and all(len(n.get("options") or []) >= 2 for n in _bt_choices)
+              and _bt_st.get("endings") == 3
+              and set(_bt_obj.get("endings") or []) == {"E1", "E2", "E3"}
+              and not _bt_dangling)
+    record("T4", "分支树 结构完整零悬空", _bt_ok,
+           f"choice={_bt_st.get('choice_points')} endings={_bt_st.get('endings')} dangling={_bt_dangling[:3]}")
+except Exception as e:
+    record("T4", "分支树 结构完整零悬空", False, repr(e))
 
 print("=" * 70)
 print("T5 功能维度矩阵 (多输入×确定性×降级)")
@@ -224,6 +247,37 @@ try:
     best = st.best("total")
     record("T7", "最优版本选择", best and best[0][1]["id"] == v2)
     record("T7", "版本库体积", os.path.getsize(st.path) < 2 * 1024 * 1024, f"{os.path.getsize(st.path)}B")
+    # V16.1.1 M3: 并发提交零丢失 — 8线程×2提交 (进程内路径锁+跨进程文件锁串行化) (审计修复)
+    import threading as _t7_th
+    _t7_base = len(st.log(limit=50))
+    _t7_vids, _t7_errs = [], []
+    _t7_guard = _t7_th.Lock()
+
+    def _t7_worker(ti):
+        try:
+            for ci in range(2):
+                content = f"并发内容-{ti}-{ci}" * 120
+                vid = st.commit(f"并发{ti}-{ci}", {"剧本": (f"cc_{ti}_{ci}.txt", content)})
+                with _t7_guard:
+                    _t7_vids.append((vid, hashlib.sha256(content.encode()).hexdigest()))
+        except Exception as _e7:
+            with _t7_guard:
+                _t7_errs.append(repr(_e7))
+
+    _t7_ts = [_t7_th.Thread(target=_t7_worker, args=(i,)) for i in range(8)]
+    for t in _t7_ts:
+        t.start()
+    for t in _t7_ts:
+        t.join()
+    st2 = VersionStore(tmpdir, "T7项目")  # 新实例从盘上重载, 验证持久化后的真实状态
+    _t7_log = st2.log(limit=50)
+    _t7_lost = [vid for vid, _ in _t7_vids if st2.get(vid) is None]
+    _t7_bad = [vid for vid, sha in _t7_vids
+               if st2.get(vid) and st2.get(vid)["files"]["剧本"]["sha256"] != sha]
+    record("T7", "并发8线程×2提交零丢失",
+           not _t7_errs and len(_t7_vids) == 16 and len(_t7_log) == _t7_base + 16
+           and not _t7_lost and not _t7_bad,
+           f"提交{len(_t7_vids)}/16 历史{len(_t7_log)}/{_t7_base + 16} 丢失{len(_t7_lost)} sha异常{len(_t7_bad)} 错误{_t7_errs[:1]}")
 finally:
     shutil.rmtree(tmpdir)
 
@@ -281,17 +335,25 @@ def beat_positions(script_text):
     n = max(1, len(scenes))
     pos = {}
     lines = body.splitlines()
-    for key in ["中点", "灵魂黑夜", "高潮"]:
+    # 生成器两种写法并存: "灵魂黑夜" / "灵魂的黑夜" (不同理论表), 须稳健匹配
+    pats = {"中点": re.compile("中点"), "灵魂黑夜": re.compile(r"灵魂的?黑夜"), "高潮": re.compile("高潮")}
+    for key, pat in pats.items():
         for i, ln in enumerate(lines):
-            if key in ln:
+            if pat.search(ln):
                 pos[key] = i / max(1, len(lines))
                 break
     return pos, n
 
 
+# 期望区间来自 2026-08 实测 (确定性引擎, 留 ±0.06 余量):
+#   三幕剧(经典)        中点0.483 高潮0.838            (经典三幕无独立黑夜拍)
+#   救猫咪15拍          中点0.483 黑夜0.681 高潮0.76
+#   三幕剧(变体)        中点0.525 黑夜0.760 高潮0.797
+#   英雄之旅12阶段      中点0.483 黑夜0.681 高潮0.838
 for theory, expect in [("三幕剧(经典)", {"中点": (0.35, 0.62), "高潮": (0.72, 0.97)}),
-                       ("救猫咪15拍(Blake Snyder)", {"中点": (0.35, 0.62), "高潮": (0.72, 0.97)}),
-                       ("三幕剧(变体)", {"中点": (0.40, 0.68), "高潮": (0.70, 0.95)})]:
+                       ("救猫咪15拍(Blake Snyder)", {"中点": (0.35, 0.62), "灵魂黑夜": (0.62, 0.75), "高潮": (0.72, 0.97)}),
+                       ("三幕剧(变体)", {"中点": (0.40, 0.68), "灵魂黑夜": (0.70, 0.82), "高潮": (0.70, 0.95)}),
+                       ("英雄之旅12阶段(Campbell)", {"中点": (0.35, 0.62), "灵魂黑夜": (0.62, 0.75), "高潮": (0.72, 0.97)})]:
     kw = defaults(script_cls); kw["剧本模式"] = "完整长片剧本"; kw["叙事结构"] = theory; kw["核心数据包"] = cpk
     o = call(script_cls, kw)[0]
     pos, n = beat_positions(o)

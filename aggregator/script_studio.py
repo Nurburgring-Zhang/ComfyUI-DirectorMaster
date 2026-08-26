@@ -1936,7 +1936,7 @@ class DirectorMasterScript(DirectorNodeBase):
   镜5: 特写·固定·2s·情感强度 10/10 (凤梨罐头被打开, 顶点)
   镜6: 全景·固定·5s·情感强度 7/10 (收束, 余韵)
 
-[故事线] 534 导演库 12 维档案 + 多线:
+[故事线] 600 导演库 12 维档案 + 多线:
   父女双线: A 线(父亲, Want: 不被读懂, Need: 表达爱) vs B 线(女儿, Want: 答案, Need: 接受父亲沉默)
   物件线: 凤梨罐头(15年) → 旧信(泛黄) → 钢笔(没墨水) — 物件承载时间/记忆/父亲沉默
 
@@ -1973,7 +1973,7 @@ class DirectorMasterScript(DirectorNodeBase):
                 "char_arcs": char_arcs,
                 "upstream_context": upstream_ctx,
                 "few_shot_world_class": few_shot,
-                "rewrite_instruction": "请作为世界顶级导演的编剧, 基于 8 故事理论节拍点 + 3D 空间坐标 + 角色 Want/Need/弧光 + 上游 5 维 + few-shot 世界顶级范例, 输出完整剧本. 必须包含: 1) 剧情推进 (按所选故事理论的节拍点推进) 2) 空间位置 (用 screen-left/right/center 标注人物位置) 3) 氛围渲染 (5 维锚定融入场景描写) 4) 镜头情感 (运镜+景别+时长+情感强度) 5) 故事线 (534 导演库 12 维 + 角色 Want/Need 推进) 6) 叙事节奏 (节拍表+张力曲线). 输出世界顶级剧本.",
+                "rewrite_instruction": "请作为世界顶级导演的编剧, 基于 8 故事理论节拍点 + 3D 空间坐标 + 角色 Want/Need/弧光 + 上游 5 维 + few-shot 世界顶级范例, 输出完整剧本. 必须包含: 1) 剧情推进 (按所选故事理论的节拍点推进) 2) 空间位置 (用 screen-left/right/center 标注人物位置) 3) 氛围渲染 (5 维锚定融入场景描写) 4) 镜头情感 (运镜+景别+时长+情感强度) 5) 故事线 (600 导演库 12 维 + 角色 Want/Need 推进) 6) 叙事节奏 (节拍表+张力曲线). 输出世界顶级剧本.",
             }
             main = self._ensure_ai_output(main, ctx, ai_url, ai_key, ai_model)
 

@@ -47,9 +47,12 @@ def _lock_for(path):
 class _FileLock:
     """跨进程锁: 原子创建 .lock 文件 + 持有者标识 (pid:token:ts).
     V14.3 (审查P1修复): 接管仅在 持有者进程已死 或 锁过期(>60s) 时发生;
-    释放只删自己的锁 (内容==自己的 token), 防止误删接管者的锁。"""
+    释放只删自己的锁 (内容==自己的 token), 防止误删接管者的锁。
+    V16.1.1 (审计修复 H-1/M-1): 进程探活改只读探测 (Windows 不再误杀持锁进程);
+    token 单次写入+fsync 消除空文件窗口, 竞争方对空锁文件按 EMPTY_GRACE_SECONDS 宽限等待。"""
 
     STALE_SECONDS = 60.0
+    EMPTY_GRACE_SECONDS = 10.0  # 空锁文件宽限期: 小于此年龄视为持有者写入中, 不可接管
 
     def __init__(self, dir_path, timeout=15.0):
         self.lock_path = _os.path.join(dir_path, ".store.lock")
@@ -68,7 +71,13 @@ class _FileLock:
     def _holder_dead_or_stale(self):
         holder = self._read_holder()
         if not holder:
-            return True
+            # V16.1.1 审计修复 M-1: 空文件可能是新持有者 O_EXCL 创建后尚未写完 token。
+            # 年轻文件 → 视为正在持锁 (等待重试); 年久空文件 → 持有者创建后崩溃 → 可接管。
+            try:
+                age = _time.time() - _os.path.getmtime(self.lock_path)
+            except Exception:
+                age = self.STALE_SECONDS + 1.0
+            return age > self.EMPTY_GRACE_SECONDS
         parts = holder.split(":")
         if len(parts) < 3:
             return True
@@ -79,16 +88,8 @@ class _FileLock:
             return True
         if _time.time() - ts > self.STALE_SECONDS:
             return True
-        # 检查持有者进程是否存活 (同机跨进程)
-        try:
-            _os.kill(pid, 0)
-            return False  # 存活 → 不可接管
-        except ProcessLookupError:
-            return True   # 进程已死 → 可接管
-        except PermissionError:
-            return False  # 存活但无权限 → 不可接管
-        except Exception:
-            return False
+        # 检查持有者进程是否存活 (同机跨进程) — V16.1.1 审计修复 H-1: 只读探测, 不再用 os.kill
+        return not _pid_alive(pid)
 
     def __enter__(self):
         deadline = _time.time() + self.timeout
@@ -96,8 +97,13 @@ class _FileLock:
         while True:
             try:
                 fd = _os.open(self.lock_path, _os.O_CREAT | _os.O_EXCL | _os.O_WRONLY)
-                with _os.fdopen(fd, "w", encoding="utf-8") as f:
-                    f.write("{}:{}".format(self._token, _time.time()))
+                # V16.1.1 审计修复 M-1: 单次 write + fsync — token 随创建立即落盘,
+                # 消除"已创建未写入"的空窗口 (旧实现 fdopen 缓冲写, 竞争方可读到空文件)
+                try:
+                    _os.write(fd, "{}:{}".format(self._token, _time.time()).encode("utf-8"))
+                    _os.fsync(fd)
+                finally:
+                    _os.close(fd)
                 self._held = True
                 return self
             except FileExistsError:
@@ -127,6 +133,71 @@ class _FileLock:
             except Exception:
                 pass
         return False
+
+
+def _pid_alive(pid):
+    """探测进程是否存在 (同机跨进程, 只读探测).
+    V16.1.1 审计修复 H-1: Windows CPython <3.12 上 os.kill(pid, 0) 会调用
+    TerminateProcess **直接杀死**目标进程 — 第二个进程检查锁时会杀掉正在持锁的
+    ComfyUI 实例。Windows 改用 OpenProcess+GetExitCodeProcess 只读探测;
+    探测失败时保守判定存活 (宁可暂不接管, 绝不误杀)。
+    V16.1.1 二轮审计修复 L-A1: 显式声明 ctypes restype/argtypes —
+    64 位 Python 上 HANDLE 默认按 c_int 截断高 32 位会导致句柄失效。
+    V16.1.1 二轮审计修复 L-A2: 进程可能以真实退出码 259 正常退出,
+    GetExitCodeProcess==259 时用 WaitForSingleObject(h,0) 二次判定生死。"""
+    try:
+        pid = int(pid)
+    except Exception:
+        return False
+    if pid <= 0:
+        return False
+    if _os.name == "nt":
+        try:
+            import ctypes
+            from ctypes import wintypes
+            k32 = ctypes.windll.kernel32
+            _PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            _SYNCHRONIZE = 0x00100000
+            _ERROR_ACCESS_DENIED = 5
+            _STILL_ACTIVE = 259
+            _WAIT_TIMEOUT = 0x102
+            k32.OpenProcess.restype = wintypes.HANDLE
+            k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            k32.GetExitCodeProcess.restype = wintypes.BOOL
+            k32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+            k32.WaitForSingleObject.restype = wintypes.DWORD
+            k32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+            k32.CloseHandle.argtypes = [wintypes.HANDLE]
+            h = k32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION | _SYNCHRONIZE, False, pid)
+            if not h:
+                # 打开失败: 权限不足说明进程存在; 进程不存在则 GetLastError=87/6 等
+                return k32.GetLastError() == _ERROR_ACCESS_DENIED
+            try:
+                code = wintypes.DWORD(_STILL_ACTIVE)
+                if not k32.GetExitCodeProcess(h, ctypes.byref(code)):
+                    return True  # 查询失败 → 保守判存活
+                if code.value != _STILL_ACTIVE:
+                    return False
+                # 退出码恰为 259 时二次判定: WAIT_TIMEOUT=仍存活, WAIT_OBJECT_0=已退出
+                wait = k32.WaitForSingleObject(h, 0)
+                if wait == _WAIT_TIMEOUT:
+                    return True
+                if wait == 0:  # WAIT_OBJECT_0
+                    return False
+                return True  # WAIT_FAILED/其他 → 保守判存活
+            finally:
+                k32.CloseHandle(h)
+        except Exception:
+            return True  # 探测机制本身失败 → 保守判存活
+    try:
+        _os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True   # 存在但无权限
+    except Exception:
+        return True
 
 
 def _safe_name(s):

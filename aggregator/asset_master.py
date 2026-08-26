@@ -10,7 +10,7 @@ AI漫剧全流程命门: 角色一致性. 本节点:
 
 41模式: 角色设定 / 环境设定 / 服化道设定 细分 + HellGrind资产库
 V14.2: HellGrind资产库 接线真实 asset_registry 引擎 (Higgsfield Hell Grind 复刻:
-       8 资产 descriptor/状态变体/voice/behavior/压力测试/锁定), 此前默认 13 节点无入口。
+       8 资产 descriptor/状态变体/voice/behavior/压力测试/锁定), 此前 (V14 时代默认 13 节点) 无入口, 现为 17 默认节点之一。
 """
 import os as _os, sys as _sys, json as _json
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
@@ -138,7 +138,7 @@ _PROP_DESIGN = {
 
 # ============================================================
 # V14.2: HellGrind 资产库 — 接线真实 asset_registry 引擎
-# (修复能力降级: 此前仅 legacy AssetRegistry 节点可用, 默认 13 节点无入口)
+# (修复能力降级: 此前仅 legacy AssetRegistry 节点可用, V14 时代默认 13 节点无入口)
 # ============================================================
 def _hellgrind_names():
     try:
