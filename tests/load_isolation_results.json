@@ -1,0 +1,104 @@
+{
+  "suite": "test_load_isolation",
+  "version": "16.2.0",
+  "timestamp": "2026-08-26 22:35:04",
+  "pass": 19,
+  "fail": 0,
+  "results": [
+    {
+      "label": "注册节点恰好 17 个 (16 超级 + Final 别名)",
+      "ok": true,
+      "detail": "n=17"
+    },
+    {
+      "label": "16 个超级节点全部在册",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "label": "Final 别名在册",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "隔离清单为空 (全部健康加载)",
+      "ok": true,
+      "detail": "q=[]"
+    },
+    {
+      "label": "Final 别名与 Summary 同源 (同一个类对象)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "每个注册节点都有非空显示名",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "label": "__all__ 暴露隔离清单与加载函数",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "每个节点类具备 ComfyUI 必需属性",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "坏模块: 返回空注册",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "坏模块: 入隔离且 phase=import",
+      "ok": true,
+      "detail": "q=[{'target': 'aggregator.__definitely_not_exist__.NoSuchNode', 'error': 'ModuleNotFoundError(\"No module named \\'aggregator.__definitely_not_exist__\\'\")', 'phase': 'import'}]"
+    },
+    {
+      "label": "坏类名: 模块可导入但类缺失入隔离 phase=getattr",
+      "ok": true,
+      "detail": "q=[{'target': 'aggregator.router.DefinitelyMissingClass', 'error': '类不存在或不是类', 'phase': 'getattr'}]"
+    },
+    {
+      "label": "好坏混排: 好节点不受坏邻居拖垮",
+      "ok": true,
+      "detail": "loaded=['DirectorMasterCoCreator', 'DirectorMasterRouter', 'DirectorMasterSoul']"
+    },
+    {
+      "label": "好坏混排: 两个坏目标分别以 import/getattr 入隔离",
+      "ok": true,
+      "detail": "q=[{'target': 'aggregator.__definitely_not_exist__.BadOne', 'error': 'ModuleNotFoundError(\"No module named \\'aggregator.__definitely_not_exist__\\'\")', 'phase': 'import'}, {'target': 'aggregator.router.BadTwo', 'error': '类不存在或不是类', 'phase': 'getattr'}]"
+    },
+    {
+      "label": "隔离条目结构完整 (target/error/phase 三键)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "故障注入后真实注册表仍为 17 节点",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "__version__ == 16.2.0",
+      "ok": true,
+      "detail": "v=16.2.0"
+    },
+    {
+      "label": "pyproject.toml version = 16.2.0",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "README 标注 V16.2.0-MERGED",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "README 含批次1版本历史小节",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

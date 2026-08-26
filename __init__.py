@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ComfyUI-DirectorMaster V16.1.1-MERGED — 17 注册节点 (16 超级节点 + Final 别名) + 600 导演库
+ComfyUI-DirectorMaster V16.2.0-MERGED — 17 注册节点 (16 超级节点 + Final 别名) + 600 导演库
 ====================================================================
 V15.0-MERGED = V14.3-MERGED (V14.2审计基线 + V14.1-clean合并 + 阶段1/2深化)
 + V15.0 AI 赋能升级:
@@ -11,6 +11,14 @@ V15.0-MERGED = V14.3-MERGED (V14.2审计基线 + V14.1-clean合并 + 阶段1/2�
   · 多模态理解 (真实图像分析, 音视频诚实降级)
   · 共创引擎 (五阶段共创循环: 失败记忆/方向分支/门阵/精炼/预算收敛)
   · 反AI词表正则检测层 + 失败记忆 (Reflexion lessons.jsonl)
+
+V16.2.0 批次1 — LLM 链路健壮性加固 + 加载崩溃隔离 (六仓经验集成, 零代码借鉴独立重写):
+  · provider 预设注册表 (内置 10 厂商预设 + llm_presets.user.json 用户覆盖)
+  · 三态降级状态机 (primary_ok/fallback_active/probing, 冷却后探测恢复)
+  · 错误分类 + 溢出两层压缩 (gentle 25% / aggressive 12.5%) + 上游截断检测
+  · 字段别名四级容错解析 + 宽容 JSON 解析
+  · 节点加载崩溃隔离 (失败入 DM_QUARANTINE 隔离清单, 不拖垮其余节点)
+  · doctor 8 类诊断 (新增"加载隔离与 LLM 容错")
 
 17 注册节点 (Core 驱动 + forceInput):
   1. DirectorMasterCore         — 起点 → 统一电影提示词 + 核心数据包
@@ -42,50 +50,68 @@ if _HERE not in _sys.path:
 if _PARENT not in _sys.path:
     _sys.path.insert(0, _PARENT)
 
-# === Core 节点 (继承 V9.5) ===
-from aggregator.director_master import DirectorMasterCore
+# =====================================================================
+# V16.2.0 批次1: 加载崩溃隔离 (借鉴 Xed-Editor 崩溃隔离思路, 独立重写)
+# 节点类按模块逐项加载; 某模块/类加载失败时记入 DM_QUARANTINE 隔离清单,
+# 不阻断其余节点 — 单点损坏不再导致整包在 ComfyUI 启动时不可用。
+# =====================================================================
+_NODE_SPECS = [
+    ("aggregator.director_master", "DirectorMasterCore"),            # Core 节点 (继承 V9.5)
+    ("aggregator.script_studio", "DirectorMasterScript"),            # V9.5 剧本 46 模式
+    ("aggregator.vibe_studio", "DirectorMasterVibe"),                # V9.5 创意 23 模式
+    ("aggregator.art_master", "DirectorMasterArt"),                  # V9.5 美术 3 模式
+    ("aggregator.sound_master", "DirectorMasterSound"),              # V9.5 声音 4 模式
+    ("aggregator.cinematic_studio", "DirectorMasterCinematic"),      # V9.5 分镜 63 模式
+    ("aggregator.asset_master", "DirectorMasterAsset"),              # V9.5 资产 41 模式
+    ("aggregator.summary_master", "DirectorMasterSummary"),          # V9.5 终极汇总
+    ("aggregator.router", "DirectorMasterRouter"),                   # V9.5 通用路由
+    ("aggregator.characters_master", "DirectorMasterCharacters"),    # V12.6 角色 42 模式
+    ("aggregator.video_router_master", "DirectorMasterVideoRouter"), # V12.6 视频路由
+    ("aggregator.archive_master", "DirectorMasterArchive"),          # V13 归档 (真实写盘)
+    ("aggregator.v15_nodes", ("DirectorMasterCoCreator", "DirectorMasterSoul",
+                              "DirectorMasterIntuition", "DirectorMasterFusion")),  # V15.0 AI 赋能
+]
 
-# === 7 个 V9.5 强力 master (8 模式剧本 / 14 模式创意 / 3 美术 / 4 声音 / 5 分镜 / 3 资产 / 终极汇总) ===
-from aggregator.script_studio import DirectorMasterScript
-from aggregator.vibe_studio import DirectorMasterVibe
-from aggregator.art_master import DirectorMasterArt
-from aggregator.sound_master import DirectorMasterSound
-from aggregator.cinematic_studio import DirectorMasterCinematic
-from aggregator.asset_master import DirectorMasterAsset
-from aggregator.summary_master import DirectorMasterSummary
-from aggregator.router import DirectorMasterRouter
+DM_QUARANTINE = []
 
-# === 2 个 V12.6 扩展节点 ===
-from aggregator.characters_master import DirectorMasterCharacters
-from aggregator.video_router_master import DirectorMasterVideoRouter
 
-# === V13 合并: 补回 V9.5 归档节点 (真实写盘) ===
-from aggregator.archive_master import DirectorMasterArchive
+def load_node_classes(specs=None, quarantine=None):
+    """按 specs 逐项加载节点类 (可独立测试的真实机制, 非装饰)。
 
-# === V15.0-MERGED: 4 个 AI 赋能节点 (共创/灵魂/直觉/融合) ===
-from aggregator.v15_nodes import (DirectorMasterCoCreator, DirectorMasterSoul,
-                                  DirectorMasterIntuition, DirectorMasterFusion)
+    失败目标 append 进 quarantine 列表 ({"target","error","phase"}) 且不阻断其余节点:
+      phase="import"  — 模块级导入失败 (该模块名下全部类隔离)
+      phase="getattr" — 模块加载成功但节点类缺失/不是类
+    返回 {类名: 类}, 插入序与 specs 一致。"""
+    import importlib as _importlib
+    if specs is None:
+        specs = _NODE_SPECS
+    if quarantine is None:
+        quarantine = DM_QUARANTINE
+    loaded = {}
+    for module_name, class_names in specs:
+        names = (class_names,) if isinstance(class_names, str) else tuple(class_names)
+        try:
+            mod = _importlib.import_module(module_name)
+        except Exception as e:
+            for n in names:
+                quarantine.append({"target": f"{module_name}.{n}", "error": repr(e), "phase": "import"})
+            print(f"[DirectorMaster] 节点模块加载失败已隔离: {module_name}: {e!r}")
+            continue
+        for n in names:
+            cls = getattr(mod, n, None)
+            if not isinstance(cls, type):
+                quarantine.append({"target": f"{module_name}.{n}",
+                                   "error": "类不存在或不是类", "phase": "getattr"})
+                print(f"[DirectorMaster] 节点类缺失已隔离: {module_name}.{n}")
+                continue
+            loaded[n] = cls
+    return loaded
 
-NODE_CLASS_MAPPINGS = {
-    "DirectorMasterCore": DirectorMasterCore,
-    "DirectorMasterScript": DirectorMasterScript,
-    "DirectorMasterVibe": DirectorMasterVibe,
-    "DirectorMasterArt": DirectorMasterArt,
-    "DirectorMasterSound": DirectorMasterSound,
-    "DirectorMasterCinematic": DirectorMasterCinematic,
-    "DirectorMasterCharacters": DirectorMasterCharacters,
-    "DirectorMasterAsset": DirectorMasterAsset,
-    "DirectorMasterSummary": DirectorMasterSummary,
-    "DirectorMasterRouter": DirectorMasterRouter,
-    "DirectorMasterVideoRouter": DirectorMasterVideoRouter,
-    "DirectorMasterArchive": DirectorMasterArchive,
-    "DirectorMasterCoCreator": DirectorMasterCoCreator,
-    "DirectorMasterSoul": DirectorMasterSoul,
-    "DirectorMasterIntuition": DirectorMasterIntuition,
-    "DirectorMasterFusion": DirectorMasterFusion,
-}
 
-NODE_DISPLAY_NAME_MAPPINGS = {
+NODE_CLASS_MAPPINGS = load_node_classes()
+
+# V16.2.0: 显示名全量表 → 按实际加载成功的类过滤 (与隔离清单口径一致)
+_ALL_DISPLAY_NAMES = {
     "DirectorMasterCore": "🎬 核心 [导演起点] → 统一电影提示词+核心数据包(11维+600导演库)",
     "DirectorMasterScript": "📖 剧本 [46 模式: 长片/短剧/短视频/动漫/绘本/MV/广告/纪录片/互动剧/钩子/对白/角色弧]",
     "DirectorMasterVibe": "💡 创意 [23 模式: 概念/主题/世界/服化道/表演/VFX/MV/调色/剪辑/QA/绘本/互动/漫剧/市场受众/8设计]",
@@ -103,8 +129,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DirectorMasterIntuition": "⚡ 直觉 [V15.0 直觉引擎: 确定性反常规镜头语法, 风险分级 safe/bold/chaotic]",
     "DirectorMasterFusion": "🎨 融合 [V15.0 风格融合: 主0.6/次0.3/反0.1 确定性融合, 反风格突破指令]",
 }
+NODE_DISPLAY_NAME_MAPPINGS = {k: v for k, v in _ALL_DISPLAY_NAMES.items() if k in NODE_CLASS_MAPPINGS}
 
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "DM_QUARANTINE", "load_node_classes"]
 
 # =====================================================================
 # V15.0-MERGED: 16 超级节点 + DirectorMasterFinal 别名 (共 17 注册)。
@@ -158,6 +185,9 @@ if _REGISTER_LEGACY_NODES:
         print("[DirectorMaster] 兼容层部分旧模块加载失败 (不影响 16 超级节点):")
         for _mn, _err in LEGACY_LOAD_ERRORS:
             print("  - {}: {}".format(_mn, _err))
+        # V16.2.0: legacy 加载失败同步入隔离清单 (doctor 第 8 类诊断统一可见)
+        for _mn, _err in LEGACY_LOAD_ERRORS:
+            DM_QUARANTINE.append({"target": f"legacy:{_mn}", "error": _err, "phase": "legacy"})
 
 # V13.4 (D1.3): 为全部 legacy 节点补中文显示名 — 保证每个注册节点都有显示名
 _LEGACY_DISPLAY_NAMES = {
@@ -217,11 +247,15 @@ for _k in NODE_CLASS_MAPPINGS:
     NODE_DISPLAY_NAME_MAPPINGS.setdefault(_k, _k)
 
 # V13 修复 (A-03): 旧工作流引用的 DirectorMasterFinal 已改名 DirectorMasterSummary — 加别名兼容
-NODE_CLASS_MAPPINGS.setdefault("DirectorMasterFinal", DirectorMasterSummary)
-NODE_DISPLAY_NAME_MAPPINGS.setdefault("DirectorMasterFinal", "🏆 终极汇总 [终点·DirectorMasterSummary 别名]")
+# V16.2.0: 仅当 Summary 实际加载成功时下发别名 (与隔离清单口径一致)
+if "DirectorMasterSummary" in NODE_CLASS_MAPPINGS:
+    NODE_CLASS_MAPPINGS.setdefault("DirectorMasterFinal", NODE_CLASS_MAPPINGS["DirectorMasterSummary"])
+    NODE_DISPLAY_NAME_MAPPINGS.setdefault("DirectorMasterFinal", "🏆 终极汇总 [终点·DirectorMasterSummary 别名]")
+else:
+    print("[DirectorMaster] DirectorMasterSummary 已隔离, Final 别名同步不下发")
 
-# 标记 V16.1.1-MERGED 版本 (V16.1.1: 三通道深度审计修复 — 安全/正确性/口径统一)
-__version__ = "16.1.1"
+# 标记 V16.2.0-MERGED 版本 (V16.2.0 批次1: LLM 链路健壮性加固 + 加载崩溃隔离)
+__version__ = "16.2.0"
 __description__ = ("V15.0-MERGED = V14.3-MERGED + AI赋能升级。"
                    "导演库534→600(当代新锐/跨界/非西方66位真实导演17维); 风格融合(主0.6/次0.3/反0.1确定性); "
                    "直觉引擎(确定性反常规镜头语法8规则, 真实作者电影依据); 灵魂引擎(创作者体验→物件/动作/沉默母题, 零罐头); "
@@ -238,4 +272,11 @@ __description__ = ("V15.0-MERGED = V14.3-MERGED + AI赋能升级。"
                    "V16.1.1审计修复: 版本库锁Windows进程探活只读化(不再误杀持锁ComfyUI实例)+token原子写入消除竞态窗口; "
                    "SSRF防护加固(IP钉扎直连消除DNS rebinding/TOCTOU, DNS失败fail-closed, ipaddress规范化黑名单覆盖IPv4映射/云metadata形态); "
                    "身体细节池重复键合并(8条细节找回); Cinematic核心时长真实继承; 节奏分类键名对齐; 死代码清扫; 弧位按比例判定; "
-                   "POV切换按真实角色名; 口径统一(534→600文案/诊断6→7类/元数据17节点)。")
+                   "POV切换按真实角色名; 口径统一(534→600文案/诊断6→7类/元数据17节点)。"
+                   "V16.2.0批次1(六仓经验集成·零代码借鉴独立重写): LLM链路健壮性加固(provider预设注册表内置10厂商+llm_presets.user.json覆盖; "
+                   "三态降级状态机primary_ok/fallback_active/probing, 连续3次阈值类失败降级(可重试类+OVERFLOW计入, 终端类不计)/60s冷却探测恢复, 探测滞留超冷却自动回落; "
+                   "错误分类8类, AUTH/BAD_REQUEST不跳级诚实报错, "
+                   "OVERFLOW两层压缩gentle25%/aggressive12.5%后可跨级; 上游截断检测finish_reason=length/空内容/坏JSON, [SYSTEM]拆分提示重试最多2次, "
+                   "最终失败诚实报错; 字段别名四级容错解析+宽容JSON; call_ai保持7位置参数签名向后兼容); "
+                   "加载崩溃隔离(16节点逐项加载, 失败入DM_QUARANTINE不拖垮其余节点, Final别名与显示名按实际加载过滤); "
+                   "doctor升级8类诊断(新增加载隔离与LLM容错); 零第三方依赖纪律不变(仅stdlib)。")

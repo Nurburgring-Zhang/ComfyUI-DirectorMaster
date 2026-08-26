@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-ComfyUI-DirectorMaster V16.1.1-MERGED 自检脚本
+ComfyUI-DirectorMaster V16.2.0-MERGED 自检脚本
 ======================================
 
 当节点不显示 / 模式不工作 / 数据不生效时, 在插件根目录运行:
 
     python doctor.py
 
-诊断 7 类问题:
+诊断 8 类问题:
     1. 安装路径 (是否位于 ComfyUI/custom_nodes 下)
     2. Python 环境 (版本/编码)
     3. 模块导入 (17 节点依赖的全部模块)
@@ -15,6 +15,7 @@ ComfyUI-DirectorMaster V16.1.1-MERGED 自检脚本
     5. 知识库完整性 (导演数据库/知识库子模块)
     6. 复活接线消费验证 (9 项孤儿库接线真实被调用, 非装饰)
     7. V15.0 引擎运行时消费验证 (融合/直觉/灵魂/多模态/共创/反AI)
+    8. V16.2.0 加载隔离与 LLM 容错 (隔离清单/预设注册表/三态路由/别名容错)
 
 退出码: 0 = 全部通过, 1 = 有错误
 """
@@ -432,6 +433,148 @@ try:
         err("反AI正则检测层未命中")
 except Exception as e:
     err(f"反AI正则检测检查失败: {e!r}")
+
+# ---------- 8. V16.2.0 加载隔离与 LLM 容错 ----------
+section("8. V16.2.0 加载隔离与 LLM 容错")
+
+# 预载包模块 (与第 4 节同一 spec 模式), 供 8a/8b 读取 DM_QUARANTINE / load_node_classes
+_pkg16 = None
+try:
+    import importlib.util as _ilu16
+    _spec16 = _ilu16.spec_from_file_location("_dm_doctor_s8", os.path.join(ROOT, "__init__.py"))
+    _pkg16 = _ilu16.module_from_spec(_spec16)
+    sys.modules["_dm_doctor_s8"] = _pkg16
+    _spec16.loader.exec_module(_pkg16)
+except Exception as e:
+    err(f"__init__.py 加载失败, 无法做隔离检查: {e!r}")
+
+# 8a. 加载隔离清单必须为空 (全部 16 超级节点健康加载)
+if _pkg16 is not None:
+    try:
+        _q = getattr(_pkg16, "DM_QUARANTINE", None)
+        if _q is None:
+            err("DM_QUARANTINE 不存在 (__init__.py 非 V16.2.0 结构)")
+        elif not _q:
+            ok("加载隔离清单为空 (16 超级节点全部健康加载)")
+        else:
+            for _qi in _q:
+                err(f"节点被隔离: {_qi.get('target')} [{_qi.get('phase')}] {_qi.get('error')}")
+    except Exception as e:
+        err(f"隔离清单检查失败: {e!r}")
+
+# 8b. load_node_classes 独立机制: 真实重新加载并核对 16 类
+if _pkg16 is not None:
+    try:
+        _lnc = getattr(_pkg16, "load_node_classes", None)
+        if _lnc is None:
+            err("load_node_classes 不存在 (__init__.py 非 V16.2.0 结构)")
+        else:
+            _loaded = _lnc()
+            _expected16 = {
+                "DirectorMasterCore", "DirectorMasterScript", "DirectorMasterVibe",
+                "DirectorMasterArt", "DirectorMasterSound", "DirectorMasterCinematic",
+                "DirectorMasterCharacters", "DirectorMasterAsset", "DirectorMasterSummary",
+                "DirectorMasterRouter", "DirectorMasterVideoRouter", "DirectorMasterArchive",
+                "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
+                "DirectorMasterFusion",
+            }
+            if set(_loaded.keys()) == _expected16:
+                ok("load_node_classes 隔离加载机制正常 (16/16 类)")
+            else:
+                err(f"load_node_classes 结果异常: 缺 {sorted(_expected16 - set(_loaded))} 多 {sorted(set(_loaded) - _expected16)}")
+            # 隔离分支真实可用: 故意传一个不存在的模块, 应进隔离而非崩溃
+            _iso_q = []
+            _iso_loaded = _lnc(specs=[("aggregator.__definitely_not_exist__", "X")], quarantine=_iso_q)
+            if _iso_loaded == {} and len(_iso_q) == 1 and _iso_q[0]["phase"] == "import":
+                ok("load_node_classes 故障隔离分支真实生效 (坏模块入隔离不崩溃)")
+            else:
+                err(f"load_node_classes 故障隔离分支异常: loaded={_iso_loaded} q={_iso_q}")
+    except Exception as e:
+        err(f"load_node_classes 检查失败: {e!r}")
+
+# 8c. provider 预设注册表 (内置 10 预设)
+try:
+    import pln_llm as _pl
+    _presets = _pl.get_provider_presets()
+    if isinstance(_presets, dict) and len(_presets) >= 8:
+        ok(f"provider 预设注册表 {len(_presets)} 个 (含 openai/deepseek/ollama/...)")
+    else:
+        err(f"provider 预设注册表异常: {len(_presets) if isinstance(_presets, dict) else type(_presets)}")
+    # 预设 → URL 匹配 + 降级链构建真实可用
+    _pid, _preset = _pl.get_preset_for_url("https://api.deepseek.com/v1/chat/completions")
+    _chain = _pl.build_fallback_chain("https://api.deepseek.com/v1/chat/completions", "k", "deepseek-reasoner")
+    if _pid == "deepseek" and len(_chain) >= 2 and _chain[0]["source"] == "primary":
+        ok(f"预设匹配+降级链构建真实可用 (deepseek, 链长 {len(_chain)})")
+    else:
+        err(f"预设匹配/降级链异常: pid={_pid} chain={len(_chain)}")
+except Exception as e:
+    err(f"provider 预设注册表检查失败: {e!r}")
+
+# 8d. 三态降级状态机 (确定性, 无网络)
+try:
+    import pln_llm as _pl
+    _pl.reset_router_state()
+    _url = "http://router-selftest.local/v1"
+    for _ in range(_pl.FAILURE_THRESHOLD):
+        _pl._router_record_failure(_url, "SERVER")
+    _st = _pl.get_router_status(_url)
+    if _st and _st["state"] == "fallback_active":
+        ok(f"三态状态机: 连续 {_pl.FAILURE_THRESHOLD} 次失败 → fallback_active")
+    else:
+        err(f"三态状态机异常: {_st}")
+    _prior = _pl._router_record_success(_url)
+    _st2 = _pl.get_router_status(_url)
+    if _st2["state"] == "primary_ok" and _st2["consecutive_failures"] == 0 and _prior == "fallback_active":
+        ok("三态状态机: 主端点成功 → primary_ok (清零)")
+    else:
+        err(f"三态状态机恢复异常: {_st2}")
+    _pl.reset_router_state()
+except Exception as e:
+    err(f"三态状态机检查失败: {e!r}")
+
+# 8e. 错误分类 + 溢出两层压缩 (确定性)
+try:
+    import pln_llm as _pl
+    if _pl._classify_llm_failure(429, "") == "RATE_LIMIT" and \
+       _pl._classify_llm_failure(401, "") == "AUTH" and \
+       _pl._classify_llm_failure(400, "maximum context length exceeded") == "OVERFLOW":
+        ok("错误分类器 (429→RATE_LIMIT / 401→AUTH / 溢出短语→OVERFLOW)")
+    else:
+        err("错误分类器异常")
+    _long = "分镜内容占位文本。" * 200  # >400 字符
+    _g = _pl.compress_context_gentle(_long)
+    _a = _pl.compress_context_aggressive(_long)
+    if _g and _a and len(_a) < len(_g) < len(_long) and \
+       _pl.COMPRESS_MARKER in _g and _pl.COMPRESS_MARKER in _a:
+        ok(f"溢出两层压缩 (gentle {len(_g)} < 原文 {len(_long)}, aggressive {len(_a)})")
+    else:
+        err("溢出压缩异常")
+    if _pl.compress_context_gentle("短") is None:
+        ok("短文本不可压 (返回 None, 不伪造)")
+    else:
+        err("短文本压缩应返回 None")
+except Exception as e:
+    err(f"错误分类/压缩检查失败: {e!r}")
+
+# 8f. 别名容错 + 宽容 JSON
+try:
+    import pln_llm as _pl
+    _r1 = _pl.resolve_json_field({"shots": [1, 2]}, "shots")
+    _r2 = _pl.resolve_json_field({"镜头": [3]}, "shots")
+    _r3 = _pl.resolve_json_field({"shot_list": [4]}, "shots")
+    _r4 = _pl.resolve_json_field({"nothing": 0}, "shots", default="D")
+    if _r1 == [1, 2] and _r2 == [3] and _r3 == [4] and _r4 == "D":
+        ok("字段别名四级容错 (精确/中文/别名/default)")
+    else:
+        err(f"别名容错异常: {_r1} {_r2} {_r3} {_r4}")
+    _j1, _d1 = _pl.json_loads_tolerant('```json\n{"a": 1,}\n```')
+    _j2, _d2 = _pl.json_loads_tolerant('{"b": 2} 尾部噪声')
+    if _j1 == {"a": 1} and _j2 == {"b": 2}:
+        ok("宽容 JSON 解析 (代码围栏+尾逗号 / 尾部噪声)")
+    else:
+        err(f"宽容 JSON 异常: {_j1} {_j2}")
+except Exception as e:
+    err(f"别名容错/宽容JSON检查失败: {e!r}")
 
 # ---------- 汇总 ----------
 print("\n" + "=" * 50)

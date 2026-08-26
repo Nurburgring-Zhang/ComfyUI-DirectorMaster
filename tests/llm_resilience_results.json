@@ -1,0 +1,559 @@
+{
+  "suite": "test_llm_resilience",
+  "version": "16.2.0",
+  "timestamp": "2026-08-26 22:10:37",
+  "pass": 110,
+  "fail": 0,
+  "results": [
+    {
+      "label": "T1a choices 形态解析成功",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T1a finish_reason 透传",
+      "ok": true,
+      "detail": "meta=stop"
+    },
+    {
+      "label": "T1b response 形态解析成功",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T1c call_ai 7位置参数 2 元组兼容",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T2 三次请求后成功",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T2 请求数=3",
+      "ok": true,
+      "detail": "n=3"
+    },
+    {
+      "label": "T2 attempts 计 2 次非200",
+      "ok": true,
+      "detail": "attempts=2"
+    },
+    {
+      "label": "T2 两次退避睡眠且递增",
+      "ok": true,
+      "detail": "sleeps=[1.92824646677672, 2.4681906581727224]"
+    },
+    {
+      "label": "T3 请求序列 A,A,B",
+      "ok": true,
+      "detail": "seq=['modelA', 'modelA', 'modelB']"
+    },
+    {
+      "label": "T3 备用模型服务成功",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T3 fallback_used 且 meta 指向 B",
+      "ok": true,
+      "detail": "meta model=modelB"
+    },
+    {
+      "label": "T3 主端点失败计数=1 (未达阈值不降级)",
+      "ok": true,
+      "detail": "st=primary_ok/1"
+    },
+    {
+      "label": "T4 port 感知预设匹配命中",
+      "ok": true,
+      "detail": "pid=testprov"
+    },
+    {
+      "label": "T4 不同 port 不误匹配",
+      "ok": true,
+      "detail": "pid=None"
+    },
+    {
+      "label": "T4 降级链=主+跨端点",
+      "ok": true,
+      "detail": "chain=['primary', 'fallback_endpoint']"
+    },
+    {
+      "label": "T4 key_env 环境变量密钥解析",
+      "ok": true,
+      "detail": "key=env-key-123"
+    },
+    {
+      "label": "T4 跨端点降级成功",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T4 备用端点收到 env 密钥",
+      "ok": true,
+      "detail": "auth=Bearer env-key-123"
+    },
+    {
+      "label": "T4 key_env 未设回退主密钥",
+      "ok": true,
+      "detail": "key=main-key"
+    },
+    {
+      "label": "T5 连续3次失败进入 fallback_active",
+      "ok": true,
+      "detail": "st=fallback_active"
+    },
+    {
+      "label": "T5 冷却到期后探测主端点成功",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T5 探测仅 1 次请求直达主端点",
+      "ok": true,
+      "detail": "seq=['A']"
+    },
+    {
+      "label": "T5 recovered 标记",
+      "ok": true,
+      "detail": "meta={'url': 'http://127.0.0.1:57376/v1/chat/completions', 'model': 'A', 'levels_tried': 1, 'attempts': 0, 'fallback_used': False, 'recovered': True, 'compression': None, 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
+    },
+    {
+      "label": "T5 状态恢复 primary_ok 且失败清零",
+      "ok": true,
+      "detail": "st=primary_ok/0"
+    },
+    {
+      "label": "T5 事件留痕 probing_start+probe_recovered",
+      "ok": true,
+      "detail": "events=['level0_failed', 'level1_served', 'level0_failed', 'level1_served', 'fallback_activated', 'level0_failed', 'level1_served', 'probing_start', 'probe_recovered']"
+    },
+    {
+      "label": "T6 探测失败后回落备用级服务",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T6 探测单次尝试即回落 (请求序列 A,B)",
+      "ok": true,
+      "detail": "seq=['A', 'B']"
+    },
+    {
+      "label": "T6 探测失败回 fallback_active 且冷却重置",
+      "ok": true,
+      "detail": "st=fallback_active events=['level0_failed', 'level1_served', 'level0_failed', 'level1_served', 'fallback_activated', 'level0_failed', 'level1_served', 'probing_start', 'probe_failed', 'level0_failed', 'level1_served']"
+    },
+    {
+      "label": "T6 冷却未到期不探测主端点 (直达备用级)",
+      "ok": true,
+      "detail": "seq=['B']"
+    },
+    {
+      "label": "T7 两次溢出压缩后第三次成功",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T7 请求数=3 且无退避睡眠",
+      "ok": true,
+      "detail": "n=3 sleeps=0"
+    },
+    {
+      "label": "T7 meta compression=aggressive",
+      "ok": true,
+      "detail": "compression=aggressive"
+    },
+    {
+      "label": "T7 请求体严格递减 1800>918>468",
+      "ok": true,
+      "detail": "lens=[1800, 918, 468]"
+    },
+    {
+      "label": "T7 压缩标记注入",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T7 gentle 头尾保真 (各 450 字符)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T7 aggressive 头尾保真 (各 225 字符)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T7 短文本溢出诚实失败 (不伪造压缩)",
+      "ok": true,
+      "detail": "err=HTTP 400: {\"error\": {\"message\": \"maximum context length exceeded\"}} (上下文溢出且输入已不可压缩)"
+    },
+    {
+      "label": "T7 短文本溢出仅 1 次请求",
+      "ok": true,
+      "detail": "n=1"
+    },
+    {
+      "label": "T7b 压缩两层耗尽后跨级由备用级服务",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T7b 请求序列 主级×3(原/轻/重) + 备用级×1",
+      "ok": true,
+      "detail": "seq=['smallctx', 'smallctx', 'smallctx', 'bigctx']"
+    },
+    {
+      "label": "T7b levels_tried=2 且 fallback_used",
+      "ok": true,
+      "detail": "meta={'url': 'http://127.0.0.1:57409/v1/chat/completions', 'model': 'bigctx', 'levels_tried': 2, 'attempts': 3, 'fallback_used': True, 'recovered': False, 'compression': 'aggressive', 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
+    },
+    {
+      "label": "T7b OVERFLOW 计入降级阈值 (失败计数=1)",
+      "ok": true,
+      "detail": "st={'state': 'primary_ok', 'consecutive_failures': 1, 'last_state_change': 1152.0, 'events': [{'t': 1152.0, 'event': 'overflow_compress', 'detail': 'gentle'}, {'t': 1152.0, 'event': 'overflow_compress', 'detail': 'aggressive'}, {'t': 1152.0, 'event': 'level0_failed', 'detail': 'OVERFLOW: HTTP 400: {"
+    },
+    {
+      "label": "T8a 连续截断最终诚实报错",
+      "ok": true,
+      "detail": "err=上游截断诊断: finish_reason=length (输出在上游被截断) (已注入拆分提示重试 2 次仍被截断)"
+    },
+    {
+      "label": "T8a 拆分提示重试上限 2 次",
+      "ok": true,
+      "detail": "retries=2"
+    },
+    {
+      "label": "T8a 共 3 次请求",
+      "ok": true,
+      "detail": "n=3"
+    },
+    {
+      "label": "T8a 重试请求注入 [SYSTEM] 拆分提示",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T8a 截断不触发降级 (状态保持 primary_ok/零失败计数)",
+      "ok": true,
+      "detail": "st={'state': 'primary_ok', 'consecutive_failures': 0, 'last_state_change': 1152.0, 'events': [{'t': 1152.0, 'event': 'split_hint_retry', 'detail': 'finish_reason=length (输出在上游被截断)'}, {'t': 1152.0, 'event': 'split_hint_retry', 'detail': 'finish_reason=length (输出在上游被截断)'}]}"
+    },
+    {
+      "label": "T8a 拆分重试留痕于路由事件 (可观测性)",
+      "ok": true,
+      "detail": "events=['split_hint_retry', 'split_hint_retry']"
+    },
+    {
+      "label": "T8b 截断一次后注入提示恢复成功",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T8b split_hint_retries=1 且第二次请求含提示",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T8c 未知响应形态 PROTOCOL 诚实报错",
+      "ok": true,
+      "detail": "err=未知响应形态(无choices/response字段): {'foo': 'bar'}"
+    },
+    {
+      "label": "T8c PROTOCOL 仅 1 次请求不重试",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T8d 200 非 JSON 按截断处置并恢复",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T8d json_broken 注入拆分提示一次",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T8e 200 内嵌 error 对象 PROTOCOL 报错",
+      "ok": true,
+      "detail": "err=API返回错误对象: {'message': 'invalid api key format'}"
+    },
+    {
+      "label": "T8f 连续 3 次 TRUNCATION 不推入降级 (内容级问题)",
+      "ok": true,
+      "detail": "st={'state': 'primary_ok', 'consecutive_failures': 0, 'last_state_change': 1152.0, 'events': [{'t': 1152.0, 'event': 'split_hint_retry', 'detail': 'finish_reason=length (输出在上游被截断)'}, {'t': 1152.0, 'event': 'split_hint_retry', 'detail': 'finish_reason=length (输出在上游被截断)'}, {'t': 1152.0, 'event': 'leve"
+    },
+    {
+      "label": "T8f TRUNCATION 不跨级 (3 次调用全部仅主级服务)",
+      "ok": true,
+      "detail": "n=9"
+    },
+    {
+      "label": "T8f 连续 3 次 AUTH 不推入降级 (配置级问题, 避免无意义重放)",
+      "ok": true,
+      "detail": "st={'state': 'primary_ok', 'consecutive_failures': 0, 'last_state_change': 1152.0, 'events': [{'t': 1152.0, 'event': 'level0_failed', 'detail': 'AUTH: HTTP 401: {\"error\": {\"message\": \"invalid api key\"}}'}, {'t': 1152.0, 'event': 'level0_failed', 'detail': 'AUTH: HTTP 401: {\"error\": {\"message\": \"inva"
+    },
+    {
+      "label": "T8f AUTH 终端不重试不跨级 (3 次调用各 1 请求)",
+      "ok": true,
+      "detail": "n=3"
+    },
+    {
+      "label": "T8g 围栏包裹 JSON 被宽容解析抢救",
+      "ok": true,
+      "detail": "err="
+    },
+    {
+      "label": "T8g 抢救路径零拆分重试 (单次请求)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 精确键命中",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 忽略大小写命中",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 中文别名命中",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 归一化键命中 (连字符/下划线)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 自定义别名命中",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 规范名大写仍可查别名表 (互审 L-10)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 未命中返回 default",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 非 dict 输入返回 default",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T10 直接解析",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T10 代码围栏剥离",
+      "ok": true,
+      "detail": "diag="
+    },
+    {
+      "label": "T10 尾逗号放宽",
+      "ok": true,
+      "detail": "diag="
+    },
+    {
+      "label": "T10 配平结构提取",
+      "ok": true,
+      "detail": "diag="
+    },
+    {
+      "label": "T10 失手输入诚实返回 None 且诊断含抢救步骤",
+      "ok": true,
+      "detail": "diag=直接解析失败: Unterminated string starting at: line 1 column 7 (char 6); 外层结构提取后解析失败: Unterminated string starting at: line 1 column 7 (char 6); 去尾逗号后仍失败: Unterminated string starting at: line 1 column 7 (char 6)"
+    },
+    {
+      "label": "T10 无结构诚实返回 None",
+      "ok": true,
+      "detail": "diag=直接解析失败: Expecting value: line 1 column 1 (char 0); 未找到 JSON 对象/数组"
+    },
+    {
+      "label": "T10 空串诚实返回 None",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T10 None 输入诚实返回 None",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T10 非 str 可序列化对象直通",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T11 gentle 确定性 (两次结果逐字一致)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T11 aggressive 严格更短",
+      "ok": true,
+      "detail": "lens=1490/762/390"
+    },
+    {
+      "label": "T11 压缩标记存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T11 gentle 头尾逐字保真",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T11 短文本 (<400) 不可压返回 None",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T11 空输入返回 None",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T13 覆盖内置预设字段",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T13 覆盖保留未改字段",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T13 新增自定义预设",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T13 自定义预设 host 匹配",
+      "ok": true,
+      "detail": "pid=myhost"
+    },
+    {
+      "label": "T13 坏 JSON 文件降级为内置预设 (不崩溃)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T13 坏结构文件降级为内置预设",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T13 文件不存在返回内置预设",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T13 默认内置预设 ≥10 且 deepseek 备用模型真实",
+      "ok": true,
+      "detail": "n=10"
+    },
+    {
+      "label": "T14 云 metadata 链级被 SSRF 跳过且诚实失败",
+      "ok": true,
+      "detail": "err=HTTP 500: {\"error\": {\"message\": \"down\"}}"
+    },
+    {
+      "label": "T14 meta 事件记录链级跳过",
+      "ok": true,
+      "detail": "events=['level1 SSRF校验失败已跳过: 禁止访问内网保留地址(SSRF防护): 169.254.169.254']"
+    },
+    {
+      "label": "T14 路由事件留痕 level_skipped_ssrf",
+      "ok": true,
+      "detail": "events=['level0_failed', 'level_skipped_ssrf']"
+    },
+    {
+      "label": "T14 metadata IP 直接拒绝",
+      "ok": true,
+      "detail": "err=禁止访问内网保留地址(SSRF防护): 169.254.169.254"
+    },
+    {
+      "label": "T14 非 http(s) 协议拒绝",
+      "ok": true,
+      "detail": "err=不支持的URL协议: file，仅支持 http/https"
+    },
+    {
+      "label": "T14 IPv4-mapped 形态规范化拦截",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T14 AWS IMDS IPv6 拦截",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T14 环回/私网/公网不误伤",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T14 已废弃 IPv4 兼容 IPv6 形态拦截 (互审 L-9)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T14 IPv4 兼容形态规范化为内嵌 IPv4",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T15 4线程×300轮交叉无异常且状态合法",
+      "ok": true,
+      "detail": "st=fallback_active"
+    },
+    {
+      "label": "T15 primary_ok 时失败计数必低于阈值",
+      "ok": true,
+      "detail": "cf=3"
+    },
+    {
+      "label": "T15 事件环形缓冲有界 (≤64)",
+      "ok": true,
+      "detail": "n=64"
+    },
+    {
+      "label": "T16 429+溢出短语仍判 RATE_LIMIT (状态码优先)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T16 401+溢出短语仍判 AUTH",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T16 30x 禁重定向拒绝归 BAD_REQUEST (终端不重试)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T16 400+溢出短语判 OVERFLOW (短语对 400/413 仍优先)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T16 503+溢出短语判 OVERFLOW (备用模型上下文可能更大)",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

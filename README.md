@@ -2,7 +2,7 @@
 
 **导演级 AI 影视创作 ComfyUI 节点包** — 一句话创意 → 剧本 → 分镜 → AIGC 镜头级提示词，直供 Seedance / Wan / LTX / Hailuo / Sora 等主流视频生成模型。
 
-`V16.1.1-MERGED` · 17 超级节点（可选扩展至 63 节点） · 600 位真实导演风格库 · 246+ 创作模式 · 零第三方依赖
+`V16.2.0-MERGED` · 17 注册节点（16 超级 + Final 别名，可选扩展至 63 节点） · 600 位真实导演风格库 · 246+ 创作模式 · 零第三方依赖
 
 ---
 
@@ -22,7 +22,7 @@ DirectorMaster 不是又一套提示词模板，而是一个**导演风格转译
 - 📍 **场景锚定**：输入场景的地点 / 时间 / 天气 / 道具主导分镜生成，首尾场 100% 锚定、中间场相邻空间变体，极简/抽象/英文输入有语义兜底
 - ✍️ **剧本引擎**：46 模式，30+ 真实叙事结构下场（三幕 / 五幕 / 救猫咪 15 拍 / 英雄之旅 / 皮克斯 22 条 / 双线 / 非线性…），结构硬指标达标（实测中点 48-53%、灵魂黑夜 68-76%、高潮 76-84%，T10 断言覆盖）
 - 🎬 **分镜引擎**：63 模式，节奏大师系统（快闪 / 长镜 / 蒙太奇 / 慢镜 4 类 21 种节奏风格），镜头语法指纹 63/63 唯一，总时长恒覆盖片长（±1% 内）
-- 🧠 **AI 增强轨**：任意节点可接 OpenAI 兼容端点做剧本/分镜润色，内置质量门控（长度门 / 照抄检测 / 反 AI 套话扫描 / SSRF 防护），无端点时自动走确定性模板轨
+- 🧠 **AI 增强轨**：任意节点可接 OpenAI 兼容端点做剧本/分镜润色，内置质量门控（长度门 / 照抄检测 / 反 AI 套话扫描 / SSRF 防护），无端点时自动走确定性模板轨。V16.2.0 起增加 LLM 链路健壮性层：provider 预设注册表（内置 10 厂商 + 用户覆盖）、三态降级状态机（连续失败自动切备用端点、冷却后探测恢复）、上下文溢出两层压缩、上游截断检测与拆分重试、节点加载崩溃隔离（单模块损坏不拖垮整包）
 - 🎭 **形态专精**：短视频 / 动漫 / 绘本 / MV / 广告 / 纪录片 / 互动剧 / 直播等 24 种形态各有专属场次骨架；长片遵循影视特性、短片遵循短视频特性
 - 🗂️ **归档与版本控制**：真实写盘 + 磁盘持久化版本库（blob 去重 + gzip，并发安全），回滚逐字节还原，TXT / JSON / MD / HTML 多格式导出
 
@@ -39,7 +39,7 @@ git clone https://github.com/Nurburgring-Zhang/ComfyUI-DirectorMaster.git
 
 ```bash
 cd ComfyUI-DirectorMaster
-python doctor.py   # 7 类诊断：安装路径 / Python 环境 / 模块导入 / 节点注册 / 知识库完整性 / 复活接线消费验证 / V15.0 引擎运行时消费验证
+python doctor.py   # 8 类诊断：安装路径 / Python 环境 / 模块导入 / 节点注册 / 知识库完整性 / 复活接线消费验证 / V15.0 引擎运行时消费验证 / 加载隔离与 LLM 容错
 ```
 
 最小链路：
@@ -71,9 +71,13 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 | DirectorMasterRouter | 通用路由（7 目标模型，H3 深度 IR 5 模式 + EDL） |
 | DirectorMasterVideoRouter | 5 视频模型超级路由（Seedance/LTX/Wan/Hailuo/Sora） |
 | DirectorMasterArchive | 归档（真实写盘 + 磁盘持久化版本控制 + TXT/JSON/MD/HTML 格式多选） |
+| DirectorMasterCoCreator | AI 共创循环：故事核心→3方向分支→门阵→精炼→共创剧本（含方向分支图JSON+创作日志） |
+| DirectorMasterSoul | 灵魂注入：创作者体验→母题派生→灵魂层注入剧本（含灵魂片段报告） |
+| DirectorMasterIntuition | 直觉修改：分镜JSON→确定性反常规镜头语法（含修改日志） |
+| DirectorMasterFusion | 风格融合：主0.6/次0.3/反0.1 确定性融合，反风格提取突破指令（含元数据JSON） |
 | DirectorMasterFinal | Summary 兼容别名 |
 
-另有 46 个 legacy 细粒度节点可选兼容层（V16.0.1 恢复）：设置环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 后加载 63 节点（17 超级 + 46 legacy），0 加载错误；默认不加载。
+另有 46 个 legacy 细粒度节点可选兼容层（V16.0.1 恢复）：设置环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 后加载 63 节点（17 注册 + 46 legacy），0 加载错误；默认不加载。
 
 ## 数据聚合（真实消费，非装饰）
 
@@ -91,16 +95,20 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 - 浮点伪影：0（情感强度/张力/节拍表统一 1 位小数）
 - 结构硬指标：中点 48-53%、灵魂黑夜 68-76%（含此节拍的结构）、高潮 76-84%（T10 四结构断言全过）
 - 安全：SSRF 防护（link-local/云 metadata 禁止 + DNS 解析失败即拒 + 校验后 IP 钉扎直连 + 禁重定向 + 显式禁用环境代理）、归档路径消毒
+- LLM 链路故障注入（V16.2.0 批次1）：110 断言全过 / FAIL=0 —— 退避重试、同端点与跨端点降级、冷却探测恢复与回落、溢出两层压缩（含压缩耗尽跨级）、上游截断拆分重试、终端类错误不计降级阈值、围栏 JSON 宽容抢救、4 线程并发状态机无撕裂、SSRF 链级拦截（含 IPv4 兼容 IPv6 形态）；真实 HTTP 服务器 + 确定性时钟注入，证据存档 tests/llm_resilience_results.json
+- 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 17 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
 
 ## 测试
 
 ```bash
-python doctor.py                     # 7 类自检
+python doctor.py                     # 8 类自检
 python tests/test_all_modes.py       # 17 节点 × 全模式回归 (277 断言)
 python tests/test_aigc_random_full.py # 40 例全量随机 AIGC 测试 (A–H 八维, 含场景贴合度)
 python tests/test_workflows.py       # 工作流 JSON 有效性
 python tests/ten_rounds.py           # 十轮全量测试 (43 断言: 部署/功能/数据/链路/AI/质量)
 python tests/f2_ai_track_e2e.py      # AI 轨端到端 (本地 OpenAI 兼容服务器, 真实 HTTP)
+python tests/test_llm_resilience.py  # V16.2.0 LLM 链路健壮性故障注入 (110 断言, 真实 HTTP + 确定性状态机)
+python tests/test_load_isolation.py  # V16.2.0 加载崩溃隔离机制 + 版本口径一致性 (19 断言)
 python tests/d1_grammar_probe.py     # 同簇镜头语法唯一性
 python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ```
@@ -120,6 +128,17 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ---
 
 ## 版本历史
+
+### V16.2.0-MERGED（批次1：LLM 链路健壮性加固 + 加载崩溃隔离）
+
+- **来源与政策**：集成 openclacky / memorax-code / video-shotcraft / OpenMontage / hyperframes / Xed-Editor 六仓的优秀经验与方法。执行**零代码借鉴**（最严边界）——只学习思想/方法/SOP/结构，全部能力用 Python 独立重写，未复制任何一行外部代码；保持零第三方依赖纪律（仅 stdlib），不引入任何新运行时依赖。
+- **provider 预设注册表**：内置 10 厂商预设（openai / deepseek / moonshot / 智谱GLM / 百炼DashScope / minimax / siliconflow / openrouter / ollama / lmstudio），含匹配主机、key 环境变量提示、能力标注与同端点备用模型；`llm_presets.user.json` 可覆盖/扩展（坏文件只警告不阻断）。模型谱系更新快的厂商不内置过时清单，诚实留空由用户覆盖。
+- **三态降级状态机**：primary_ok / fallback_active / probing。主端点连续 3 次阈值类失败（可重试类 + OVERFLOW；AUTH/TRUNCATION 等终端类不计入，避免配置/内容级错误引发无意义降级重放）→ 自动切备用端点；冷却 60s 后下一次调用先单次探测主端点，成功则恢复（recovered），失败则回落并重置冷却，探测状态滞留超冷却自动回落（防永久卡在 probing）。AUTH/BAD_REQUEST 属配置级错误，不跳级直接诚实报错；OVERFLOW 压缩后仍可跨级（备用模型上下文可能更大）；TRUNCATION/PROTOCOL 属内容级问题，不触发跨级。
+- **溢出两层压缩**：上下文溢出时按 gentle（保留头尾各 25%）→ aggressive（各 12.5%）逐级压缩重试，插入"[…中段内容已省略]"标记；短于 400 字符不可压即如实报错，不伪造。
+- **上游截断检测**：识别 finish_reason=length / 空内容 / 200 非 JSON 等截断形态，自动注入 [SYSTEM] 拆分提示重试（每次调用最多 2 次），仍截断则诚实报"上游截断诊断"，不再静默返回空成功。
+- **字段别名四级容错 + 宽容 JSON**：LLM 交付 JSON 字段漂移（精确→忽略大小写→中英别名表→归一化键）四级解析；宽容 JSON 解析支持代码围栏、尾逗号、尾部噪声、截断抢救。
+- **加载崩溃隔离**：16 个超级节点改为逐项加载，单模块/类加载失败记入 `DM_QUARANTINE` 隔离清单而不拖垮其余节点；Final 别名与显示名按实际加载过滤；doctor 新增第 8 类诊断统一可见。
+- **向后兼容**：`call_ai` 保持 7 位置参数签名不变，新增能力均为关键字可选参数（timeout / fallback_chain / max_retries_per_step / enable_recovery）；`call_ai_ex` 返回 (text, err, meta) 供需要可观测性的调用方。
 
 ### V16.1.1-MERGED（审计修复版）
 

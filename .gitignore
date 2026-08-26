@@ -25,3 +25,5 @@ tests/*_results.json
 # 审计证据存档例外 (随包发布 — README 实测口径的证据锚点)
 !tests/ten_round_results.json
 !tests/aigc_random_full_results.json
+!tests/llm_resilience_results.json
+!tests/load_isolation_results.json
