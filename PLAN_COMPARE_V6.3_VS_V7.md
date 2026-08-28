@@ -1,3 +1,5 @@
+> ⚠️ **历史文档（V6/V7 时代存档）**：内容与当前 V16.3.0 代码已脱节，仅作历史参考。当前节点/模式口径以 README.md 与 docs/LEGACY_AUDIT.md 为准。
+
 # 🔬 V6.2 审核 + 双计划对比决策文档
 
 > 生成日期: 2026/08/11 · 项目: comfyui-DirectorMaster

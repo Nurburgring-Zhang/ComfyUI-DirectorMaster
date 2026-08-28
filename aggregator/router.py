@@ -136,23 +136,20 @@ class DirectorMasterRouter(DirectorNodeBase):
     CATEGORY = "PromptLibrary/起点/通用"
 
     def convert_universal(self, **kwargs):
+        from aggregator.node_base import resolve_dropdown, derive_seed
         core = parse_core_pack(kwargs.get("核心数据包",""))
+        _seed0 = core.get("_随机种子") if core else None
         intent = kwargs.get("用户意图","")
         target = kwargs.get("目标模型","通用 (兼容所有模型)")
-        # V16.0 需求1: 目标模型与属性下拉支持 🎲 随机
-        import random as _r
-        def _rnd(v, opts):
-            if v == "🎲 随机":
-                return _r.choice([o for o in opts if o != "🎲 随机"])
-            return v
+        # V16.0 需求1: 目标模型与属性下拉支持 🎲 随机; V16.3 各域独立盐种子驱动 (互不串扰)
         if target == "🎲 随机":
-            target = _r.choice(TARGETS)
+            target = resolve_dropdown(target, "通用 (兼容所有模型)", TARGETS, seed=derive_seed(_seed0, "路由目标模型"))
         if target not in TARGETS: target = "通用 (兼容所有模型)"
-        kwargs["视觉风格"] = _rnd(kwargs.get("视觉风格","电影感"), VISUAL_STYLES)
-        kwargs["对白语言"] = _rnd(kwargs.get("对白语言","英语"), LANGUAGES)
-        kwargs["画幅比例"] = _rnd(kwargs.get("画幅比例","16:9 横屏"), ASPECTS)
-        kwargs["故事理论"] = _rnd(kwargs.get("故事理论","通用"), STORY_THEORIES)
-        kwargs["钩子风格"] = _rnd(kwargs.get("钩子风格","无"), HOOKS)
+        kwargs["视觉风格"] = resolve_dropdown(kwargs.get("视觉风格","电影感"), "电影感", VISUAL_STYLES, seed=derive_seed(_seed0, "路由视觉风格"))
+        kwargs["对白语言"] = resolve_dropdown(kwargs.get("对白语言","英语"), "英语", LANGUAGES, seed=derive_seed(_seed0, "路由对白语言"))
+        kwargs["画幅比例"] = resolve_dropdown(kwargs.get("画幅比例","16:9 横屏"), "16:9 横屏", ASPECTS, seed=derive_seed(_seed0, "路由画幅"))
+        kwargs["故事理论"] = resolve_dropdown(kwargs.get("故事理论","通用"), "通用", STORY_THEORIES, seed=derive_seed(_seed0, "路由故事理论"))
+        kwargs["钩子风格"] = resolve_dropdown(kwargs.get("钩子风格","无"), "无", HOOKS, seed=derive_seed(_seed0, "路由钩子风格"))
         # 优先核心数据包, fallback widget
         scene = core.get("_场景描述") or kwargs.get("场景描述") or intent
         emotion = core.get("_情绪基调") or kwargs.get("情绪","通用")

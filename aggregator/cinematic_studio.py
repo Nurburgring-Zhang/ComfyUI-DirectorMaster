@@ -9,7 +9,7 @@ _HERE = _os.path.dirname(_os.path.abspath(__file__))
 _PARENT = _os.path.dirname(_HERE)
 if _PARENT not in _sys.path: _sys.path.insert(0, _PARENT)
 if _HERE not in _sys.path: _sys.path.insert(0, _HERE)
-from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy, parse_multi_select, resolve_dropdown
+from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy, parse_multi_select, resolve_dropdown, derive_seed
 from aggregator.cinema_craft import build_life_texture, build_edit_decision_list, build_edit_decision_text
 from aggregator.script_studio import _parse_vibe_anchors, _parse_art_anchors, _parse_sound_anchors, _parse_char_anchors, _parse_asset_anchors
 from aggregator.narrative_arrangement import (arrange_scenes, arrange_shots_by_scenes,
@@ -229,6 +229,14 @@ CINE_MODE_THEORY = {
 
 # V16.1.1 审计修复 L-4: 移除零消费死常量 EMOTION_CURVE_TEMPLATES / NARRATIVE_STRUCTURE_MODES
 # (情感曲线实际由 DIRECTOR_CURVES 驱动; 叙事模式由 叙事编排/叙事线型 下拉驱动)
+
+
+def _clamp_int10(v):
+    """V16.4: 拓扑张力就近视整到 1-10 (shots_json 输出用)."""
+    try:
+        return max(1, min(10, int(round(float(v)))))
+    except (TypeError, ValueError):
+        return 5
 
 
 def _build_emotion_curve(shot_idx, total_shots, story_theory="三幕剧", director="王家卫", narrative_meta=None):
@@ -650,6 +658,8 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "tooltip": "★ V12.6 v9 新增: 强制全场戏用某节奏 (默认 ND 走 auto 自动选). 一秒三闪=0.3s×3 嗨爆; 固定/对话/游走长镜=60-180s 不切; 慢镜高光=1/8 慢放; 蒙太奇=0.5-3s×N; 抖音=0.5-1s×10+"}),
             "直觉风险": ([_ND, _R, "safe", "medium", "bold", "chaotic"], {"default": _ND,
                 "tooltip": "V15.0 直觉引擎: 确定性反常规镜头语法 (高潮静止/亲密远景/喧闹后静默/孤独不对称/物件代反应/对白后留白, 均有真实作者电影依据). ND=不启用; 🎲 随机"}),
+            "复杂叙事结构": (["自动", "无", "套层叙事", "罗生门", "时间循环", "环形叙事"], {"default": "自动",
+                "tooltip": "★ V16.4 情节拓扑引擎: 自动=按场景关键词确定性推断; 或手动指定复杂结构。套层=戏中戏框架带; 时间循环=循环区谷底抬升+破局; 罗生门=多视角版本带; 环形=首尾闭环。输出写入分镜JSON meta.叙事拓扑 (纯增量)"}),
             "叙事编排": ([_ND, _R] + [m for m in ARRANGEMENT_MODES if m != "跟随叙事结构"], {"default": _ND,
                 "tooltip": "★ V16.1 叙事编排 — 把镜头按时序重排为银幕序 (正叙/倒叙/穿插倒叙/穿插乱叙/循环). "
                            "同场镜头不拆散, 重排后镜号按银幕序重编。ND=跟随叙事结构原生顺序"}),
@@ -668,13 +678,13 @@ class DirectorMasterCinematic(DirectorNodeBase):
     def build(self, **kwargs):
         from aggregator.pro_format import format_shot_table, build_standard_shots, strip_decor
         import json as _json
-        mode = kwargs.get("画面模式","电影工作室")
-        # V16.0 需求1: 模式选择器支持 🎲 随机
-        if mode == "🎲 随机":
-            import random as _r
-            mode = _r.choice(CINE_MODES)
-        if mode not in CINE_MODES: mode = "电影工作室"
         core = parse_core_pack(kwargs.get("核心数据包",""))
+        mode = kwargs.get("画面模式","电影工作室")
+        # V16.0 需求1: 模式选择器支持 🎲 随机; V16.3: 由核心包随机种子驱动 (固定种子可复现, 种子0真随机)
+        if mode == "🎲 随机":
+            mode = resolve_dropdown(mode, "电影工作室", CINE_MODES,
+                                    seed=derive_seed(core.get("_随机种子"), "画面模式"))
+        if mode not in CINE_MODES: mode = "电影工作室"
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
         director = core.get("_导演风格") or kwargs.get("导演风格","王家卫")
         mood = core.get("_情绪基调","孤独")
@@ -703,6 +713,8 @@ class DirectorMasterCinematic(DirectorNodeBase):
             except Exception:
                 pass
         # V16.0 需求2: 秒级支持 — 短时长(<20min)直通小数, 长时长归一标准桶
+        # V16.4: 记录分桶前的用户请求时长 (拓扑引擎时长归一的预算来源, 兑现"总时长恒覆盖片长")
+        _requested_minutes = target_minutes
         if target_minutes >= 110: target_minutes = 120
         elif target_minutes >= 80: target_minutes = 90
         elif target_minutes >= 50: target_minutes = 60
@@ -721,8 +733,8 @@ class DirectorMasterCinematic(DirectorNodeBase):
         _LINE_OPTS = [m for m in NARRATIVE_LINE_MODES if m != "单线"]
         _core_arrange = (core.get("_叙事编排", "跟随叙事结构") if core else "跟随叙事结构") or "跟随叙事结构"
         _core_line = (core.get("_叙事线型", "单线") if core else "单线") or "单线"
-        arrangement_mode = resolve_dropdown(kwargs.get("叙事编排"), _core_arrange, _ARRANGE_OPTS)
-        line_mode = resolve_dropdown(kwargs.get("叙事线型"), _core_line, _LINE_OPTS)
+        arrangement_mode = resolve_dropdown(kwargs.get("叙事编排"), _core_arrange, _ARRANGE_OPTS, seed=derive_seed(core.get("_随机种子"), "分镜叙事编排"))
+        line_mode = resolve_dropdown(kwargs.get("叙事线型"), _core_line, _LINE_OPTS, seed=derive_seed(core.get("_随机种子"), "分镜叙事线型"))
 
         # 上游 6 路 forceInput
         script_in = kwargs.get("剧本输入","")
@@ -764,8 +776,8 @@ class DirectorMasterCinematic(DirectorNodeBase):
         # V15.0: 直觉引擎 — 确定性反常规镜头语法 (风险档位, 真实作者电影依据); V16.0 需求1: 支持 🎲 随机
         _intuition_risk = kwargs.get("直觉风险", "无(默认)")
         if _intuition_risk == "🎲 随机":
-            import random as _r
-            _intuition_risk = _r.choice(["safe", "medium", "bold", "chaotic"])
+            _intuition_risk = resolve_dropdown(_intuition_risk, "medium", ["safe", "medium", "bold", "chaotic"],
+                                               seed=derive_seed(core.get("_随机种子"), "直觉风险"))
         if _intuition_risk and _intuition_risk != "无(默认)":
             from aggregator.intuition_engine import apply_intuition
             shots, _intuition_log = apply_intuition(shots, mood=mood, scene=scene,
@@ -776,6 +788,24 @@ class DirectorMasterCinematic(DirectorNodeBase):
             s = _integrate_6d_into_shot_fields(s, i, len(shots), vibe_a, art_a, sound_a, char_a, asset_a, 30)
             if script_drivers.get(i + 1):
                 s["purpose"] = f"{s.get('purpose', '')} | 剧本驱动: {script_drivers[i+1][:60]}"
+
+        # V16.4: 情节拓扑引擎 (吸收自 V16.6-AIGC 参考版的真实增量, 按本基座 schema 独立重写) —
+        #   波浪小高潮/反转点/层层推进 + 复杂叙事结构 (套层/罗生门/时间循环/环形) 确定性落实。
+        #   仅增量修改 shots (narrative_tag/dur_note/tension_level), 拓扑数据入 JSON meta.叙事拓扑。
+        _topo = {}
+        try:
+            from aggregator.plot_topology import infer_plot_topology, apply_topology
+            _cx_opt = resolve_dropdown(kwargs.get("复杂叙事结构"), "自动",
+                                       ["自动", "无", "套层叙事", "罗生门", "时间循环", "环形叙事"])
+            _topo = infer_plot_topology(scene, core, mode, target_minutes,
+                                        arrangement_mode, line_mode, complex_opt=_cx_opt)
+            shots, _topo_notes = apply_topology(shots, _topo, scene=scene, mood=mood,
+                                                budget_sec=max(1.0, _requested_minutes * 60.0),
+                                                director=director)
+        except Exception as _topo_e:
+            import sys as _topo_s
+            _topo_s.stderr.write(f"[DirectorMaster] 情节拓扑降级: {type(_topo_e).__name__}\n")
+            _topo = {}
 
         # === V13.2: 偏好下拉真实生效 + 运镜多选演变 (此前 5 个偏好仅声明未使用) ===
         size_pref = resolve_dropdown(kwargs.get("景别偏好"), None)
@@ -826,6 +856,54 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 s["dur"] = f"{round(dur_val * scale, 1)}s"
         # === V13.2 end ===
 
+        # === V16.5: 场景实体层 (参考真实生产级提示词标准库"真实素材设计"范式) ===
+        #   用户场景实体 (角色/道具/地点/天气/色彩/动作) 驱动画面内容, 消灭罐头句
+        #   ("一罐辣椒酱/女儿/护士"与用户输入无关的问题); 焦段按景别电影学匹配;
+        #   构图四件套补全; 首帧描述真实化; 音效显式枚举; 设备美学包 (素材身份)。
+        _ent = {}
+        _dev = {}
+        _cues = ""
+        try:
+            from aggregator.scene_entity import (extract_entities, has_entities, device_package,
+                                                 focal_for_size, sound_cues, composition_for,
+                                                 rewrite_focus, first_frame_desc)
+            _ent = extract_entities(scene)
+            _dev = device_package(scene, str(core.get("_视觉调性", "") if core else ""))
+            _cues = sound_cues(_ent)
+            for _i, _s in enumerate(shots):
+                if not isinstance(_s, dict):
+                    continue
+                # 6.1 焦段-景别匹配 (用户显式焦段偏好已在上方生效, 此处只修失配)
+                if not focal_pref:
+                    _s["focal"] = focal_for_size(_s.get("size", ""), _i + 1)
+                # 6.2 画面内容重写 (有实体才重写, 无实体诚实回退罐头池)
+                # V16.5.0 修复: 保留直觉引擎标注后缀 (〔直觉R…〕), 不被重写抹除
+                _nf = rewrite_focus(_ent, _s, phase=str(_s.get("phase", "")),
+                                    size=str(_s.get("size", "")), move=str(_s.get("move", "")),
+                                    tension=_s.get("tension_level", 5),
+                                    seed_str=f"{director}|{mood}|{scene}")
+                if _nf:
+                    _old_f = str(_s.get("focus", ""))
+                    _mk = _old_f[_old_f.rfind("〔直觉R"):] if "〔直觉R" in _old_f else ""
+                    _s["focus"] = _nf + _mk
+                # 6.3 构图 (四件套: 景别+构图+运镜+画面内容)
+                _s["composition"] = composition_for(_i + 1, _s.get("size", ""), _s.get("move", ""))
+                # 6.4 首帧描述真实化
+                _s["首帧描述"] = first_frame_desc(_ent, size=str(_s.get("size", "")),
+                                                 angle=str(_s.get("angle", "")),
+                                                 focal=str(_s.get("focal", "")),
+                                                 light=str(_s.get("stage_light", "")))
+                # 6.5 音效枚举注入声音设计 + 同期声替换罐头音乐行
+                if _cues:
+                    _s["sound"] = f"同期声: {_cues} (不需要配乐)"
+                    if _cues not in str(_s.get("sound_design", "")):
+                        _s["sound_design"] = f"{_s.get('sound_design', '')} | 同期声枚举: {_cues}"
+        except Exception as _se_e:
+            import sys as _se_s
+            _se_s.stderr.write(f"[DirectorMaster] 场景实体层降级: {type(_se_e).__name__}\n")
+            _ent, _dev, _cues = {}, {}, ""
+        # === V16.5 end ===
+
         # === V14.1/V14.2: 模式节奏签名生效 — 修复模式坍缩 ===
         # V14.2: 节奏大师模式已由 pacing_mode 驱动 pacing_engine (镜数/时长/焦段/转场/运镜),
         #        无需再覆写 move。仅非 pacing 模式用 MODE_PACING 的主导运镜区分。
@@ -865,6 +943,12 @@ class DirectorMasterCinematic(DirectorNodeBase):
             _parsed = _ps(scene) if scene else {}
         except Exception:
             _parsed = {}
+        # V16.5: 用户实体优先 — 场景实体引擎提取的角色/道具覆盖罐头解析
+        # (修复 POV/角色锚/AIGC提示词 仍写"女儿/护士"等罐头角色的问题)
+        if isinstance(_ent, dict) and _ent.get("characters"):
+            _parsed["characters"] = _ent["characters"]
+        if isinstance(_ent, dict) and _ent.get("props"):
+            _parsed["objects"] = _ent["props"]
         _chars = _parsed.get("characters") or ["主角", "副线"]
         _objs = _parsed.get("objects") or ["关键道具"]
         narrative_meta = _build_narrative_structure(narrative_mode, len(shots), scenes=scenes_for_narrative,
@@ -936,6 +1020,33 @@ class DirectorMasterCinematic(DirectorNodeBase):
         main += "\n\n" + apply_dimensions("分镜", kwargs)
         main += "\n\n" + build_life_texture(scene, mood, director)
         main += "\n\n" + build_edit_decision_text(scene, director, mood)
+
+        # === V16.5: 五段结构外壳 (核心主题/人物设定/氛围画质/镜头控制) + 写法A按秒切 + 自检 ===
+        try:
+            from aggregator.scene_entity import five_segment_shell, second_by_second, self_check_block
+            _mins_req = _requested_minutes
+            _shell = five_segment_shell(_ent, _dev if isinstance(_dev, dict) else {
+                "camera": "ALEXA 35 数字电影机", "lens": "Master Prime 定焦镜头组",
+                "defects": "电影级动态范围, 轻微颗粒", "identity": "一段专业电影机实拍素材"},
+                core_pack=core, mode=mode, director=director, mood=mood,
+                minutes=_mins_req, sound_cues_str=_cues)
+            main = "【真实素材设计 · 五段结构】\n" + _shell + "\n\n" + main
+            _dur_now = 0.0
+            for _s2 in shots:
+                try:
+                    _dur_now += float(_s2.get("dur_sec", 0) or 0)
+                except (TypeError, ValueError):
+                    pass
+            if 0 < _dur_now <= 20.0 and shots:
+                _sbs = second_by_second(shots, _dur_now, _ent)
+                if _sbs:
+                    main += "\n\n" + _sbs
+            main += "\n\n【结尾克制】最后一镜不堆特效: 用环境/遗留物/人物静默收束, 让能量自然消散。"
+            main += "\n" + self_check_block()
+        except Exception as _shell_e:
+            import sys as _sh_s
+            _sh_s.stderr.write(f"[DirectorMaster] 五段外壳降级: {type(_shell_e).__name__}\n")
+        # === V16.5 end ===
 
         # === V12.6 v7: 导演情感曲线展示 (V14.3 E1: 1位小数) ===
         main += f"\n\n【导演情感曲线 (V12.6 v10 镜头情感) — 故事理论: {story_theory} — 导演: {director}】"
@@ -1073,6 +1184,13 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "AIGC提示词": _aigc_prompt,
                 "首帧提示词": _ff_prompt,
                 "音频描述": _audio_desc,
+                # V16.4 情节拓扑 (纯增量): 位置标签 + 节奏手记 + 拓扑张力
+                "叙事标签": s.get("narrative_tag", ""),
+                "节奏手记": s.get("dur_note", ""),
+                "拓扑张力": _clamp_int10(s.get("tension_level", 5)),
+                # V16.5 场景实体层 (纯增量): 构图四件套 + 真实首帧
+                "构图": s.get("composition", ""),
+                "首帧描述": s.get("首帧描述", s.get("stage_name", "")),
             })
         # V14.3 E1: 浮点统一 1 位小数 (总时长/情感曲线)
         _total_dur = round(sum(float(str(s.get("时长", 0)).replace("s", "") or 0) for s in shots_json), 1)
@@ -1092,6 +1210,16 @@ class DirectorMasterCinematic(DirectorNodeBase):
             import sys as _aam_s
             _aam_s.stderr.write(f"[DirectorMaster] AIGC适配提示词降级: {type(_aam_e).__name__}\n")
 
+        # V16.5: 用户实体驱动的同期声枚举覆盖通用音频池 (兑现"同期声+显式枚举"标准)
+        if _cues:
+            import re as _re_snd
+            for _sj in shots_json:
+                _sj["音频描述"] = f"音频: {_cues}; 只保留同期声, 不铺背景音乐"
+                if _sj.get("AIGC提示词"):
+                    _sj["AIGC提示词"] = _re_snd.sub(r"音频: .*?; 只保留同期声",
+                                                   f"音频: {_cues}; 只保留同期声",
+                                                   str(_sj["AIGC提示词"]), count=1)
+
         # V16.1: 叙事编排信息块 (方式/时间线图谱/线索图谱/导演批注/字幕位)
         _arrange_block = {
             "方式": _arrange_plan.get("方式", arrangement_mode),
@@ -1110,6 +1238,11 @@ class DirectorMasterCinematic(DirectorNodeBase):
             "AIGC生产模式": _prod_mode,
             "AIGC判别依据": _prod_basis,
             "叙事编排": _arrange_block,
+            "叙事拓扑": _topo,
+            # V16.5 场景实体层 (纯增量): 设备美学包 + 用户实体 + 同期声枚举
+            "设备美学包": _dev if isinstance(_dev, dict) else {},
+            "场景实体": {k: v for k, v in (_ent.items() if isinstance(_ent, dict) else []) if k != "raw"},
+            "同期声枚举": _cues,
             "情感曲线": _curve_clean,
             "叙事元数据": narrative_meta,
             "分镜表": shots_json,

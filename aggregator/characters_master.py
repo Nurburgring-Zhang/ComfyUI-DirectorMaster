@@ -60,22 +60,18 @@ class DirectorMasterCharacters(DirectorNodeBase):
     CATEGORY = "PromptLibrary/聚合/角色"
 
     def build(self, **kwargs):
-        mode = kwargs.get("节点模式", "角色设定")
-        # V16.0 需求1: 模式选择器支持 🎲 随机
-        if mode == "🎲 随机":
-            import random as _r
-            mode = _r.choice(CHARACTER_MODES)
-        if mode not in CHARACTER_MODES: mode = "角色设定"
-        # V16.0 需求1: 属性下拉支持 🎲 随机
-        import random as _r_attr
-        def _rnd_attr(v, opts):
-            if v == "🎲 随机":
-                return _r_attr.choice([o for o in opts if o != "🎲 随机"])
-            return v
-        kwargs["角色性别"] = _rnd_attr(kwargs.get("角色性别", "男"), ["男", "女", "不限"])
-        kwargs["环境类型"] = _rnd_attr(kwargs.get("环境类型", "室内"), ["室内", "室外", "太空", "水下", "虚拟"])
-        kwargs["视觉风格"] = _rnd_attr(kwargs.get("视觉风格", "写实"), ["写实", "日漫", "美漫", "3D CG", "水彩", "油画", "赛璐璐", "水墨"])
+        from aggregator.node_base import resolve_dropdown, derive_seed
         core = parse_core_pack(kwargs.get("核心数据包", ""))
+        _seed0 = core.get("_随机种子") if core else None
+        mode = kwargs.get("节点模式", "角色设定")
+        # V16.0 需求1: 模式选择器支持 🎲 随机; V16.3 种子驱动
+        if mode == "🎲 随机":
+            mode = resolve_dropdown(mode, "角色设定", CHARACTER_MODES, seed=derive_seed(_seed0, "角色模式"))
+        if mode not in CHARACTER_MODES: mode = "角色设定"
+        # V16.0 需求1: 属性下拉支持 🎲 随机; V16.3 各属性独立域盐 (互不串扰)
+        kwargs["角色性别"] = resolve_dropdown(kwargs.get("角色性别", "男"), "男", ["男", "女", "不限"], seed=derive_seed(_seed0, "角色性别"))
+        kwargs["环境类型"] = resolve_dropdown(kwargs.get("环境类型", "室内"), "室内", ["室内", "室外", "太空", "水下", "虚拟"], seed=derive_seed(_seed0, "环境类型"))
+        kwargs["视觉风格"] = resolve_dropdown(kwargs.get("视觉风格", "写实"), "写实", ["写实", "日漫", "美漫", "3D CG", "水彩", "油画", "赛璐璐", "水墨"], seed=derive_seed(_seed0, "角色视觉风格"))
         director = core.get("_导演风格", "王家卫") if core else "王家卫"
         scene = core.get("_场景描述", "") if core else ""
         mood = core.get("_情绪基调", "") if core else ""

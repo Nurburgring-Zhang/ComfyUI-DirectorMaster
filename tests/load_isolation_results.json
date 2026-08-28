@@ -1,7 +1,7 @@
 {
   "suite": "test_load_isolation",
-  "version": "16.2.0",
-  "timestamp": "2026-08-26 22:35:04",
+  "version": "16.5.0",
+  "timestamp": "2026-08-29 03:05:32",
   "pass": 19,
   "fail": 0,
   "results": [
@@ -81,22 +81,22 @@
       "detail": ""
     },
     {
-      "label": "__version__ == 16.2.0",
+      "label": "__version__ 存在且为 x.y.z 形态",
       "ok": true,
-      "detail": "v=16.2.0"
+      "detail": "v='16.5.0'"
     },
     {
-      "label": "pyproject.toml version = 16.2.0",
+      "label": "pyproject.toml version 与 __version__ 一致",
+      "ok": true,
+      "detail": "pyproject=16.5.0 vs __version__=16.5.0"
+    },
+    {
+      "label": "README 标注 V16.5.0",
       "ok": true,
       "detail": ""
     },
     {
-      "label": "README 标注 V16.2.0-MERGED",
-      "ok": true,
-      "detail": ""
-    },
-    {
-      "label": "README 含批次1版本历史小节",
+      "label": "README 含 V16.5.0 版本历史小节",
       "ok": true,
       "detail": ""
     }

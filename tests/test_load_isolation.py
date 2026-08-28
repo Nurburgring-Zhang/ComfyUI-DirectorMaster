@@ -112,16 +112,22 @@ try:
     check("故障注入后真实注册表仍为 17 节点", len(pkg.NODE_CLASS_MAPPINGS) == 17)
 
     # ---------------- 3. 版本口径一致性 ----------------
-    print("3. 版本口径一致性 (三处 16.2.0)")
-    check("__version__ == 16.2.0", pkg.__version__ == "16.2.0", f"v={pkg.__version__}")
+    # V16.3: 动态三处一致性校验 (意图不变: __version__/pyproject/README 必须同版),
+    #        不再硬编码具体版本号 — 升版本只需改三处源, 不必改测试。
+    import re as _re_ver
+    _ver = getattr(pkg, "__version__", None)
+    print(f"3. 版本口径一致性 (三处 {_ver})")
+    check("__version__ 存在且为 x.y.z 形态", isinstance(_ver, str) and _re_ver.fullmatch(r"\d+\.\d+\.\d+", _ver) is not None,
+          f"v={_ver!r}")
     with open(os.path.join(ROOT, "pyproject.toml"), encoding="utf-8") as f:
         pyproject_text = f.read()
-    check("pyproject.toml version = 16.2.0", 'version = "16.2.0"' in pyproject_text
-          or 'version="16.2.0"' in pyproject_text)
+    _m_pyproject = _re_ver.search(r'version\s*=\s*"([^"]+)"', pyproject_text)
+    check("pyproject.toml version 与 __version__ 一致", _m_pyproject is not None and _m_pyproject.group(1) == _ver,
+          f"pyproject={_m_pyproject.group(1) if _m_pyproject else None} vs __version__={_ver}")
     with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as f:
         readme_text = f.read()
-    check("README 标注 V16.2.0-MERGED", "V16.2.0-MERGED" in readme_text)
-    check("README 含批次1版本历史小节", "### V16.2.0-MERGED" in readme_text)
+    check(f"README 标注 V{_ver}", f"V{_ver}" in readme_text)
+    check(f"README 含 V{_ver} 版本历史小节", f"### V{_ver}" in readme_text)
 
 finally:
     if _LEGACY_ENV is not None:
@@ -130,7 +136,7 @@ finally:
 
 RESULTS_DOC = {
     "suite": "test_load_isolation",
-    "version": "16.2.0",
+    "version": _ver,
     "timestamp": _time.strftime("%Y-%m-%d %H:%M:%S"),
     "pass": PASS,
     "fail": FAIL,

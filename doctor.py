@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ComfyUI-DirectorMaster V16.2.0-MERGED 自检脚本
+ComfyUI-DirectorMaster V16.3.0 自检脚本
 ======================================
 
 当节点不显示 / 模式不工作 / 数据不生效时, 在插件根目录运行:
@@ -105,6 +105,8 @@ AGGREGATOR_MODULES = [
     "failure_memory", "cocreator_engine", "v15_nodes",
     # V16.1 叙事编排引擎 + AIGC 提示词构建器 + AIGC 适配器
     "narrative_arrangement", "aigc_prompt_builder", "aigc_adapter",
+    # V16.4 情节拓扑引擎
+    "plot_topology",
 ]
 LIB_MODULES = [
     "anti_ai_vocab", "director_data_unified",

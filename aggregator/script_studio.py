@@ -10,7 +10,7 @@ _HERE = _os.path.dirname(_os.path.abspath(__file__))
 _PARENT = _os.path.dirname(_HERE)
 if _PARENT not in _sys.path: _sys.path.insert(0, _PARENT)
 if _HERE not in _sys.path: _sys.path.insert(0, _HERE)
-from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy
+from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy, resolve_dropdown, derive_seed
 from aggregator.cinema_craft import build_life_texture, build_edit_decision_text
 from aggregator.narrative_arrangement import (arrange_scenes, ARRANGEMENT_MODES, NARRATIVE_LINE_MODES)
 from aggregator import aigc_prompt_builder as _aigc_pb
@@ -1662,13 +1662,13 @@ class DirectorMasterScript(DirectorNodeBase):
     CATEGORY = "PromptLibrary/聚合/剧本"
 
     def build(self, **kwargs):
-        mode = kwargs.get("剧本模式","完整剧本")
-        # V16.0 需求1: 模式选择器支持 🎲 随机
-        if mode == "🎲 随机":
-            import random as _r
-            mode = _r.choice(SCRIPT_MODES)
-        if mode not in SCRIPT_MODES: mode = "完整剧本"
         core = parse_core_pack(kwargs.get("核心数据包",""))
+        mode = kwargs.get("剧本模式","完整剧本")
+        # V16.0 需求1: 模式选择器支持 🎲 随机; V16.3: 由核心包随机种子驱动 (固定种子可复现, 种子0真随机)
+        if mode == "🎲 随机":
+            mode = resolve_dropdown(mode, "完整剧本", SCRIPT_MODES,
+                                    seed=derive_seed(core.get("_随机种子"), "剧本模式"))
+        if mode not in SCRIPT_MODES: mode = "完整剧本"
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
         director = core.get("_导演风格") or kwargs.get("导演风格","王家卫")
         mood = core.get("_情绪基调","孤独")
@@ -1702,8 +1702,7 @@ class DirectorMasterScript(DirectorNodeBase):
         if (not _tm_explicit_set) and mode in FORMAT_DURATION_MAP:
             target_minutes = FORMAT_DURATION_MAP[mode]
 
-        # V12.6 v8: 5 个下拉框全部解析 (支持 "无(默认)" + "🎲 随机")
-        from aggregator.node_base import resolve_dropdown
+        # V12.6 v8: 5 个下拉框全部解析 (支持 "无(默认)" + "🎲 随机"); V16.3 各域独立盐种子驱动
         _STORY_OPTS = ["三幕剧(经典)", "三幕剧(变体)", "四幕剧", "五幕剧(莎士比亚)", "七点结构",
                 "救猫咪15拍(Blake Snyder)", "救猫咪10类型(鬼怪屋/金羊毛/如愿以偿等)",
                 "起承转合(中式四段)", "英雄之旅12阶段(Campbell)", "麦基故事价值(McKee)",
@@ -1735,18 +1734,18 @@ class DirectorMasterScript(DirectorNodeBase):
                 "牺牲主题", "信仰主题", "孤独主题", "时间主题", "记忆主题",
                 "身份主题", "自由主题", "正义主题", "战争与和平", "人性善恶",
                 "社会批判", "文化冲突", "代际冲突", "科技伦理", "生态主题"]
-        kwargs["叙事结构"] = resolve_dropdown(kwargs.get("叙事结构"), "三幕剧(经典)", _STORY_OPTS)
-        kwargs["对白密度"] = resolve_dropdown(kwargs.get("对白密度"), "适中(标准对白)", _DIAL_OPTS)
-        kwargs["潜文本强度"] = resolve_dropdown(kwargs.get("潜文本强度"), "中(每句1层潜文本)", _SUBT_OPTS)
-        kwargs["节奏控制"] = resolve_dropdown(kwargs.get("节奏控制"), "中速(标准)", _RHYTHM_OPTS)
-        kwargs["主题深度"] = resolve_dropdown(kwargs.get("主题深度"), "中(人物成长)", _THEME_OPTS)
+        kwargs["叙事结构"] = resolve_dropdown(kwargs.get("叙事结构"), "三幕剧(经典)", _STORY_OPTS, seed=derive_seed(core.get("_随机种子"), "剧本叙事结构"))
+        kwargs["对白密度"] = resolve_dropdown(kwargs.get("对白密度"), "适中(标准对白)", _DIAL_OPTS, seed=derive_seed(core.get("_随机种子"), "剧本对白密度"))
+        kwargs["潜文本强度"] = resolve_dropdown(kwargs.get("潜文本强度"), "中(每句1层潜文本)", _SUBT_OPTS, seed=derive_seed(core.get("_随机种子"), "剧本潜文本强度"))
+        kwargs["节奏控制"] = resolve_dropdown(kwargs.get("节奏控制"), "中速(标准)", _RHYTHM_OPTS, seed=derive_seed(core.get("_随机种子"), "剧本节奏控制"))
+        kwargs["主题深度"] = resolve_dropdown(kwargs.get("主题深度"), "中(人物成长)", _THEME_OPTS, seed=derive_seed(core.get("_随机种子"), "剧本主题深度"))
         # V16.1: 叙事编排 + 叙事线型 下拉解析 (支持 🎲 随机; ND 时回退核心数据包继承值)
         _ARRANGE_OPTS = [m for m in ARRANGEMENT_MODES if m != "跟随叙事结构"]
         _LINE_OPTS = [m for m in NARRATIVE_LINE_MODES if m != "单线"]
         _core_arrange = (core.get("_叙事编排", "跟随叙事结构") if core else "跟随叙事结构") or "跟随叙事结构"
         _core_line = (core.get("_叙事线型", "单线") if core else "单线") or "单线"
-        kwargs["叙事编排"] = resolve_dropdown(kwargs.get("叙事编排"), _core_arrange, _ARRANGE_OPTS)
-        kwargs["叙事线型"] = resolve_dropdown(kwargs.get("叙事线型"), _core_line, _LINE_OPTS)
+        kwargs["叙事编排"] = resolve_dropdown(kwargs.get("叙事编排"), _core_arrange, _ARRANGE_OPTS, seed=derive_seed(core.get("_随机种子"), "剧本叙事编排"))
+        kwargs["叙事线型"] = resolve_dropdown(kwargs.get("叙事线型"), _core_line, _LINE_OPTS, seed=derive_seed(core.get("_随机种子"), "剧本叙事线型"))
 
         # V12.6 v8: 5 个维度值应用到上下文 (供模板使用)
         story_theory = kwargs["叙事结构"]

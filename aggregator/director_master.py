@@ -126,8 +126,10 @@ class DirectorMasterCore(DirectorNodeBase):
         return {"required": {
             "项目名": ("STRING", {"default": "沉默的凤梨",
                 "tooltip": "★ 项目名称 → 写入所有下游输出头部"}),
+            "随机种子": ("INT", {"default": 0, "min": 0, "max": 2147483647, "control_after_generate": True,
+                "tooltip": "🎲 随机引擎: 0 = 每次执行真随机 (OS熵; 前端 randomize 控件每次排队自动换新种子); >0 = 固定种子完全可复现。本节点与全部下游节点的 🎲 随机选项均由它驱动"}),
             "导演名": (DIR_NAMES + [_RND], {"default": "[电影] 王家卫",
-                "tooltip": "★ 600 导演库, 选导演即锁定其风格档案; 🎲 随机 = 随机选一位导演"}),
+                "tooltip": "★ 600 导演库, 选导演即锁定其风格档案; 🎲 随机 = 由随机种子驱动选一位导演 (种子0每次运行换导演, 固定种子可复现)"}),
             "导演名_自定义": ("STRING", {"default": "",
                 "tooltip": "可选. 填写后覆盖下拉, 支持 600 导演模糊搜索"}),
             "场景描述": ("STRING", {"default": "父女在厨房, 雨夜, 1998年哈尔滨, 父亲切菜, 女儿坐桌边, 桌上有凤梨罐头和旧信", "multiline": True,
@@ -204,12 +206,20 @@ class DirectorMasterCore(DirectorNodeBase):
     def build(self, **kwargs):
         import re as _re
         import random as _rng_mod
-        import hashlib as _rng_hash
-        # V16.1: 所有"🎲 随机"选项使用项目名+场景描述作为确定性种子,
-        #        同输入同输出, 同时保留不同输入之间的多样性。
-        _project_seed = str(kwargs.get("项目名", "未命名项目") or "未命名项目")
-        _scene_seed = str(kwargs.get("场景描述", "") or "")
-        _seed_val = int(_rng_hash.md5(f"{_project_seed}_{_scene_seed}".encode("utf-8", "replace")).hexdigest(), 16) % (2 ** 32)
+        # V16.3: 🎲 随机引擎统一由 随机种子 输入驱动, 修复 V16.1 "同输入恒定输出"导致的随机名不副实
+        #   (final_capability_audit 4 项失败的根因):
+        #   0 = 每次执行 OS 熵真随机 (诚实随机; 前端 randomize 控件每次排队换新种子值,
+        #       IS_CHANGED 输入哈希随之变化 → 触发真实重算);
+        #   >0 = 该值即种子, 同输入完全可复现 (保留 V16.1 的可复现能力, 显式可选)。
+        _seed_in = kwargs.get("随机种子", 0)
+        try:
+            _seed_in = int(_seed_in)
+        except (TypeError, ValueError):
+            _seed_in = 0
+        if _seed_in > 0:
+            _seed_val = _seed_in % (2 ** 31)
+        else:
+            _seed_val = _rng_mod.SystemRandom().getrandbits(31)
         _rng = _rng_mod.Random(_seed_val)
 
         # 提取全部 32 字段 (V12.6 v7 fix2: "无(默认)" 映射到 V9.5 默认值)
@@ -440,6 +450,8 @@ class DirectorMasterCore(DirectorNodeBase):
             "_对标作品": ref_films, "_关键道具": props, "_潜文本_情感": subtext_desc,
             # === V16.1 叙事编排 (下游剧本/分镜节点继承) ===
             "_叙事编排": narrative_arrangement, "_叙事线型": narrative_line,
+            # === V16.3 随机引擎种子 (下游全部 🎲 随机由它派生, 固定种子时全链可复现) ===
+            "_随机种子": _seed_val,
             # === AI 配置 (★ 用户唯一 AI 入口) ===
             "_ai_api_url": api_url, "_ai_api_key": api_key, "_ai_api_model": ai_model,
         }, ensure_ascii=False)

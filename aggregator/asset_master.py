@@ -160,15 +160,16 @@ def _hellgrind_states():
 def _build_hellgrind_asset(kwargs, project, director):
     """HellGrind 资产库 — 真实引擎输出: descriptor/状态变体/voice/behavior/完整prompt块/压测/锁定."""
     import asset_registry as _ar
-    # V16.0 需求1: HellGrind 资产名/状态版本支持 🎲 随机
-    import random as _r_hg
+    # V16.0 需求1: HellGrind 资产名/状态版本支持 🎲 随机; V16.3 种子驱动
+    from aggregator.node_base import seeded_choice
+    _seed0 = parse_core_pack(kwargs.get("核心数据包", "")).get("_随机种子")
     name = kwargs.get("HellGrind资产名") or "@roco"
     if name == "🎲 随机":
-        name = _r_hg.choice(sorted(_ar.ASSET_REGISTRY.keys()))
+        name = seeded_choice(_seed0, "资产库名", sorted(_ar.ASSET_REGISTRY.keys()), default=name)
     state_raw = kwargs.get("HellGrind状态版本") or "(默认)"
     if state_raw == "🎲 随机":
         _states = sorted({s for a in _ar.ASSET_REGISTRY.values() for s in a.states.keys()})
-        state_raw = _r_hg.choice(_states) if _states else "(默认)"
+        state_raw = seeded_choice(_seed0, "资产库状态", _states, default="(默认)")
     state = None if state_raw == "(默认)" else state_raw
     do_test = bool(kwargs.get("HellGrind压力测试", True))
     do_lock = bool(kwargs.get("HellGrind锁定", False))
@@ -296,22 +297,18 @@ class DirectorMasterAsset(DirectorNodeBase):
 
     def build(self, **kwargs):
         import json as _json
-        mode = kwargs.get("资产模式", "角色设定")
-        # V16.0 需求1: 模式选择器支持 🎲 随机
-        if mode == "🎲 随机":
-            import random as _r
-            mode = _r.choice(ASSET_MODES)
-        if mode not in ASSET_MODES: mode = "角色设定"
-        # V16.0 需求1: 属性下拉支持 🎲 随机
-        import random as _r_attr
-        def _rnd_attr(v, opts):
-            if v == "🎲 随机":
-                return _r_attr.choice([o for o in opts if o != "🎲 随机"])
-            return v
-        kwargs["角色性别"] = _rnd_attr(kwargs.get("角色性别", "男"), ["男", "女", "不限"])
-        kwargs["环境类型"] = _rnd_attr(kwargs.get("环境类型", "室内"), ["室内", "室外", "太空", "水下", "虚拟"])
-        kwargs["视觉风格"] = _rnd_attr(kwargs.get("视觉风格", "写实"), ["写实", "日漫", "美漫", "3D CG", "水彩", "油画", "赛璐璐", "水墨"])
+        from aggregator.node_base import resolve_dropdown, derive_seed, seeded_choice
         core = parse_core_pack(kwargs.get("核心数据包", ""))
+        _seed0 = core.get("_随机种子") if core else None
+        mode = kwargs.get("资产模式", "角色设定")
+        # V16.0 需求1: 模式选择器支持 🎲 随机; V16.3 种子驱动
+        if mode == "🎲 随机":
+            mode = resolve_dropdown(mode, "角色设定", ASSET_MODES, seed=derive_seed(_seed0, "资产模式"))
+        if mode not in ASSET_MODES: mode = "角色设定"
+        # V16.0 需求1: 属性下拉支持 🎲 随机; V16.3 各属性独立域盐 (互不串扰)
+        kwargs["角色性别"] = resolve_dropdown(kwargs.get("角色性别", "男"), "男", ["男", "女", "不限"], seed=derive_seed(_seed0, "资产性别"))
+        kwargs["环境类型"] = resolve_dropdown(kwargs.get("环境类型", "室内"), "室内", ["室内", "室外", "太空", "水下", "虚拟"], seed=derive_seed(_seed0, "资产环境"))
+        kwargs["视觉风格"] = resolve_dropdown(kwargs.get("视觉风格", "写实"), "写实", ["写实", "日漫", "美漫", "3D CG", "水彩", "油画", "赛璐璐", "水墨"], seed=derive_seed(_seed0, "资产视觉风格"))
         project = kwargs.get("项目名", "我的电影项目")
         director = core.get("_导演风格", "王家卫") if core else "王家卫"
         scene = core.get("_场景描述", "") if core else ""

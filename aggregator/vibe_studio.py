@@ -14,7 +14,7 @@ _HERE = _os.path.dirname(_os.path.abspath(__file__))
 _PARENT = _os.path.dirname(_HERE)
 if _PARENT not in _sys.path: _sys.path.insert(0, _PARENT)
 if _HERE not in _sys.path: _sys.path.insert(0, _HERE)
-from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy
+from aggregator.node_base import DirectorNodeBase, parse_core_pack, resolve_ai_config, match_director_fuzzy, resolve_dropdown, derive_seed
 
 VIBE_MODES = ["概念立项","主题哲学","世界设定","服化道","表演指导","VFX特效","MV导演","调色","剪辑","迭代","质量QA","绘本","互动剧","漫剧分镜","市场受众分析",
               "电商套图","海报设计","品牌设计","PPT设计","逻辑关系图设计","三视图设计","爆炸拆解图设计","流水线图设计"]
@@ -94,15 +94,15 @@ def _build_market_audience(scene, director, mood, core, kwargs):
         predict_box_office, GENRE_AUDIENCE_8, RELEASE_PERIODS_5, MARKET_POSITION_3,
     )
     core = core or {}
-    # 1. 类型/档期/定位: 用户显式选择优先, 否则自动推断 (V16.0 需求1: 支持 🎲 随机)
-    import random as _r_mkt
-    def _rnd_mkt(v, opts):
+    # 1. 类型/档期/定位: 用户显式选择优先, 否则自动推断 (V16.0 需求1: 支持 🎲 随机; V16.3 种子驱动)
+    def _rnd_mkt(v, opts, domain):
         if v == "🎲 随机":
-            return _r_mkt.choice([o for o in opts if o not in ("🎲 随机", "auto")])
+            return resolve_dropdown(v, None, [o for o in opts if o not in ("🎲 随机", "auto")],
+                                    seed=derive_seed(core.get("_随机种子"), domain)) or (opts[0] if opts else v)
         return v
-    genre = _rnd_mkt((kwargs.get("类型片市场") or "auto").strip(), list(GENRE_AUDIENCE_8.keys()))
-    period = _rnd_mkt((kwargs.get("档期策略") or "auto").strip(), list(RELEASE_PERIODS_5.keys()))
-    position = _rnd_mkt((kwargs.get("市场定位") or "auto").strip(), list(MARKET_POSITION_3.keys()))
+    genre = _rnd_mkt((kwargs.get("类型片市场") or "auto").strip(), list(GENRE_AUDIENCE_8.keys()), "市场类型片")
+    period = _rnd_mkt((kwargs.get("档期策略") or "auto").strip(), list(RELEASE_PERIODS_5.keys()), "市场档期")
+    position = _rnd_mkt((kwargs.get("市场定位") or "auto").strip(), list(MARKET_POSITION_3.keys()), "市场定位")
     genre_basis, period_basis, position_basis = "", "", ""
     if genre == "auto" or genre not in GENRE_AUDIENCE_8:
         genre, genre_basis = _infer_market_genre(scene, core, mood)
@@ -578,19 +578,18 @@ class DirectorMasterVibe(DirectorNodeBase):
     CATEGORY = "PromptLibrary/聚合/创意"
 
     def build(self, **kwargs):
-        mode = kwargs.get("创意模式","概念立项")
-        # V16.0 需求1: 模式选择器支持 🎲 随机
-        if mode == "🎲 随机":
-            import random as _r
-            mode = _r.choice(VIBE_MODES)
-        if mode not in VIBE_MODES: mode = "概念立项"
         core = parse_core_pack(kwargs.get("核心数据包",""))
+        mode = kwargs.get("创意模式","概念立项")
+        # V16.0 需求1: 模式选择器支持 🎲 随机; V16.3: 由核心包随机种子驱动
+        if mode == "🎲 随机":
+            mode = resolve_dropdown(mode, "概念立项", VIBE_MODES,
+                                    seed=derive_seed(core.get("_随机种子"), "创意模式"))
+        if mode not in VIBE_MODES: mode = "概念立项"
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
         director = core.get("_导演风格") or kwargs.get("导演风格","王家卫")
         mood = core.get("_情绪基调","孤独")
 
-        # V12.6 v8: 4 个下拉框解析 (支持 "无(默认)" + "🎲 随机")
-        from aggregator.node_base import resolve_dropdown
+        # V12.6 v8: 4 个下拉框解析 (支持 "无(默认)" + "🎲 随机"); V16.3 各域独立盐种子驱动
         _VIBE_DIR_OPTS = ["商业类型片", "作者电影", "商业+艺术平衡", "网剧爆款", "短剧爽剧", "小程序剧",
                 "创意短视频", "爆款反转短视频", "脑洞剧情", "情感共鸣", "搞笑整蛊", "Vlog博主风",
                 "纪录观察", "新闻专题", "访谈谈话",
@@ -615,10 +614,10 @@ class DirectorMasterVibe(DirectorNodeBase):
                 "强反转", "强悬念", "强情绪(爽点)", "强共鸣(共情)", "强视觉(奇观)",
                 "强人物(明星/角色)", "强话题(争议/讨论)", "强节奏(快节奏)",
                 "强创意(脑洞)", "强金句(台词)", "强情感(泪点)", "强喜剧(笑点)"]
-        kwargs["创意方向"] = resolve_dropdown(kwargs.get("创意方向"), "商业类型片", _VIBE_DIR_OPTS)
-        kwargs["世界观深度"] = resolve_dropdown(kwargs.get("世界观深度"), "中(有背景设定)", _WORLD_OPTS)
-        kwargs["情感浓度"] = resolve_dropdown(kwargs.get("情感浓度"), "适中(平衡)", _EMO_OPTS)
-        kwargs["商业卖点"] = resolve_dropdown(kwargs.get("商业卖点"), "有卖点(艺术+商业)", _SELL_OPTS)
+        kwargs["创意方向"] = resolve_dropdown(kwargs.get("创意方向"), "商业类型片", _VIBE_DIR_OPTS, seed=derive_seed(core.get("_随机种子"), "创意方向"))
+        kwargs["世界观深度"] = resolve_dropdown(kwargs.get("世界观深度"), "中(有背景设定)", _WORLD_OPTS, seed=derive_seed(core.get("_随机种子"), "世界观深度"))
+        kwargs["情感浓度"] = resolve_dropdown(kwargs.get("情感浓度"), "适中(平衡)", _EMO_OPTS, seed=derive_seed(core.get("_随机种子"), "情感浓度"))
+        kwargs["商业卖点"] = resolve_dropdown(kwargs.get("商业卖点"), "有卖点(艺术+商业)", _SELL_OPTS, seed=derive_seed(core.get("_随机种子"), "商业卖点"))
 
         # V14.2: 市场受众分析 — 真实 market_audience_pro 引擎 (需要市场输入, 单独构建)
         if mode == "市场受众分析":

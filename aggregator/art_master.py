@@ -194,15 +194,15 @@ class DirectorMasterArt(DirectorNodeBase):
     CATEGORY = "PromptLibrary/聚合/美术"
 
     def build(self, **kwargs):
-        from aggregator.node_base import resolve_dropdown
+        from aggregator.node_base import resolve_dropdown, derive_seed
         _ART_ALL = "全部(美术指导+空间一致性+空间布局)"
-        mode = kwargs.get("美术模式","美术指导")
-        # V16.0 需求1: 模式选择器支持 🎲 随机; 需求3: 全部方向
-        if mode == "🎲 随机":
-            import random as _r
-            mode = _r.choice(ART_MODES)
-        if mode not in ART_MODES and mode != _ART_ALL: mode = _ART_ALL
         core = parse_core_pack(kwargs.get("核心数据包",""))
+        mode = kwargs.get("美术模式","美术指导")
+        # V16.0 需求1: 模式选择器支持 🎲 随机; 需求3: 全部方向; V16.3 种子驱动
+        if mode == "🎲 随机":
+            mode = resolve_dropdown(mode, _ART_ALL, ART_MODES,
+                                    seed=derive_seed(core.get("_随机种子"), "美术模式"))
+        if mode not in ART_MODES and mode != _ART_ALL: mode = _ART_ALL
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
         director = core.get("_导演风格") or kwargs.get("导演风格","王家卫")
         mood = core.get("_情绪基调","孤独")

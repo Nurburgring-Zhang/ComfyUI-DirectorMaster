@@ -62,7 +62,6 @@ class DirectorMasterCoCreator(DirectorNodeBase):
     CATEGORY = "PromptLibrary/聚合/共创"
 
     def co_create_build(self, **kwargs):
-        import random as _r
         core = parse_core_pack(kwargs.get("核心数据包", ""))
         director = core.get("_导演名", "")
         mood = core.get("_情绪基调", "")
@@ -85,6 +84,11 @@ class DirectorMasterCoCreator(DirectorNodeBase):
                 _sys.stderr.write(f"[DirectorMaster] 参考图像分析异常: {type(e).__name__}\n")
 
         from aggregator.cocreator_engine import co_create
+        from aggregator.node_base import resolve_dropdown, derive_seed
+        _risk_raw = kwargs.get("风险档位", "medium")
+        _risk_level = resolve_dropdown(_risk_raw, "medium", ["medium","safe","bold","chaotic"],
+                                       seed=derive_seed(core.get("_随机种子") if core else None, "共创风险档位")) \
+            if _risk_raw == "🎲 随机" else _risk_raw
         result = co_create(
             story_core=kwargs.get("故事核心", ""),
             emotional_intent=kwargs.get("情感诉求", ""),
@@ -92,7 +96,7 @@ class DirectorMasterCoCreator(DirectorNodeBase):
             director=director, mood=mood,
             api_url=api_url, api_key=api_key, api_model=api_model,
             store_dir=store_dir,
-            risk_level=(lambda _v: (_r.choice(["medium","safe","bold","chaotic"]) if _v=="🎲 随机" else _v))(kwargs.get("风险档位", "medium")),
+            risk_level=_risk_level,
         )
 
         script = result["script"]
@@ -180,7 +184,6 @@ class DirectorMasterIntuition(DirectorNodeBase):
     CATEGORY = "PromptLibrary/聚合/直觉"
 
     def intuition_build(self, **kwargs):
-        import random as _r
         core = parse_core_pack(kwargs.get("核心数据包", ""))
         mood = core.get("_情绪基调", "")
         scene = core.get("_场景描述", "")
@@ -191,10 +194,12 @@ class DirectorMasterIntuition(DirectorNodeBase):
         shots = data.get("分镜表", []) if isinstance(data, dict) else []
 
         from aggregator.intuition_engine import apply_intuition
-        # V16.0 需求1: 风险档位支持 🎲 随机
+        from aggregator.node_base import resolve_dropdown, derive_seed
+        # V16.0 需求1: 风险档位支持 🎲 随机; V16.3 种子驱动
         _risk = kwargs.get("风险档位", "medium")
         if _risk == "🎲 随机":
-            _risk = _r.choice(["medium", "safe", "bold", "chaotic"])
+            _risk = resolve_dropdown(_risk, "medium", ["medium", "safe", "bold", "chaotic"],
+                                     seed=derive_seed(core.get("_随机种子") if core else None, "直觉风险档位"))
         modified, log = apply_intuition(
             shots, mood=mood, scene=scene,
             risk_level=_risk,

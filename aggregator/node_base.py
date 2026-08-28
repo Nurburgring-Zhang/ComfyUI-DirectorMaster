@@ -57,6 +57,37 @@ def resolve_dropdown(v, default, options=None, seed=None):
     return v
 
 
+def derive_seed(base_seed, domain):
+    """V16.3: 从核心数据包 _随机种子 + 域盐派生子种子 (各节点/各下拉互不串扰).
+
+    base_seed 缺失或 <=0 时返回 None → 调用方回退全局随机 (下游节点单独排队仍可用)。
+    同一 (种子, 域) 恒定映射 → 固定种子时全链可复现。"""
+    try:
+        s = int(base_seed)
+    except (TypeError, ValueError):
+        return None
+    if s <= 0:
+        return None
+    return int(_hashlib.md5("{}|{}".format(s, domain).encode("utf-8", "replace")).hexdigest(), 16) % (2 ** 31)
+
+
+def seeded_rng(base_seed, domain):
+    """V16.3: 返回本域专用随机源 — 有种子时 Random(派生子种子), 无种子时全局 random 模块。
+
+    用法: _r = seeded_rng(core.get("_随机种子") if core else None, "剧本模式")
+          _r.choice(opts)  # 可复现 或 真随机, 与旧行为兼容"""
+    import random as _rmod
+    s = derive_seed(base_seed, domain)
+    return _rmod.Random(s) if s is not None else _rmod
+
+
+def seeded_choice(base_seed, domain, options, default=None):
+    """V16.3: 种子驱动的单次随机选择 — options 空返回 default; 无种子回退全局随机。"""
+    if not options:
+        return default
+    return seeded_rng(base_seed, domain).choice(options)
+
+
 def parse_multi_select(text, default=None):
     """V13.2: 多选/演变序列解析器.
 

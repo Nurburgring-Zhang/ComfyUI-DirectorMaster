@@ -455,6 +455,7 @@ def parse_scene(desc):
     # 位置感知: 长关键词优先匹配并"消耗"字符位置, 短关键词跳过已被消耗的位置
     sorted_kws = sorted(char_map.keys(), key=lambda x: -len(x))
     consumed = set()
+    char_src = []  # (角色, 命中关键词) — V16.5 实体融合时判断单字误判用
     for kw in sorted_kws:
         if char_map[kw] in characters:
             continue
@@ -481,6 +482,7 @@ def parse_scene(desc):
             continue
         consumed |= matched_pos
         characters.append(char_map[kw])
+        char_src.append((char_map[kw], kw))
         if len(characters) >= 6:
             break
     if not characters:
@@ -503,12 +505,39 @@ def parse_scene(desc):
                 objects.append("镜子")
                 break
             _mi = desc.find("镜", _mi + 1)
+    # V16.5: 场景实体引擎融合 — 后缀词典覆盖 char_map 未收录的身份
+    # (机甲战士/剑圣/修表匠/机器人/护盾 等, 此前全部回落"主角/副线+罐头女儿护士")。
+    # 融合规则 (保守): 仅当 char_map 零命中 (回退主/副线) 时用实体角色替换;
+    # 否则只追加与既有角色不重叠的新实体; 道具同理 — 不伤害既有良好解析。
+    try:
+        from aggregator.scene_entity import extract_entities as _se_extract, has_entities as _se_has
+        _ent2 = _se_extract(desc)
+        if _se_has(_ent2):
+            if _ent2.get("characters"):
+                # 丢弃被单字关键词误判出的罐头角色 (女 ⊂ 女机甲战士 → 女儿 弃)
+                _ent_chars = _ent2["characters"]
+                _kept = [c for (c, kw) in char_src
+                         if not (len(kw) == 1 and any(kw in ec for ec in _ent_chars))]
+                _fell_back = (_kept == ["主角", "副线"]) or (not _kept)
+                if _fell_back:
+                    characters = _ent_chars[:3]
+                else:
+                    merged = list(_ent_chars)
+                    for c in _kept:
+                        if c != "主角" and c != "副线" and not any(c in m or m in c for m in merged):
+                            merged.append(c)
+                    characters = merged[:3]
+            if _ent2.get("props"):
+                for _ep in _ent2["props"]:
+                    if len(objects) < 5 and not any(_ep in o or o in _ep for o in objects):
+                        objects.insert(0, _ep)
+    except Exception:
+        pass
     return {
         "location": location, "time": time, "ie": ie, "weather": weather,
         "characters": characters[:3], "objects": objects[:5],
         "type": detect_scene_type(desc), "raw": desc,
     }
-
 
 # ============================================================
 # 镜头策略 (按场景类型)

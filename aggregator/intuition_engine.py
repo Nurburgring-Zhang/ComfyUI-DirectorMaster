@@ -37,7 +37,10 @@ def apply_intuition(shots, mood="", scene="", risk_level="medium", seed=""):
 
     shots: list of dict (含 size/move/focal/dur/focus/sound/n 等字段)
     返回 (modified_shots, log) — log 为每条触发的规则记录 (可追溯)。
+    V16.3.0 对抗修复: 非 list 输入 (如畸形 JSON 的字符串) 原样返回, 不崩溃不伪造。
     """
+    if not isinstance(shots, list):
+        return shots, []
     if risk_level not in RISK_RATES or not shots:
         return shots, []
     rate = RISK_RATES[risk_level]
@@ -52,6 +55,9 @@ def apply_intuition(shots, mood="", scene="", risk_level="medium", seed=""):
     log = []
     n = len(shots)
     for i, s in enumerate(shots):
+        if not isinstance(s, dict):
+            out.append(s)
+            continue
         s = dict(s)
         shot_n = s.get("n", i + 1)
         tension = s.get("tension_level", 5)

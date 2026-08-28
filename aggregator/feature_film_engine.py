@@ -3617,7 +3617,7 @@ def _make_shot(shot_n, scene, tpl, c1, c2, location, weather, obj_str, all_shots
 
     # focus 重写: 具体物件 + 具体动作 + 身体细节 + 电影技法
     import hashlib as _hl
-    seed = f"{shot_n}_{c1}_{primary_obj}_{location}_{character_idx}"
+    seed = f"{shot_n}_{c1}_{primary_obj}_{location}_{character_idx}_{scene.get('_director', '')}"
     body_idx = int(_hl.md5(seed.encode()).hexdigest(), 16) % len(body_pool)
     tech_idx = int(_hl.md5((seed + "_tech").encode()).hexdigest(), 16) % len(tech_pool)
     body_chosen = body_pool[body_idx]
@@ -3686,7 +3686,7 @@ def _make_shot(shot_n, scene, tpl, c1, c2, location, weather, obj_str, all_shots
     stage_emotion = {
         1: "日常/平静", 2: "平静/从容", 3: "微妙变化/暗流",
         4: "紧张积累", 5: "暗涌", 6: "冲突/震惊",
-        7: "对峙/爆发", 8: "决战场面/震撼", 9: "情感最高点/灵魂黑夜", 10: "爆发/极致/燃烧"
+        7: "对峙/爆发", 8: "决战场面/胜负手", 9: "情感最高点/灵魂黑夜", 10: "爆发/极致/燃烧"
     }.get(tension, "日常/平静")
 
     # 故事弧线 — V16.1.1 审计修复 L-6: 按镜号占总计划镜数的比例定弧位
@@ -3793,7 +3793,7 @@ def _make_shot(shot_n, scene, tpl, c1, c2, location, weather, obj_str, all_shots
     }
     atmosphere_progression = {
         1: "日常/从容", 2: "平和/自然/温暖", 3: "期待/即将变化", 4: "压抑/积累",
-        5: "不安/预兆", 6: "紧张/压迫/失衡", 7: "危险/失控", 8: "震撼/失重",
+        5: "不安/预兆", 6: "紧张/压迫/失衡", 7: "危险/失控", 8: "失重般的失衡/眩晕",
         9: "情感燃烧", 10: "爆发/极致/燃烧"
     }
     rhythm_progression = {

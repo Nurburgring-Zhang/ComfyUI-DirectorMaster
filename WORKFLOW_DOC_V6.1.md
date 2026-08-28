@@ -1,3 +1,5 @@
+> ⚠️ **历史文档（V6/V7 时代存档）**：内容与当前 V16.3.0 代码已脱节，仅作历史参考。当前节点/模式口径以 README.md 与 docs/LEGACY_AUDIT.md 为准。
+
 # 🎬 ComfyUI-DirectorMaster V6.2 全链路工作流文档
 
 > **9 节点 · 43 旧节点聚合 · 核心数据包星型分发 · 终极汇总 · Core AI能力下游继承**

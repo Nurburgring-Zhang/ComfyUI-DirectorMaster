@@ -86,19 +86,22 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
     OUTPUT_NODE = True
 
     def build(self, **kwargs):
+        from aggregator.node_base import resolve_dropdown, derive_seed
+        core = parse_core_pack(kwargs.get("核心数据包", ""))
+        _seed0 = core.get("_随机种子") if core else None
         target = kwargs.get("目标视频模型", "全部生成")
-        # V16.0 需求1: 目标视频模型与画幅支持 🎲 随机
-        import random as _r
+        # V16.0 需求1: 目标视频模型与画幅支持 🎲 随机; V16.3 各域独立盐种子驱动
         if target == "🎲 随机":
-            target = _r.choice(VIDEO_ROUTER_MODES)
+            target = resolve_dropdown(target, "全部生成", VIDEO_ROUTER_MODES, seed=derive_seed(_seed0, "视频路由目标"))
         aspect = kwargs.get("画幅比例", "16:9 横屏")
         if aspect == "🎲 随机":
-            aspect = _r.choice(["16:9 横屏", "9:16 竖屏", "1:1 方形", "21:9 电影宽屏"])
+            aspect = resolve_dropdown(aspect, "16:9 横屏",
+                                      ["16:9 横屏", "9:16 竖屏", "1:1 方形", "21:9 电影宽屏"],
+                                      seed=derive_seed(_seed0, "视频路由画幅"))
         duration = kwargs.get("视频时长_秒", 8)
         fps = kwargs.get("帧率", 24)
 
         # 解析 forceInput
-        core = parse_core_pack(kwargs.get("核心数据包", ""))
         director = core.get("_导演风格", "王家卫") if core else "王家卫"
         scene = core.get("_场景描述", "") if core else ""
         mood = core.get("_情绪基调", "") if core else ""

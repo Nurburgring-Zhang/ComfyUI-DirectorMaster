@@ -212,14 +212,15 @@ class DirectorMasterSound(DirectorNodeBase):
     CATEGORY = "PromptLibrary/聚合/声音"
 
     def _do_build(self, **kwargs):
+        from aggregator.node_base import resolve_dropdown, derive_seed
         _SND_ALL = "全部(声音设计+音乐配乐+声音层+沉默)"
-        mode = kwargs.get("声音模式","声音设计")
-        # V16.0 需求1: 模式选择器支持 🎲 随机; 需求3: 全部方向
-        if mode == "🎲 随机":
-            import random as _r
-            mode = _r.choice(SOUND_MODES)
-        if mode not in SOUND_MODES and mode != _SND_ALL: mode = _SND_ALL
         core = parse_core_pack(kwargs.get("核心数据包",""))
+        mode = kwargs.get("声音模式","声音设计")
+        # V16.0 需求1: 模式选择器支持 🎲 随机; 需求3: 全部方向; V16.3 种子驱动
+        if mode == "🎲 随机":
+            mode = resolve_dropdown(mode, _SND_ALL, SOUND_MODES,
+                                    seed=derive_seed(core.get("_随机种子"), "声音模式"))
+        if mode not in SOUND_MODES and mode != _SND_ALL: mode = _SND_ALL
         scene = core.get("_场景描述") or kwargs.get("场景描述","")
         director = core.get("_导演风格") or kwargs.get("导演风格","王家卫")
         mood = core.get("_情绪基调","孤独")
