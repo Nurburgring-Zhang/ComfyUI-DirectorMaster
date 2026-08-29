@@ -1230,7 +1230,7 @@ class DirectorMasterCinematic(DirectorNodeBase):
             "字幕位": _arrange_plan.get("字幕位", []),
         }
 
-        json_str = _json.dumps({
+        _storyboard_payload = {
             "分镜数": len(shots_json),
             "总时长秒": _total_dur,
             "导演": director, "情绪": mood, "画面模式": mode,
@@ -1254,7 +1254,26 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "Characters": "已应用" if chars_in else "未连接",
                 "Asset": "已应用" if asset_in else "未连接",
             },
-        }, ensure_ascii=False, indent=2)
+        }
+
+        # V16.3 批次2: 分镜契约 v1 additive 接线 (builder-contract 所有) —
+        # 注入 contract_version=1 + 侧带 validate_storyboard。校验发现内部不一致 →
+        # stderr 诚实上报后继续; 校验器自身故障同样不失败节点 (降级告警)。
+        # 分镜文本 main 零变化; 既有键零增删 (唯一新增 = 契约注入的 contract_version)。
+        try:
+            from aggregator.storyboard_contract import attach_contract_version, validate_storyboard
+            attach_contract_version(_storyboard_payload)
+            _sb_report = validate_storyboard(_storyboard_payload)
+            if not _sb_report.get("ok", False) and _sb_report.get("errors"):
+                import sys as _sb_sys
+                _sb_codes = ",".join(sorted(set(str(_e.get("code", "?")) for _e in _sb_report["errors"])))
+                _sb_sys.stderr.write("[DirectorMaster] 分镜契约校验发现内部不一致: %s (%d 项)\n"
+                                     % (_sb_codes, len(_sb_report["errors"])))
+        except Exception as _sb_e:
+            import sys as _sb_sys
+            _sb_sys.stderr.write("[DirectorMaster] 分镜契约校验降级: %s\n" % type(_sb_e).__name__)
+
+        json_str = _json.dumps(_storyboard_payload, ensure_ascii=False, indent=2)
 
         # V16.0 需求4: AIGC 生产适配块 (注入分镜文本输出)
         try:

@@ -7,7 +7,7 @@ ComfyUI-DirectorMaster V16.3.0 自检脚本
 
     python doctor.py
 
-诊断 8 类问题:
+诊断 9 类问题:
     1. 安装路径 (是否位于 ComfyUI/custom_nodes 下)
     2. Python 环境 (版本/编码)
     3. 模块导入 (17 节点依赖的全部模块)
@@ -16,6 +16,7 @@ ComfyUI-DirectorMaster V16.3.0 自检脚本
     6. 复活接线消费验证 (9 项孤儿库接线真实被调用, 非装饰)
     7. V15.0 引擎运行时消费验证 (融合/直觉/灵魂/多模态/共创/反AI)
     8. V16.2.0 加载隔离与 LLM 容错 (隔离清单/预设注册表/三态路由/别名容错)
+    9. 模式卡与分镜契约一致性 (manifest 三方对账 / 模式卡索引 sync 校验 / 分镜 JSON 契约 v1)
 
 退出码: 0 = 全部通过, 1 = 有错误
 """
@@ -577,6 +578,117 @@ try:
         err(f"宽容 JSON 异常: {_j1} {_j2}")
 except Exception as e:
     err(f"别名容错/宽容JSON检查失败: {e!r}")
+
+# ---------- 9. 模式卡与分镜契约一致性 (V16.3.0 批次2) ----------
+section("9. 模式卡与分镜契约一致性")
+
+# 9a. manifest 单一事实源在场且可解析 (缺失 = ERR)
+_manifest9 = None
+_manifest_path9 = os.path.join(ROOT, "tests", "mode_manifest.json")
+if not os.path.exists(_manifest_path9):
+    err("mode_manifest.json 缺失 (tests/mode_manifest.json) — 模式卡单一事实源未建立")
+else:
+    try:
+        import json as _json9
+        with open(_manifest_path9, encoding="utf-8") as _f9:
+            _manifest9 = _json9.load(_f9)
+        if (_manifest9.get("version") != 1 or not isinstance(_manifest9.get("nodes"), dict)
+                or not isinstance(_manifest9.get("total_creative"), int)):
+            err("mode_manifest.json 结构异常 (version/nodes/total_creative)")
+            _manifest9 = None
+        else:
+            ok(f"mode_manifest.json 可解析 (total_creative={_manifest9['total_creative']})")
+    except Exception as e:
+        err(f"mode_manifest.json 解析失败: {e!r}")
+        _manifest9 = None
+
+# 9b. manifest 枚举 vs live INPUT_TYPES 三方核对 (10 个模式下拉逐位比对)
+_widgets9 = None
+try:
+    from tools.dump_mode_manifest import get_mode_widgets as _get_widgets9
+    _widgets9 = _get_widgets9()
+except Exception as e:
+    err(f"锚点工具不可用 (tools/dump_mode_manifest.py): {e!r}")
+if _manifest9 is not None and _widgets9 is not None:
+    if _pkg16 is None:
+        try:
+            import importlib.util as _ilu9
+            _spec9 = _ilu9.spec_from_file_location("_dm_doctor_s9", os.path.join(ROOT, "__init__.py"))
+            _pkg16 = _ilu9.module_from_spec(_spec9)
+            sys.modules["_dm_doctor_s9"] = _pkg16
+            _spec9.loader.exec_module(_pkg16)
+        except Exception as e:
+            err(f"节点包加载失败, 无法做 manifest 枚举核对: {e!r}")
+    if _pkg16 is not None:
+        try:
+            _mism9 = []
+            _mnodes9 = _manifest9["nodes"]
+            if set(_mnodes9) != set(_widgets9):
+                _mism9.append(f"节点集合不一致: {sorted(set(_mnodes9) ^ set(_widgets9))}")
+            for _n9, _w9 in _widgets9.items():
+                _cls9 = _pkg16.NODE_CLASS_MAPPINGS.get(_n9)
+                _rec9 = _mnodes9.get(_n9)
+                if _cls9 is None or _rec9 is None:
+                    _mism9.append(f"{_n9}: 节点或 manifest 记录缺失")
+                    continue
+                _live9 = [str(o) for o in _cls9.INPUT_TYPES()["required"][_w9][0]]
+                if _live9 != list(_rec9.get("options", [])):
+                    _mism9.append(f"{_n9}: 枚举与 manifest 不一致 "
+                                  f"(live {len(_live9)} 项 vs manifest {len(_rec9.get('options', []))} 项)")
+            if _mism9:
+                for _m in _mism9:
+                    err(f"manifest 枚举核对失败: {_m}")
+            else:
+                ok("manifest 枚举 == live INPUT_TYPES (10 节点三方一致)")
+        except Exception as e:
+            err(f"manifest 枚举核对异常: {e!r}")
+
+# 9c. 模式卡目录 ↔ manifest 对账 (内嵌复用 tools/sync_mode_index 校验逻辑)
+_cards_root9 = os.path.join(ROOT, "knowledge_base", "mode_cards")
+_card_count9 = 0
+if os.path.isdir(_cards_root9):
+    for _slug9 in os.listdir(_cards_root9):
+        _sd9 = os.path.join(_cards_root9, _slug9)
+        if os.path.isdir(_sd9):
+            _card_count9 += sum(1 for _f9 in os.listdir(_sd9)
+                                if _f9.lower().endswith(".md")
+                                and os.path.isfile(os.path.join(_sd9, _f9)))
+if _manifest9 is not None:
+    _total9 = _manifest9.get("total_creative")
+    if _card_count9 == 0:
+        warn(f"模式卡待建({_card_count9}/{_total9}) — Wave B 撰写中, 不影响其他诊断")
+    else:
+        try:
+            from tools.sync_mode_index import run_validation as _run_val9
+            _res9 = _run_val9(ROOT)
+            if _res9["ok"]:
+                ok(f"模式卡 {_card_count9}/{_total9} 与 manifest 对账一致 (sync 校验通过)")
+            else:
+                for _v9 in _res9["violations"][:10]:
+                    err(f"模式卡对账违例: {_v9}")
+                if len(_res9["violations"]) > 10:
+                    err(f"模式卡对账违例共 {len(_res9['violations'])} 项 "
+                        f"(仅列前 10; 完整清单: python tools/sync_mode_index.py --check)")
+        except Exception as e:
+            err(f"sync 校验逻辑调用失败: {e!r}")
+
+# 9d. 分镜 JSON 契约 v1 (并行 builder 交付物; 未就绪 = WARN 不拦诊断)
+try:
+    from aggregator.storyboard_contract import (STORYBOARD_CONTRACT_VERSION as _sbv9,
+                                                self_check as _sbself9)
+except Exception as e:
+    warn(f"分镜契约模块未就绪 (并行 builder 撰写中): {type(e).__name__}: {e}")
+else:
+    try:
+        _sb_ok9 = _sbself9()
+    except Exception as e:
+        err(f"分镜契约自检异常 (self_check 约定永不抛): {e!r}")
+    else:
+        if _sbv9 == 1 and _sb_ok9 is True:
+            ok("分镜 JSON 契约 v1 (STORYBOARD_CONTRACT_VERSION=1, "
+               "合法最小样例过 validate_storyboard 且相对时间拓扑解析正确)")
+        else:
+            err(f"分镜契约断言失败: version={_sbv9!r}, self_check={_sb_ok9!r}")
 
 # ---------- 汇总 ----------
 print("\n" + "=" * 50)

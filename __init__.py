@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ComfyUI-DirectorMaster V16.5.0 — 17 注册节点 (16 超级节点 + Final 别名) + 600 导演库
+ComfyUI-DirectorMaster V16.6.0-MERGED — 17 注册节点 (16 超级节点 + Final 别名) + 600 导演库
 ====================================================================
 V16.5.0 场景实体引擎 (参考真实生产级 AI 视频提示词标准库的"真实素材设计"范式):
   · aggregator/scene_entity.py: 实体提取(角色/道具/地点/天气/色彩/动作) + 设备美学包
@@ -43,7 +43,7 @@ V16.2.0 批次1 — LLM 链路健壮性加固 + 加载崩溃隔离 (六仓经验
   · 错误分类 + 溢出两层压缩 (gentle 25% / aggressive 12.5%) + 上游截断检测
   · 字段别名四级容错解析 + 宽容 JSON 解析
   · 节点加载崩溃隔离 (失败入 DM_QUARANTINE 隔离清单, 不拖垮其余节点)
-  · doctor 8 类诊断 (新增"加载隔离与 LLM 容错")
+  · doctor 9 类诊断 (新增"加载隔离与 LLM 容错"、"模式卡与分镜契约一致性")
 
 17 注册节点 (Core 驱动 + forceInput):
   1. DirectorMasterCore         — 起点 → 统一电影提示词 + 核心数据包
@@ -279,8 +279,8 @@ if "DirectorMasterSummary" in NODE_CLASS_MAPPINGS:
 else:
     print("[DirectorMaster] DirectorMasterSummary 已隔离, Final 别名同步不下发")
 
-# 标记 V16.5.0 版本 (V16.5.0: 场景实体引擎 + 设备美学包 + 五段结构 + 全维度矩阵)
-__version__ = "16.5.0"
+# 标记 V16.6.0-MERGED 版本 (V16.6.0 批次2: 知识资产工程 + 分镜契约基座; 并入他端 V16.3 随机引擎诚实化 / V16.4 情节拓扑 / V16.5 场景实体; 批次1: LLM 链路加固 + 加载隔离)
+__version__ = "16.6.0"
 __description__ = ("V15.0-MERGED = V14.3-MERGED + AI赋能升级。"
                    "导演库534→600(当代新锐/跨界/非西方66位真实导演17维); 风格融合(主0.6/次0.3/反0.1确定性); "
                    "直觉引擎(确定性反常规镜头语法8规则, 真实作者电影依据); 灵魂引擎(创作者体验→物件/动作/沉默母题, 零罐头); "
@@ -304,4 +304,9 @@ __description__ = ("V15.0-MERGED = V14.3-MERGED + AI赋能升级。"
                    "OVERFLOW两层压缩gentle25%/aggressive12.5%后可跨级; 上游截断检测finish_reason=length/空内容/坏JSON, [SYSTEM]拆分提示重试最多2次, "
                    "最终失败诚实报错; 字段别名四级容错解析+宽容JSON; call_ai保持7位置参数签名向后兼容); "
                    "加载崩溃隔离(16节点逐项加载, 失败入DM_QUARANTINE不拖垮其余节点, Final别名与显示名按实际加载过滤); "
-                   "doctor升级8类诊断(新增加载隔离与LLM容错); 零第三方依赖纪律不变(仅stdlib)。")
+                   "doctor升级9类诊断(新增加载隔离与LLM容错、模式卡与分镜契约一致性); "
+                   "批次2(知识资产工程+分镜契约基座, video-shotcraft/hyperframes 思路独立重写): 模式卡语料244张全量入库(10节点创作模式, "
+                   "frontmatter八键+意图/核心手法/参数表典型值与越界后果/已知坑/节点映射实现指针, 单一事实源mode_manifest.json含排除审计表, 口径246→244诚实修正); "
+                   "sync索引自动生成(全量--check零漂移, 孤儿/缺字段/错目录/名称错配/漂移硬失败); "
+                   "分镜JSON契约v1(三态字段+11诊断码+相对镜头表达式拓扑解析与环检测+永不抛宽容解析, Cinematic additive接线仅增contract_version键); "
+                   "零第三方依赖纪律不变(仅stdlib)。")

@@ -2,7 +2,7 @@
 
 **导演级 AI 影视创作 ComfyUI 节点包** — 一句话创意 → 剧本 → 分镜 → AIGC 镜头级提示词，直供 Seedance / Wan / LTX / Hailuo / Sora 等主流视频生成模型。
 
-`V16.5.0` · 17 注册节点（16 超级 + Final 别名，可选扩展至 63 节点） · 600 位真实导演风格库 · 246+ 创作模式 · 零第三方依赖
+`V16.6.0-MERGED` · 17 注册节点（16 超级 + Final 别名，可选扩展至 63 节点） · 600 位真实导演风格库 · 244 创作模式（244 张模式卡全量入库） · 零第三方依赖
 
 ---
 
@@ -12,7 +12,7 @@ DirectorMaster 不是又一套提示词模板，而是一个**导演风格转译
 
 输出为 **AIGC 视频模型可直接消费的生产级提示词**：每镜生成七要素提示词（参考绑定 / 主体与动作 / 空间 / 镜头 / 视觉 / 音频 / 约束，遵循 Seedance 2.5 / Wan 3.0 官方手册范式）+ 首帧提示词 + 音频描述，并自动判别生产模式（参考视频 > 首尾帧 > 多参考图 > 首帧 > 文生）注入分镜 JSON 与交付 JSON。内置去 AI 味文本质量层（空洞词具象翻译 / 后缀去复读 / 元语言出清）与场景锚定引擎——分镜从你的输入场景里长出来，不跑题、不串场。
 
-无论是否接入 AI 增强端点，全部 246+ 创作模式均可在确定性轨道上运行：无 mock、无占位、无硬编码空数据，降级路径诚实上报。
+无论是否接入 AI 增强端点，全部 244 创作模式均可在确定性轨道上运行：无 mock、无占位、无硬编码空数据，降级路径诚实上报。
 
 ## 核心特性
 
@@ -39,7 +39,7 @@ git clone https://github.com/Nurburgring-Zhang/ComfyUI-DirectorMaster.git
 
 ```bash
 cd ComfyUI-DirectorMaster
-python doctor.py   # 8 类诊断：安装路径 / Python 环境 / 模块导入 / 节点注册 / 知识库完整性 / 复活接线消费验证 / V15.0 引擎运行时消费验证 / 加载隔离与 LLM 容错
+python doctor.py   # 9 类诊断：安装路径 / Python 环境 / 模块导入 / 节点注册 / 知识库完整性 / 复活接线消费验证 / V15.0 引擎运行时消费验证 / 加载隔离与 LLM 容错 / 模式卡与分镜契约一致性
 ```
 
 最小链路：
@@ -85,7 +85,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 
 ## 质量验证（实测指标）
 
-- 全模式执行：258 个下拉选项全通过（246 创作模式为精选口径：剔除随机项与聚合项，详见 tests/test_all_modes.py），唯一输出按节点实测 46/23/4/5/63/42/41/7/6/12（Script/Vibe/Art/Sound/Cine/Chars/Asset/Router/VideoRouter/Archive）
+- 全模式执行：258 个下拉选项全通过（244 创作模式为审定口径：剔除随机项/聚合项/别名重复，逐条理由见 tests/mode_manifest.json 排除审计表），唯一输出按节点实测 46/23/4/5/63/42/41/7/5/12（Script/Vibe/Art/Sound/Cine/Chars/Asset/Router/VideoRouter/Archive）
 - AIGC 场景贴合：40 例全量随机测试 A–H 八维断言 PASS=543 FAIL=0（证据存档 tests/aigc_random_full_results.json；维度 H：≥60% 镜头提示词命中输入场景锚点）
 - Cinematic 镜头语法指纹（景别/运镜/焦段/时长）：63/63 唯一（含 4 个同节奏簇）
 - 同档期形态模式正文相似度：0.295-0.606（16 对实测，最大为纪录片对，门槛 <0.7）
@@ -98,11 +98,13 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 - LLM 链路故障注入（V16.2.0 批次1）：110 断言全过 / FAIL=0 —— 退避重试、同端点与跨端点降级、冷却探测恢复与回落、溢出两层压缩（含压缩耗尽跨级）、上游截断拆分重试、终端类错误不计降级阈值、围栏 JSON 宽容抢救、4 线程并发状态机无撕裂、SSRF 链级拦截（含 IPv4 兼容 IPv6 形态）；真实 HTTP 服务器 + 确定性时钟注入，证据存档 tests/llm_resilience_results.json
 - 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 17 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
 - 独立对抗验证（V16.3.0）：12 断言全过 / FAIL=0 —— 全节点 × 1100+ 次畸形输入（超长/Unicode/控制字符/畸形 JSON/异常种子）零崩溃；种子语义属性测试（种子0真随机非恒定、固定种子全链逐字节可复现、多种子分布多样）；独立口径复测导演库规模/唯一性/档案维度；final_capability_audit 30 轮全随机链路审计全部通过
+- 模式卡语料与索引（V16.6.0 批次2）：244/244 卡与 manifest 对账零漂移（tools/sync_mode_index.py --check）；孤儿卡/缺必填字段/错目录/名称错配/索引漂移 5 类负样本硬失败实测复现（8 断言全过）；实现指针双盲抽查 29 卡 × 10 目录全命中
+- 分镜 JSON 契约 v1（V16.6.0 批次2）：85 断言全过 / FAIL=0 —— 11 诊断码可达（含相对引用环检测）、41 例对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、接线 additive 证明（新旧产物对比仅增 contract_version 键、文本逐字一致）；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
 
 ## 测试
 
 ```bash
-python doctor.py                     # 8 类自检
+python doctor.py                     # 9 类自检
 python tests/test_all_modes.py       # 17 节点 × 全模式回归 (277 断言)
 python tests/test_aigc_random_full.py # 40 例全量随机 AIGC 测试 (A–H 八维, 含场景贴合度)
 python tests/test_workflows.py       # 工作流 JSON 有效性
@@ -113,6 +115,8 @@ python tests/test_load_isolation.py  # V16.2.0 加载崩溃隔离机制 + 版本
 python tests/test_adversarial.py     # V16.3.0 独立对抗验证 (12 断言: 模糊输入/种子语义/独立口径)
 python tests/test_random_full_v16.py # V16.4.0 全量随机+叙事拓扑 (73 断言)
 python tests/test_matrix_full.py     # V16.5.0 全维度矩阵 (71 用例: 时长×题材×叙事×主角×导演×视觉×运镜×LLM)
+python tools/sync_mode_index.py --check  # 模式卡索引一致性 (孤儿/缺卡/漂移硬失败)
+python tests/test_storyboard_contract.py # V16.6.0 分镜 JSON 契约 v1 (85 断言, 对抗输入零异常逃逸)
 python tests/d1_grammar_probe.py     # 同簇镜头语法唯一性
 python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ```
@@ -132,6 +136,15 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ---
 
 ## 版本历史
+
+### V16.6.0-MERGED（批次2：知识资产工程 + 分镜契约基座；并入他端 V16.3-V16.5 迭代后顺延编号）
+
+- **来源与政策**：延续六仓集成**零代码借鉴**纪律（video-shotcraft 配方卡组织法、hyperframes 契约工程思路独立重写），零第三方依赖不变（仅 stdlib）；节点拓扑与下拉口径零改动。本批与另一端从同一批次1 基线并行演进（对端 V16.3 随机诚实化 / V16.4 情节拓扑 / V16.5 场景实体），变基整合后版本顺延 16.6.0。
+- **模式卡语料 244 张全量入库**：10 个节点下拉的全部创作模式逐张建卡（frontmatter 八键：mode_id/node/name/one_liner/applicable/intensity/style_tags/aliases；正文五节：意图 / 核心手法 / 参数表「典型值+越界后果」/ 已知坑 / 节点映射实现指针）；单一事实源 `tests/mode_manifest.json`（真实 INPUT_TYPES 探针生成 + 排除审计表：随机项/聚合项/别名重复逐条给理由）。创作模式口径由旧文案"246+"修正为审定值 244（诚实阀门：审计与文案不符时改文案，不凑数字）。
+- **索引自动生成 + 硬失败门禁**：`tools/sync_mode_index.py` 生成 INDEX.md / index.json（确定性、无时间戳），`--check` 全量零漂移；孤儿卡 / 缺必填字段 / 错目录 / 名称与 manifest 错配 / 索引漂移五类违例一律 exit 1。
+- **doctor 第 9 类诊断**："模式卡与分镜契约一致性"——manifest 三方对账（manifest ↔ 卡文件 ↔ live INPUT_TYPES 枚举）+ 索引零漂移 + 契约 v1 自检，与既有 8 类共存。
+- **分镜 JSON 契约 v1**：`aggregator/storyboard_contract.py`（STORYBOARD_CONTRACT_VERSION=1）——canonical/derived/legacy 三态字段、11 个结构化诊断码、相对镜头表达式（上一镜 end ± 偏移，拓扑解析 + 环检测）、宽容解析器永不抛异常；Cinematic 接线为 additive（产物仅新增 contract_version 键，分镜文本逐字节不变）。
+- **双盲互审 2 轮闭环**：R1 功能通道（HIGH3/MED2/LOW2）+ 一致性通道（MED1/LOW2）全部修复（8 卡文案 + 契约 None 守卫 + T20×5 回归钉），R2 双通道 approve 零新发现。
 
 ### V16.5.0（场景实体引擎：真实素材设计范式，对齐生产级提示词标准）
 

@@ -27,3 +27,4 @@ tests/*_results.json
 !tests/aigc_random_full_results.json
 !tests/llm_resilience_results.json
 !tests/load_isolation_results.json
+!tests/storyboard_contract_results.json

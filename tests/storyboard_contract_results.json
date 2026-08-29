@@ -1,0 +1,433 @@
+{
+  "suite": "test_storyboard_contract",
+  "version": "16.3.0",
+  "pass": 85,
+  "fail": 0,
+  "results": [
+    {
+      "label": "T0 STORYBOARD_CONTRACT_VERSION == 1",
+      "ok": true,
+      "detail": "v=1"
+    },
+    {
+      "label": "T0 CONTRACT_VERSION 别名 == 1 (doctor 口径)",
+      "ok": true,
+      "detail": "v=1"
+    },
+    {
+      "label": "T0 诊断码全集 11 个且含环/未知引用/废弃/未知键",
+      "ok": true,
+      "detail": "codes=('missing-contract-version', 'invalid-contract-version', 'missing-shot-id', 'duplicate-shot-id', 'invalid-duration', 'type-mismatch', 'empty-shots', 'relative-ref-unknown', 'relative-ref-cycle', 'deprecated-field', 'unknown-field')"
+    },
+    {
+      "label": "T0 self_check() 最小样例自检通过",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T1 ok=True 且零 errors",
+      "ok": true,
+      "detail": "rep=[]"
+    },
+    {
+      "label": "T1 零 warnings",
+      "ok": true,
+      "detail": "w=[]"
+    },
+    {
+      "label": "T1 首镜派生 start_s=0.0 / end_s=3.0",
+      "ok": true,
+      "detail": "got=(0.0,3.0)"
+    },
+    {
+      "label": "T1 派生 duration_s=3.0 (时长数值化)",
+      "ok": true,
+      "detail": "got=3.0"
+    },
+    {
+      "label": "T1 normalized 顶层含 contract_version 且 normalized['分镜表'] 存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T1 derived 三键齐备",
+      "ok": true,
+      "detail": "keys=['duration_s', 'end_s', 'start_s', '时长', '镜号']"
+    },
+    {
+      "label": "T2 全量结构 ok=True 且零 errors/warnings",
+      "ok": true,
+      "detail": "e=[] w=[]"
+    },
+    {
+      "label": "T2 28 个每镜 canonical 键全保留于 normalized",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "label": "T2 14 顶层键全保留 (含 contract_version)",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "label": "T2 数值字段类型原样保留 (情感强度 float / 银幕序 int)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T3 空对象注入 contract_version=1 且返回原对象",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T3 幂等: 重复注入值仍 1 且不新增键",
+      "ok": true,
+      "detail": "d3a={'contract_version': 1}"
+    },
+    {
+      "label": "T3 已有合法 1 → 不动 (键序不变)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T3 非法值 (2 / bool True) 盖章覆盖为 1",
+      "ok": true,
+      "detail": "c={'contract_version': 1} d={'contract_version': 1}"
+    },
+    {
+      "label": "T3 非 dict 输入原样返回不抛",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T4 4 条 deprecated-field 警告 (shots/shot_id/duration_s/transition)",
+      "ok": true,
+      "detail": "w=['shots', '分镜表[0].shot_id', '分镜表[0].duration_s', '分镜表[0].transition']"
+    },
+    {
+      "label": "T4 ok=True (legacy 仅为警告不阻断)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T4 映射后 镜号='S1' / 时长=2.5 / 转场='硬切'",
+      "ok": true,
+      "detail": "n4={'镜号': 'S1', '时长': 2.5, '转场': '硬切', 'duration_s': 2.5, 'start_s': 0.0, 'end_s': 2.5}"
+    },
+    {
+      "label": "T4 normalized 中旧键不再残留",
+      "ok": true,
+      "detail": "top=['contract_version', '分镜表']"
+    },
+    {
+      "label": "T4 legacy 派生时间轴正确 (start_s=0.0/end_s=2.5)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T5 混合两形态 ok=True 零 errors",
+      "ok": true,
+      "detail": "e=[]"
+    },
+    {
+      "label": "T5 字典形态: 镜2 start = 镜1 end + 1.5 = 4.5",
+      "ok": true,
+      "detail": "got=4.5"
+    },
+    {
+      "label": "T5 字典形态: 镜2 end = start + dur = 6.5",
+      "ok": true,
+      "detail": "got=6.5"
+    },
+    {
+      "label": "T5 '-' 偏移: 镜3 start = 镜2 end - 0.5 = 6.0",
+      "ok": true,
+      "detail": "got=6.0"
+    },
+    {
+      "label": "T6 字符串形态 '2-0.5s' 与字典形态等值 (镜3=6.0)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T6 字符串镜号引用 'S3+1s': 镜4 start = S3 end + 1 = 8.0",
+      "ok": true,
+      "detail": "got=8.0"
+    },
+    {
+      "label": "T6 无显式 start 的镜1 仍链式 (0.0) 且镜4 end=start+dur=8.5",
+      "ok": true,
+      "detail": "got=(0.0,8.5)"
+    },
+    {
+      "label": "T7 relative-ref-unknown 进 errors",
+      "ok": true,
+      "detail": "e=['relative-ref-unknown']"
+    },
+    {
+      "label": "T7 ok=False",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T7 未知引用镜回退链式 (start=3.0/end=4.0)",
+      "ok": true,
+      "detail": "got=(3.0,4.0)"
+    },
+    {
+      "label": "T8 relative-ref-cycle 进 errors",
+      "ok": true,
+      "detail": "e=['relative-ref-cycle']"
+    },
+    {
+      "label": "T8 环内镜回退链式 (A start=0.0, B start=1.0)",
+      "ok": true,
+      "detail": "got=(0.0,1.0)"
+    },
+    {
+      "label": "T8 有界完成且 normalized 完整 (不抛异常/不死循环)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T9 duplicate-shot-id 报告 2 次重复 (int/str 同一镜号口径)",
+      "ok": true,
+      "detail": "dups=[(1, '镜号 1 与 分镜表[0] 重复'), ('1', '镜号 1 与 分镜表[0] 重复')]"
+    },
+    {
+      "label": "T9 重复报告指向首次出现下标 分镜表[0]",
+      "ok": true,
+      "detail": "msgs=['镜号 1 与 分镜表[0] 重复', '镜号 1 与 分镜表[0] 重复']"
+    },
+    {
+      "label": "T10 missing-shot-id 报于缺失镜 (仅 1 条, 不误伤后续镜)",
+      "ok": true,
+      "detail": "miss=[{'code': 'missing-shot-id', 'field': '分镜表[0].镜号', 'value': None, 'message': '分镜表[0] 缺少有效镜号'}]"
+    },
+    {
+      "label": "T11 合法三形态 (\"3.8s\"/int/float) 零错误且 duration_s 正确",
+      "ok": true,
+      "detail": "e=[]"
+    },
+    {
+      "label": "T11 invalid-duration (坏字符串: 'abc')",
+      "ok": true,
+      "detail": "e=['invalid-duration']"
+    },
+    {
+      "label": "T11 invalid-duration (负数: -1)",
+      "ok": true,
+      "detail": "e=['invalid-duration']"
+    },
+    {
+      "label": "T11 invalid-duration (零: 0)",
+      "ok": true,
+      "detail": "e=['invalid-duration']"
+    },
+    {
+      "label": "T11 invalid-duration (bool: True)",
+      "ok": true,
+      "detail": "e=['invalid-duration']"
+    },
+    {
+      "label": "T12 空分镜表 → empty-shots 且 ok=False",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T12 缺失分镜表 → type-mismatch (非 empty-shots)",
+      "ok": true,
+      "detail": "e=['type-mismatch']"
+    },
+    {
+      "label": "T13 顶层+镜内 unknown-field 各 1 条警告",
+      "ok": true,
+      "detail": "w=['project', '分镜表[0].自定义字段']"
+    },
+    {
+      "label": "T13 顶层值保留 normalized.extra (project='夜曲')",
+      "ok": true,
+      "detail": "extra={'project': '夜曲'}"
+    },
+    {
+      "label": "T13 镜内值保留镜内 extra",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T13 extra 键排序确定 (aa 在 zz 前)",
+      "ok": true,
+      "detail": "keys=['aa', 'zz']"
+    },
+    {
+      "label": "T14 字符串版本头 → invalid-contract-version",
+      "ok": true,
+      "detail": "e=['empty-shots', 'invalid-contract-version']"
+    },
+    {
+      "label": "T14 分镜表非列表 → type-mismatch",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T14 镜非 dict → type-mismatch 且 normalized 原样保留",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T14 数值字段收字符串 → type-mismatch (field 精确到镜内键)",
+      "ok": true,
+      "detail": "e=['分镜表[0].情感强度']"
+    },
+    {
+      "label": "T14 畸形相对表达式 → type-mismatch (不抛异常)",
+      "ok": true,
+      "detail": "e=['type-mismatch']"
+    },
+    {
+      "label": "T15 围栏 JSON 抢救为 dict 且零警告",
+      "ok": true,
+      "detail": "r={'contract_version': 1, '分镜表': []} w=[]"
+    },
+    {
+      "label": "T15 前后噪声+尾逗号抢救",
+      "ok": true,
+      "detail": "r={'a': [1, 2]}"
+    },
+    {
+      "label": "T15 截断文本 → (None, 1 条诊断) 永不抛",
+      "ok": true,
+      "detail": "w=[\"parse-unparsable: 直接解析失败: Expecting ',' delimiter: line 1 column 41 (char 40)\"]"
+    },
+    {
+      "label": "T15 None/纯文本 → (None, 非空诊断)",
+      "ok": true,
+      "detail": "d=['parse-unparsable: 输入为 None'] e=['parse-unparsable: 直接解析失败: Expecting value: line 1 column 1 (char 0); 未找到 JSON 对象/数组']"
+    },
+    {
+      "label": "T15 围栏产物可直接进 validate_storyboard",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T16 键序打乱 → normalized 输出逐字节一致",
+      "ok": true,
+      "detail": "a={\"contract_version\": 1, \"分镜数\": 1, \"分镜表\": [{\"镜号\": 1, \"时长\": 1.0, \"duration_s\": 1.0, \"start_s\": 0.0, \"end_s\": 1.0, \"extra\": b={\"contract_version\": 1, \"分镜数\": 1, \"分镜表\": [{\"镜号\": 1, \"时长\": 1.0, \"duration_s\": 1.0, \"start_s\": 0.0, \"end_s\": 1.0, \"extra\":"
+    },
+    {
+      "label": "T16 同输入重复校验 → 输出逐字节一致 (含 errors/warnings)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T17 产物 JSON 含 contract_version == 1",
+      "ok": true,
+      "detail": "cv=1"
+    },
+    {
+      "label": "T17 真实产物 validate ok=True 零 errors",
+      "ok": true,
+      "detail": "e=[]"
+    },
+    {
+      "label": "T17 真实产物零 warnings (无 unknown/deprecated 误报)",
+      "ok": true,
+      "detail": "w=[]"
+    },
+    {
+      "label": "T17 顶层键集合 == 真实 14 键 + contract_version (零漂移)",
+      "ok": true,
+      "detail": "diff=[]"
+    },
+    {
+      "label": "T17 每镜键集合 == 真实 28 键 (start/end 表达式键非必填)",
+      "ok": true,
+      "detail": "diff=[]"
+    },
+    {
+      "label": "T17 分镜文本输出存在且非空 (与 JSON 二元组形态不变)",
+      "ok": true,
+      "detail": "head=【大师级影视语言原则】\n大师级影"
+    },
+    {
+      "label": "T17 接线 clean 路径 stderr 零契约告警 (诚实上报不误报)",
+      "ok": true,
+      "detail": "stderr="
+    },
+    {
+      "label": "T18 接线前快照产物无 contract_version 键",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T18 新旧顶层键差 == 仅 {contract_version}",
+      "ok": true,
+      "detail": "add=['contract_version'] del=[]"
+    },
+    {
+      "label": "T18 剥离 contract_version 后新旧数据深度相等 (值零变化)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T18 每镜键集合接线前后一致 (零新增零删除)",
+      "ok": true,
+      "detail": "diff=[]"
+    },
+    {
+      "label": "T18 分镜文本输出逐字一致 (main 零变化)",
+      "ok": true,
+      "detail": "equal=True"
+    },
+    {
+      "label": "T19 注入不一致 → stderr 诚实上报含固定前缀与诊断码",
+      "ok": true,
+      "detail": "stderr=[DirectorMaster] 分镜契约校验发现内部不一致: duplicate-shot-id (1 项)\n"
+    },
+    {
+      "label": "T19 注入不一致 → 节点仍正常返回完整产物 (绝不失败节点)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T19 校验器自身异常 → stderr 降级告警 (不外溢)",
+      "ok": true,
+      "detail": "stderr=[DirectorMaster] 分镜契约校验降级: RuntimeError\n"
+    },
+    {
+      "label": "T19 校验器异常 → 节点仍正常返回 (含契约头)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T19 monkeypatch 恢复后真实产物校验 ok (无副作用泄漏)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T20 最小复现 (镜1坏时长→镜2链断) 不抛异常",
+      "ok": true,
+      "detail": "exc=None"
+    },
+    {
+      "label": "T20 镜1 invalid-duration 报于 分镜表[0].时长",
+      "ok": true,
+      "detail": "inv=[{'code': 'invalid-duration', 'field': '分镜表[0].时长', 'value': 'abc', 'message': '时长不可解析或非正数 (支持 正数值秒 或 \"3.8s\" 式字符串), 实际为 \\'abc\\''}]"
+    },
+    {
+      "label": "T20 全部 error 码 ∈ 11 码集合 (无 internal-error 兜底)",
+      "ok": true,
+      "detail": "e=['invalid-duration']"
+    },
+    {
+      "label": "T20 normalized 非 None 且镜2 end_s=None (诚实链断)",
+      "ok": true,
+      "detail": "shots=2 shot2={'镜号': 2, '时长': 2, 'duration_s': 2.0, 'start_s': None, 'end_s': None}"
+    },
+    {
+      "label": "T20 warnings 零新增 (无意外警告项)",
+      "ok": true,
+      "detail": "w=[]"
+    }
+  ]
+}
