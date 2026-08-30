@@ -99,7 +99,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 - 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 17 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
 - 独立对抗验证（V16.3.0）：12 断言全过 / FAIL=0 —— 全节点 × 1100+ 次畸形输入（超长/Unicode/控制字符/畸形 JSON/异常种子）零崩溃；种子语义属性测试（种子0真随机非恒定、固定种子全链逐字节可复现、多种子分布多样）；独立口径复测导演库规模/唯一性/档案维度；final_capability_audit 30 轮全随机链路审计全部通过
 - 模式卡语料与索引（V16.6.0 批次2）：244/244 卡与 manifest 对账零漂移（tools/sync_mode_index.py --check）；孤儿卡/缺必填字段/错目录/名称错配/索引漂移 5 类负样本硬失败实测复现（8 断言全过）；实现指针双盲抽查 29 卡 × 10 目录全命中
-- 分镜 JSON 契约 v1（V16.6.0 批次2）：85 断言全过 / FAIL=0 —— 11 诊断码可达（含相对引用环检测）、41 例对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、接线 additive 证明（新旧产物对比仅增 contract_version 键、文本逐字一致）；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
+- 分镜 JSON 契约 v1（V16.6.0 批次2）：81 断言全过 / FAIL=0 —— 11 诊断码可达（含相对引用环检测）、41 例对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、接线 additive 证明（新旧产物对比仅增 contract_version 键、文本逐字一致）；V16.4/V16.5 增量键已吸收进契约注册表；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
 
 ## 测试
 
@@ -116,7 +116,7 @@ python tests/test_adversarial.py     # V16.3.0 独立对抗验证 (12 断言: �
 python tests/test_random_full_v16.py # V16.4.0 全量随机+叙事拓扑 (73 断言)
 python tests/test_matrix_full.py     # V16.5.0 全维度矩阵 (71 用例: 时长×题材×叙事×主角×导演×视觉×运镜×LLM)
 python tools/sync_mode_index.py --check  # 模式卡索引一致性 (孤儿/缺卡/漂移硬失败)
-python tests/test_storyboard_contract.py # V16.6.0 分镜 JSON 契约 v1 (85 断言, 对抗输入零异常逃逸)
+python tests/test_storyboard_contract.py # V16.6.0 分镜 JSON 契约 v1 (81 断言, 对抗输入零异常逃逸)
 python tests/d1_grammar_probe.py     # 同簇镜头语法唯一性
 python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ```

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-加载崩溃隔离真实机制测试 (T12, 批次1 起始) + 版本口径一致性 (当前 16.3.0)
+加载崩溃隔离真实机制测试 (T12, 批次1 起始) + 版本口径一致性 (动态三处校验, 随包版本自适应)
 ====================================================================
 验证 __init__.py 的 load_node_classes 隔离加载机制是真实机制而非装饰:
   1. 真实注册表: 17 节点全部加载, DM_QUARANTINE 为空, 显示名全覆盖, Final 别名同源
   2. 故障注入: 坏模块 (phase=import) / 坏类名 (phase=getattr) 被隔离且不拖垮好节点
   3. 隔离条目结构完整 (target/error/phase)
-  4. 版本口径: __version__ / pyproject.toml / README 三处一致为 16.3.0
+  4. 版本口径: __version__ / pyproject.toml / README 三处动态一致 (升版只改三处源, 不改本测试)
 
 __init__.py 通过 importlib spec 以独立模块名加载 (与 doctor 第 8 类诊断同法),
 避免与 ComfyUI 运行时的包导入路径冲突。

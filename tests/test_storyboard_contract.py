@@ -37,6 +37,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -111,14 +112,16 @@ def run_suite():
     check("T1 derived 三键齐备", set(DERIVED_KEYS) <= set(n1.keys()), f"keys={sorted(n1)}")
 
     # -----------------------------------------------------------------
-    print("T2 合法全量结构 (14 顶层 + 28 每镜 canonical)")
+    print("T2 合法全量结构 (18 顶层 + 32 每镜 canonical, 含 V16.4/V16.5 增量键)")
     full_shot = {k: v for k, v in {
         "镜号": 1, "阶段": "建置", "类型阶段": "开场", "景别": "全景", "角度": "平视",
         "运镜": "缓推", "焦段": "35mm", "时长": "3.8s", "画面焦点": "父亲的手",
         "声音": "环境底噪", "转场": "硬切", "叙事目的": "建立空间", "色彩": "冷灰",
         "光影": "低照度", "材质": "金属", "氛围": "压抑", "情绪": "孤独",
         "首帧描述": "厨房夜景", "情感强度": 6.2, "线": "A", "POV": "主角 POV",
-        "时间线": "现在", "银幕序": 1, "时序位": 1, "AIGC提示词": "prompt-body",
+        "时间线": "现在", "银幕序": 1, "时序位": 1, "构图": "三分法",
+        "叙事标签": "波浪上行", "节奏手记": "呼吸感手持", "拓扑张力": 6,
+        "AIGC提示词": "prompt-body",
         "首帧提示词": "ff-body", "音频描述": "audio-body", "AIGC适配提示词": "adapt-body",
     }.items()}
     full = {"contract_version": 1, "分镜数": 1, "总时长秒": 3.8, "导演": "王家卫",
@@ -126,16 +129,18 @@ def run_suite():
             "叙事结构": "单线", "AIGC生产模式": "文生视频", "AIGC判别依据": "自动判别",
             "叙事编排": {"方式": "跟随叙事结构", "字幕位": []}, "情感曲线": [6.2],
             "叙事元数据": [{"line": "A", "pov": "全知", "timeline": "现在"}],
+            "叙事拓扑": {"结构": "波浪式", "反转点": []}, "场景实体": {"角色": []},
+            "设备美学包": {"摄影机": "ARRICAM"}, "同期声枚举": "雨声, 缆绳吱呀",
             "分镜表": [full_shot], "上游应用统计": {"剧本": "已应用"}}
     rep2 = validate_storyboard(full)
     n2 = rep2["normalized"]["分镜表"][0]
     check("T2 全量结构 ok=True 且零 errors/warnings",
           rep2["ok"] is True and rep2["errors"] == [] and rep2["warnings"] == [],
           f"e={_codes(rep2)} w={_codes(rep2, 'warnings')}")
-    check("T2 28 个每镜 canonical 键全保留于 normalized",
+    check("T2 32 个每镜 canonical 键全保留于 normalized",
           set(full_shot.keys()) <= set(n2.keys()),
           f"missing={sorted(set(full_shot.keys()) - set(n2.keys()))}")
-    check("T2 14 顶层键全保留 (含 contract_version)",
+    check("T2 18 顶层键全保留 (含 contract_version)",
           set(CANON_TOP_KEYS) <= set(rep2["normalized"].keys()),
           f"missing={sorted(set(CANON_TOP_KEYS) - set(rep2['normalized'].keys()))}")
     check("T2 数值字段类型原样保留 (情感强度 float / 银幕序 int)",
@@ -384,10 +389,10 @@ def run_suite():
           rep17["ok"] is True and rep17["errors"] == [], f"e={_codes(rep17)}")
     check("T17 真实产物零 warnings (无 unknown/deprecated 误报)",
           rep17["warnings"] == [], f"w={_codes(rep17, 'warnings')}")
-    check("T17 顶层键集合 == 真实 14 键 + contract_version (零漂移)",
+    check("T17 顶层键集合 == 真实 18 键 + contract_version (零漂移, 含 V16.4/V16.5 增量键)",
           set(new_data.keys()) == set(CANON_TOP_KEYS),
           f"diff={sorted(set(new_data.keys()) ^ set(CANON_TOP_KEYS))}")
-    check("T17 每镜键集合 == 真实 28 键 (start/end 表达式键非必填)",
+    check("T17 每镜键集合 ⊆ 真实 32 键 (start/end 表达式键非必填)",
           set(new_data["分镜表"][0].keys()) <= set(CANON_SHOT_KEYS)
           and len(new_data["分镜表"]) > 0,
           f"diff={sorted(set(new_data['分镜表'][0].keys()) - set(CANON_SHOT_KEYS))}")
@@ -514,9 +519,11 @@ def main():
         run_suite()
     except Exception as e:
         check("套件意外异常 (不应发生)", False, f"{type(e).__name__}: {e}")
+    _m_ver = re.search(r'version\s*=\s*"([^"]+)"',
+                       open(os.path.join(ROOT, "pyproject.toml"), encoding="utf-8").read())
     results_doc = {
         "suite": "test_storyboard_contract",
-        "version": "16.3.0",
+        "version": _m_ver.group(1) if _m_ver else "unknown",
         "pass": PASS,
         "fail": FAIL,
         "results": RESULTS,

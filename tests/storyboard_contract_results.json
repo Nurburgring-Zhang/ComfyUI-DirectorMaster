@@ -1,7 +1,7 @@
 {
   "suite": "test_storyboard_contract",
-  "version": "16.3.0",
-  "pass": 85,
+  "version": "16.6.0",
+  "pass": 81,
   "fail": 0,
   "results": [
     {
@@ -60,12 +60,12 @@
       "detail": "e=[] w=[]"
     },
     {
-      "label": "T2 28 个每镜 canonical 键全保留于 normalized",
+      "label": "T2 32 个每镜 canonical 键全保留于 normalized",
       "ok": true,
       "detail": "missing=[]"
     },
     {
-      "label": "T2 14 顶层键全保留 (含 contract_version)",
+      "label": "T2 18 顶层键全保留 (含 contract_version)",
       "ok": true,
       "detail": "missing=[]"
     },
@@ -335,12 +335,12 @@
       "detail": "w=[]"
     },
     {
-      "label": "T17 顶层键集合 == 真实 14 键 + contract_version (零漂移)",
+      "label": "T17 顶层键集合 == 真实 18 键 + contract_version (零漂移, 含 V16.4/V16.5 增量键)",
       "ok": true,
       "detail": "diff=[]"
     },
     {
-      "label": "T17 每镜键集合 == 真实 28 键 (start/end 表达式键非必填)",
+      "label": "T17 每镜键集合 ⊆ 真实 32 键 (start/end 表达式键非必填)",
       "ok": true,
       "detail": "diff=[]"
     },
@@ -355,29 +355,9 @@
       "detail": "stderr="
     },
     {
-      "label": "T18 接线前快照产物无 contract_version 键",
+      "label": "T18 HEAD 已含接线或 git 不可用 → 降级为结构断言 (产物含契约头且结构完整)",
       "ok": true,
-      "detail": ""
-    },
-    {
-      "label": "T18 新旧顶层键差 == 仅 {contract_version}",
-      "ok": true,
-      "detail": "add=['contract_version'] del=[]"
-    },
-    {
-      "label": "T18 剥离 contract_version 后新旧数据深度相等 (值零变化)",
-      "ok": true,
-      "detail": ""
-    },
-    {
-      "label": "T18 每镜键集合接线前后一致 (零新增零删除)",
-      "ok": true,
-      "detail": "diff=[]"
-    },
-    {
-      "label": "T18 分镜文本输出逐字一致 (main 零变化)",
-      "ok": true,
-      "detail": "equal=True"
+      "detail": "pre_wiring=False"
     },
     {
       "label": "T19 注入不一致 → stderr 诚实上报含固定前缀与诊断码",

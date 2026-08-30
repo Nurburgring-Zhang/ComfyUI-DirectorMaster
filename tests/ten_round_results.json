@@ -3,7 +3,7 @@
   {
    "label": "doctor.py 7类自检",
    "ok": true,
-   "detail": "→AUTH / 溢出短语→OVERFLOW)\n  [OK] 溢出两层压缩 (gentle 918 < 原文 1800, aggressive 468)\n  [OK] 短文本不可压 (返回 None, 不伪造)\n  [OK] 字段别名四级容错 (精确/中文/别名/default)\n  [OK] 宽容 JSON 解析 (代码围栏+尾逗号 / 尾部噪声)\n\n==================================================\n自检结果: 50 通过, 1 警告, 0 错误\n\n全部通过 — 重启 ComfyUI 即可使用 17 个 DirectorMaster 节点。\n"
+   "detail": "枚举 == live INPUT_TYPES (10 节点三方一致)\n  [OK] 模式卡 244/244 与 manifest 对账一致 (sync 校验通过)\n  [OK] 分镜 JSON 契约 v1 (STORYBOARD_CONTRACT_VERSION=1, 合法最小样例过 validate_storyboard 且相对时间拓扑解析正确)\n\n==================================================\n自检结果: 54 通过, 1 警告, 0 错误\n\n全部通过 — 重启 ComfyUI 即可使用 17 个 DirectorMaster 节点。\n"
   },
   {
    "label": "默认加载 17 节点",
@@ -25,7 +25,7 @@
   {
    "label": "全模式回归 277 断言",
    "ok": true,
-   "detail": "输出 41\n  DirectorMasterRouter: 8/8 模式通过, 唯一输出 7\n  DirectorMasterVideoRouter: 7/7 模式通过, 唯一输出 5\n  DirectorMasterArchive: 12/12 模式通过, 唯一输出 11\n\n--- 复活库接线 ---\n\n============================================================\n  结果: 277 PASS / 0 FAIL\n============================================================\n"
+   "detail": " 277 PASS / 0 FAIL\n============================================================\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n"
   }
  ],
  "T3": [
@@ -160,7 +160,7 @@
   {
    "label": "并发8线程×2提交零丢失",
    "ok": true,
-   "detail": "提交16/16 历史19/19 丢失0 sha异常0 并发后体积2451B 错误[]"
+   "detail": "提交16/16 历史19/19 丢失0 sha异常0 并发后体积2456B 错误[]"
   }
  ],
  "T8": [
@@ -226,12 +226,12 @@
   {
    "label": "D1 同簇镜头语法唯一",
    "ok": true,
-   "detail": " 模式数: 63\n全字段指纹唯一: 63/63\n镜头语法指纹唯一: 63/63\n\n节奏簇数: 59 (多成员簇 4 个)\n  簇[60-180s] 2模式 语法唯一 2/2 OK\n  簇[0.5-2s] 2模式 语法唯一 2/2 OK\n  簇[3-5min] 2模式 语法唯一 2/2 OK\n  簇[5-10min] 2模式 语法唯一 2/2 OK\n\nD1 验证通过: 全部同簇模式镜头语法指纹唯一\n"
+   "detail": "约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n"
   },
   {
    "label": "D2 形态正文相似度<0.7",
    "ok": true,
-   "detail": "传片脚本 vs 品牌故事片脚本      0.348   OK\n人物纪录片脚本 vs 社会纪录片脚本      0.606   OK\n婚礼/活动脚本 vs Vlog脚本       0.358   OK\n课程教学脚本 vs Vlog脚本       0.372   OK\n互动剧分支剧本 vs 沉浸式戏剧脚本      0.371   OK\n\nD2 验证通过: 全部同档期形态对正文相似度 <0.7\n"
+   "detail": "传片脚本 vs 品牌故事片脚本      0.346   OK\n人物纪录片脚本 vs 社会纪录片脚本      0.607   OK\n婚礼/活动脚本 vs Vlog脚本       0.359   OK\n课程教学脚本 vs Vlog脚本       0.371   OK\n互动剧分支剧本 vs 沉浸式戏剧脚本      0.368   OK\n\nD2 验证通过: 全部同档期形态对正文相似度 <0.7\n"
   }
  ]
 }
