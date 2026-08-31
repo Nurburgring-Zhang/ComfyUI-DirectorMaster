@@ -1,7 +1,7 @@
 {
   "suite": "test_storyboard_contract",
-  "version": "16.6.0",
-  "pass": 81,
+  "version": "16.7.0",
+  "pass": 82,
   "fail": 0,
   "results": [
     {
@@ -65,9 +65,14 @@
       "detail": "missing=[]"
     },
     {
-      "label": "T2 18 顶层键全保留 (含 contract_version)",
+      "label": "T2 19 顶层键全保留 (含 contract_version 与批次3 手法去重)",
       "ok": true,
       "detail": "missing=[]"
+    },
+    {
+      "label": "T2 手法去重 dict 原样保留于 normalized 顶层 (批次3 增量键入注册表, 非 extra)",
+      "ok": true,
+      "detail": "got={'校验口径': '同一运镜词/构图模板不得连续两镜当镜头主角', '镜数': 1, '违规数': 0, '运镜违规': [], '构图违规': []}"
     },
     {
       "label": "T2 数值字段类型原样保留 (情感强度 float / 银幕序 int)",
@@ -335,7 +340,7 @@
       "detail": "w=[]"
     },
     {
-      "label": "T17 顶层键集合 == 真实 18 键 + contract_version (零漂移, 含 V16.4/V16.5 增量键)",
+      "label": "T17 顶层键集合 == 真实 19 键 + contract_version (零漂移, 含 V16.4/V16.5 增量键与批次3 手法去重)",
       "ok": true,
       "detail": "diff=[]"
     },

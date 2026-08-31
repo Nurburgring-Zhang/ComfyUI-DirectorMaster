@@ -62,6 +62,39 @@ def _save(out_dir, project, kind, content, ext="txt"):
         return f"(保存失败: {e})"
 
 
+def _version_impact(store, vid, kind_to_file):
+    """V16.7 D5 (A3): 版本提交影响面 — 新版核心数据包 vs 上一版本核心数据包.
+
+    上一版取 自刚提交版本的 parent 记录 (blob 池按 sha256 取原文);
+    任一侧取不到 (首版/上版未存"核心数据"资产/截断/解析失败) → 返回 None
+    (交付 JSON 的 impact 段缺席, 不报错不伪造); 任何异常同样吞掉返回 None —
+    影响面只提示不阻塞归档。compute_impact 为纯函数 (aggregator/impact_analysis)。
+    """
+    try:
+        from aggregator.impact_analysis import compute_impact
+        new_pair = kind_to_file.get("核心数据")
+        if not new_pair:
+            return None
+        new_pack = _json.loads(new_pair[1])
+        if not isinstance(new_pack, dict):
+            return None
+        version = store.get(vid) or {}
+        parent_id = version.get("parent")
+        parent = store.get(parent_id) if parent_id else None
+        p_entry = (parent or {}).get("files", {}).get("核心数据")
+        if not p_entry:
+            return None
+        old_raw = (store.data.get("blobs") or {}).get(p_entry.get("sha256"), "")
+        if not old_raw:
+            return None
+        old_pack = _json.loads(old_raw)
+        if not isinstance(old_pack, dict):
+            return None
+        return compute_impact(old_pack, new_pack)
+    except Exception:
+        return None
+
+
 class DirectorMasterArchive(DirectorNodeBase):
     """归档终态 — 真实保存各阶段产出资产."""
     OUTPUT_NODE = True
@@ -229,6 +262,12 @@ class DirectorMasterArchive(DirectorNodeBase):
                     store.tag(vid, v_tag)
                 version_report = f"已提交版本 {vid} ({vname}) | 资产{len(kind_to_file)}项 {total_chars}字符 | total={scores['total']}"
                 manifest["版本"] = vid
+                # V16.7 D5 (A3): 修订影响面 — 版本提交时对比上一版本核心数据包,
+                # 可对比时交付 JSON 附 impact 段 (compute_impact 结果, 只提示不自动执行);
+                # 取不到上一版/解析失败时该段缺席 (不报错不伪造), 不改变既有任何键。
+                _impact = _version_impact(store, vid, kind_to_file)
+                if _impact is not None:
+                    manifest["impact"] = _impact
         elif mode == "版本历史":
             log = store.log(limit=20)
             lines = [f"【版本历史】{project} | 共 {len(store.data['order'])} 个版本 | 版本库: {store.path}"]

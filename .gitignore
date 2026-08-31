@@ -28,3 +28,7 @@ tests/*_results.json
 !tests/llm_resilience_results.json
 !tests/load_isolation_results.json
 !tests/storyboard_contract_results.json
+!tests/contract_render_results.json
+
+# benchmark 运行产物 (逐请求 CSV — 本地生成, 不入库)
+benchmark/results/

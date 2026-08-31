@@ -648,7 +648,21 @@
           "reason": "判定类非创作选项: 运行时 random.choice() 随机改选该节点其余创作模式, 自身无独立创作行为 (aggregator/archive_master.py 模式分发分支 _R=\"🎲 随机\")"
         }
       ]
+    },
+    "DirectorMasterReview": {
+      "widget": "审查模式",
+      "options": [
+        "快速结构审查",
+        "全量审查",
+        "对比分镜"
+      ],
+      "creative": [
+        "快速结构审查",
+        "全量审查",
+        "对比分镜"
+      ],
+      "excluded": []
     }
   },
-  "total_creative": 244
+  "total_creative": 247
 }

@@ -8,8 +8,12 @@
 #   · 上游截断检测 + [SYSTEM] 拆分提示重试 (每次调用最多 2 次)
 #   · 字段别名四级容错解析 + 宽容 JSON 解析
 #   · 测试缝隙: _clock/_sleep 可覆写, call_ai_ex 返回 meta
+# V16.7.0 批次3 D1 (echo 检测 + 经济性模式, 纯增量):
+#   · detect_echo 回声照抄检测 (difflib 相似比, 长度差上界 O(1) 短路防大文本 O(n²))
+#   · freeze_system 经济性冻结模式 ([RUN] 运行态动态信息外置 user 头, system 前缀字节级冻结)
 # 向后兼容: call_ai 保持 7 位置参数签名; 仅 stdlib, 零第三方依赖。
 # ============================================================
+import difflib
 import json
 import os
 import re
@@ -795,6 +799,65 @@ def json_loads_tolerant(text):
 
 
 # =====================================================================
+# V16.7.0 批次3 §1.7 — 回声照抄检测 + 经济性冻结模式 (纯增量, 默认行为零变化)
+# =====================================================================
+# 经济性模式约定: system 提示词中以此前缀开头的行 = 运行态动态信息
+# (日期/种子/工作流名等每次运行会变的字段)。freeze_system=True 时这些行被
+# 一次性拆出并整体移至 user 消息头部 [RUN] 段, system 只留纯静态前缀 —
+# 同任务多次调用/同链多次重试时 provider 侧前缀缓存不再被动态字段击穿。
+RUN_STATE_TAG = "[RUN]"
+
+
+def detect_echo(response, source_text, threshold=0.95):
+    """V16.7.0 批次3 D1: 回声照抄检测 — 判断 response 是否高度复述 source_text
+    (LLM 把提示词/参考文本当答案原样抄回 = 零创作)。
+
+    用 difflib.SequenceMatcher 计算相似比 (0-1), 相似比 ≥ threshold 判回声。
+    为防大文本 O(n²), 全量比对前做两级上界预筛 (上界命中才值得全量比):
+      1. 长度上界 O(1) 短路: 相似比数学上界 = 2*min(la,lb)/(la+lb) (即 real_quick_ratio);
+         长度差 >4 倍时上界 ≤0.4, 对默认阈值 0.95 必然短路 — 直接返回 (False, 上界),
+         不做任何 O(n²) 比对;
+      2. quick_ratio O(n+m) 字符多重集上界预筛 (autojunk 关闭, 防高频字被误判噪声
+         漏检真回声)。
+    返回: (is_echo, ratio) — ratio 为全量比对实际值; 短路时为对应的相似比上界
+    (诚实返回上界, 不伪报 0.0)。非字符串输入按空串处置返回 (False, 0.0), 不抛异常,
+    供质量门安全消费。纯函数无状态, 仅 stdlib, Python ≥3.8 兼容。
+    """
+    r = response if isinstance(response, str) else ""
+    s = source_text if isinstance(source_text, str) else ""
+    if not r or not s:
+        return False, 0.0
+    la, lb = len(r), len(s)
+    hi, lo = (la, lb) if la >= lb else (lb, la)
+    bound = 2.0 * lo / (hi + lo)
+    if bound < threshold:
+        return False, bound  # 长度上界已低于阈值: O(1) 短路 (含长度差 >4 倍的大文本场景)
+    sm = difflib.SequenceMatcher(None, r, s, autojunk=False)
+    qr = sm.quick_ratio()
+    if qr < threshold:
+        return False, qr  # 字符频次上界已低于阈值: 免全量比对
+    ratio = sm.ratio()
+    return ratio >= threshold, ratio
+
+
+def _split_run_state(system_prompt):
+    """经济性模式辅助 (V16.7.0): 按行拆分 system → (静态前缀, [RUN] 运行态行列表)。
+    行 strip 后以 RUN_STATE_TAG 开头即视为运行态行 (内容取 strip 后原行, 顺序保留);
+    静态行逐字保留原样 (仅剔除运行态行), 保证冻结前缀确定性。非字符串/空输入诚实降级。"""
+    if not isinstance(system_prompt, str):
+        return "", []
+    if not system_prompt:
+        return "", []
+    static_lines, run_lines = [], []
+    for line in system_prompt.split("\n"):
+        if line.strip().startswith(RUN_STATE_TAG):
+            run_lines.append(line.strip())
+        else:
+            static_lines.append(line)
+    return "\n".join(static_lines), run_lines
+
+
+# =====================================================================
 # V16.2.0 批次1 §1.6 — 请求执行核心 (call_ai_ex / call_ai)
 # =====================================================================
 _RETRYABLE_CLASSES = ("RATE_LIMIT", "SERVER", "CONNECTION", "TIMEOUT", "UNKNOWN")
@@ -928,17 +991,24 @@ def _execute_level(step, opener, system_prompt, user_message, temperature, max_t
 
 
 def call_ai_ex(api_url, api_key, model_name, system_prompt, user_message, temperature, max_tokens,
-               timeout=300, fallback_chain=None, max_retries_per_step=3, enable_recovery=True):
+               timeout=300, fallback_chain=None, max_retries_per_step=3, enable_recovery=True,
+               freeze_system=False):
     """增强版 LLM 调用。返回 (result_text, error_text, meta)。
 
     meta 键: url/model (最终服务级), levels_tried, attempts, fallback_used, recovered,
              compression (None/gentle/aggressive), split_hint_retries, finish_reason, events。
+             freeze_system=True 时附加: system_frozen=True, run_state_lines=N。
 
     参数:
         timeout: 单次请求超时秒数。
         fallback_chain: 显式降级链 (None = 按 provider 预设自动构建)。
         max_retries_per_step: 每链级可重试失败上限。
         enable_recovery: False 时禁用自动降级链构建 (仅主调用)。
+        freeze_system: V16.7.0 批次3 经济性模式 (默认 False = 行为零变化)。True 时本次
+            调用链 (含全部重试与降级级) 只发送同一份冻结 system 前缀 (字节级不变, 构建
+            一次复用); system 中 RUN_STATE_TAG 标记的运行态动态行 (日期/种子/工作流名等)
+            一次性拆出并移至 user 消息头部 "[RUN] ..." 段 — provider 前缀缓存不被动态
+            字段击穿。system 无 [RUN] 行时 user 原样透传 (冻结语义仍成立)。
     """
     meta = {"url": api_url, "model": model_name, "levels_tried": 0, "attempts": 0,
             "fallback_used": False, "recovered": False, "compression": None,
@@ -971,6 +1041,16 @@ def call_ai_ex(api_url, api_key, model_name, system_prompt, user_message, temper
     except Exception:
         pass
 
+    # V16.7.0 批次3 D1 经济性模式: 调用级构建一次, 本链全部请求 (重试/降级各级) 复用。
+    # freeze_system=False 时原样透传 — 与旧路径逐字节一致 (行为零变化)。
+    if freeze_system:
+        frozen_system, run_lines = _split_run_state(system_prompt)
+        frozen_user = ("\n".join(run_lines) + "\n\n" + user_message) if run_lines else user_message
+        meta["system_frozen"] = True
+        meta["run_state_lines"] = len(run_lines)
+    else:
+        frozen_system, frozen_user = system_prompt, user_message
+
     start_level, probe_mode = _router_begin(primary, len(chain))
     last_err = ""
     for level in range(start_level, len(chain)):
@@ -994,7 +1074,8 @@ def call_ai_ex(api_url, api_key, model_name, system_prompt, user_message, temper
             continue
         opener = _pinned_opener(pinned_s)
         retries = 1 if (probe_mode and level == start_level) else max_retries_per_step
-        text, err_l, cls = _execute_level(step, opener, system_prompt, user_message,
+        # 冻结模式下传 frozen_system/frozen_user: 同链所有请求 system 前缀字节级一致
+        text, err_l, cls = _execute_level(step, opener, frozen_system, frozen_user,
                                           temperature, max_tokens, timeout, retries, meta)
         if text and not err_l:
             if level == start_level and level == 0:
@@ -1024,9 +1105,11 @@ def call_ai_ex(api_url, api_key, model_name, system_prompt, user_message, temper
 
 
 def call_ai(api_url, api_key, model_name, system_prompt, user_message, temperature, max_tokens,
-            timeout=300, fallback_chain=None, max_retries_per_step=3, enable_recovery=True):
+            timeout=300, fallback_chain=None, max_retries_per_step=3, enable_recovery=True,
+            freeze_system=False):
     """调用AI API（OpenAI兼容格式），带指数退避重试+抖动。
     V16.2.0: 增加三态降级状态机 / 溢出压缩 / 截断检测 / provider 预设降级链。
+    V16.7.0 批次3: 新增 freeze_system 经济性冻结模式 (见 call_ai_ex; 默认 False 行为零变化)。
     保持 V16.1.1 的 7 位置参数签名完全向后兼容 (新参数均为关键字可选)。
 
     返回:
@@ -1038,7 +1121,8 @@ def call_ai(api_url, api_key, model_name, system_prompt, user_message, temperatu
                                   temperature, max_tokens, timeout=timeout,
                                   fallback_chain=fallback_chain,
                                   max_retries_per_step=max_retries_per_step,
-                                  enable_recovery=enable_recovery)
+                                  enable_recovery=enable_recovery,
+                                  freeze_system=freeze_system)
     return text, err
 
 

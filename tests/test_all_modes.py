@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-V16.1.1-MERGED 全量回归测试 — 17 节点 × 全部下拉模式运行时实测
+V16.7.0-MERGED 全量回归测试 — 18 节点 × 全部下拉模式运行时实测
 ================================================================
 不依赖 pytest:  python3 tests/test_all_modes.py
 覆盖:
   1. 金标准加载 (spec_from_file_location, 模拟 ComfyUI loader)
   2. E2E 管线 (Core → 7 上游 → Summary → Router/VideoRouter → Archive)
-  3. 全模式扫描 (258 模式逐一执行, 输出非空 + 逐节点哈希唯一性统计, 共 277 断言)
+  3. 全模式扫描 (261 模式逐一执行, 输出非空 + 逐节点哈希唯一性统计, 共 280 断言)
 退出码: 0 = 全部通过, 1 = 有失败
 """
 import os
 import sys
+import json
 import hashlib
 import importlib.util
 
@@ -67,9 +68,24 @@ def call(cls, kw):
     return res
 
 
+# V16.7 批次3 D6: Review 节点扫描用固定分镜 fixture (契约 v1 合法, 确定性, 无时间戳)
+_REVIEW_FIXTURE = json.dumps({
+    "contract_version": 1, "分镜数": 2, "总时长秒": 8.0,
+    "导演": "[电影] 王家卫", "情绪": "孤独", "画面模式": "电影工作室",
+    "分镜表": [
+        {"镜号": 1, "时长": "4.0s", "景别": "全景", "运镜": "固定", "画面焦点": "便利店霓虹",
+         "声音": "雨声", "转场": "硬切", "叙事目的": "建立场景",
+         "首帧描述": "雨夜便利店门口全景", "AIGC提示词": "雨夜便利店门口全景, 霓虹灯反射在湿漉漉的路面"},
+        {"镜号": 2, "时长": 4.0, "景别": "特写", "运镜": "推镜", "画面焦点": "玻璃雨珠",
+         "声音": "雨声渐强", "转场": "硬切", "叙事目的": "情绪特写",
+         "首帧描述": "便利店玻璃上的雨珠特写", "AIGC提示词": "便利店玻璃上的雨珠特写, 霓虹虚化成光斑, 雨夜"},
+    ],
+}, ensure_ascii=False)
+
+
 def main():
     print("=" * 60)
-    print("  V16.1.1-MERGED 全量回归 (17 节点 × 全模式)")
+    print("  V16.7.0-MERGED 全量回归 (18 节点 × 全模式)")
     print("=" * 60)
 
     # 1. 加载
@@ -81,10 +97,10 @@ def main():
         "DirectorMasterCharacters", "DirectorMasterAsset", "DirectorMasterSummary",
         "DirectorMasterRouter", "DirectorMasterVideoRouter", "DirectorMasterArchive",
         "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
-        "DirectorMasterFusion",
+        "DirectorMasterFusion", "DirectorMasterReview",
         "DirectorMasterFinal",
     }
-    check("节点集合 == 17 个预期节点", set(M.keys()) == expected,
+    check("节点集合 == 18 个预期节点", set(M.keys()) == expected,
           f"diff={set(M.keys()) ^ expected}")
     check("无重复下拉 (导演库)", len(M['DirectorMasterCore'].INPUT_TYPES()['required']['导演名'][0])
           == len(set(M['DirectorMasterCore'].INPUT_TYPES()['required']['导演名'][0])))
@@ -122,6 +138,7 @@ def main():
         "DirectorMasterArchive": ("归档模式", {"核心数据包": core_pack, "剧本": "回归测试剧本",
                                              "输出目录": os.path.join(HERE, "_archive_tmp"),
                                              "项目名": "回归测试"}),
+        "DirectorMasterReview": ("审查模式", {"被审产物": _REVIEW_FIXTURE}),
     }
     total = ok = 0
     for node, (mode_key, extra) in MODE_KEY.items():

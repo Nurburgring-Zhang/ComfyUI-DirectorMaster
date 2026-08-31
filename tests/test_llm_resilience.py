@@ -5,6 +5,8 @@ V16.2.0 批次1 — LLM 链路健壮性故障注入测试 (真实 HTTP + 确定�
 本地真实 HTTP 服务器 (f2_ai_track_e2e.py 同构模式) 脚本化故障模式,
 pln_llm._clock / pln_llm._sleep 测试缝隙注入实现确定性状态机验证, 零外网。
 
+V16.7.0 批次3 增补 (D1): T17 — detect_echo 回声照抄检测 + freeze_system 经济性冻结模式。
+
 测试矩阵:
   T1  成功路径双形态 (choices / response) + call_ai 向后兼容 2 元组
   T2  429→503→200 指数退避重试 (真实 HTTP, 睡眠时长范围断言)
@@ -25,6 +27,9 @@ pln_llm._clock / pln_llm._sleep 测试缝隙注入实现确定性状态机验证
       含 IPv4-mapped 与已废弃 IPv4 兼容 IPv6 形态)
   T15 状态机并发冒烟 (4 线程交叉读写无撕裂, 事件缓冲有界)
   T16 错误分类器语义 (状态码优先于溢出短语 / 30x 终端归类)
+  T17 批次3 D1: detect_echo 回声检测 (命中/不命中/长度短路/阈值边界)
+      + freeze_system 经济性冻结 (system 跨重试+跨调用逐字节一致 /
+        动态信息外置 user 头 [RUN] 段且不在 system / 默认关闭行为零变化)
 
 证据存档: tests/llm_resilience_results.json (随包发布)。
 退出码: 0 = 全部通过, 1 = 有失败。
@@ -674,6 +679,90 @@ try:
     check("T16 503+溢出短语判 OVERFLOW (备用模型上下文可能更大)",
           pln_llm._classify_llm_failure(503, "上下文过长") == "OVERFLOW")
 
+    # =================================================================
+    print("T17 批次3 D1: detect_echo 回声检测 + freeze_system 经济性冻结模式")
+    # ---- T17a-d: detect_echo 纯函数 (stdlib difflib, 无状态, 无需 HTTP) ----
+    src_a = "夜色中的码头, 潮水拍打桩柱, 仓库灯在雾里晕开, 女人抱紧帆布包走向七号仓。" * 3
+    mod_a = src_a.replace("女人", "少女", 1).replace("码头", "渡口", 1)
+    hit_a, ratio_a = pln_llm.detect_echo(mod_a, src_a)
+    check("T17a 改写后高相似判回声 (hit=True 且 ratio≥0.95)",
+          hit_a is True and ratio_a >= 0.95, f"hit={hit_a} ratio={ratio_a}")
+
+    src_b = ("清晨的菜市场人声鼎沸, 鱼贩掀开冰面, 白雾从泡沫箱里涌出来, "
+             "穿驼色大衣的姑娘捏着零钱数了两遍, 摊主把一把小葱塞进她袋里没要钱。")
+    other_b = ("废弃天文台的圆顶锈死在半开角度, 值夜的技术员用扳手敲了三下传动齿轮, "
+               "投影仪残光扫过墙面的星图, 尘埃在光柱里缓慢翻滚如同倒放的雪。")
+    hit_b, ratio_b = pln_llm.detect_echo(other_b, src_b)
+    check("T17b 正常改写不判回声 (hit=False 且 ratio<0.95)",
+          hit_b is False and ratio_b < 0.95, f"hit={hit_b} ratio={ratio_b}")
+
+    big17 = "长镜头缓慢横移, " * 4000   # 36000 字符
+    mid17 = "夜色压低天际线, " * 750    # 6750 字符 — 长度差 5.33 倍 (>4 倍)
+    t0c = _time.perf_counter()
+    hit_c, ratio_c = pln_llm.detect_echo(big17, mid17)
+    dt_c = _time.perf_counter() - t0c
+    bound_c = 2.0 * min(len(big17), len(mid17)) / (len(big17) + len(mid17))
+    check("T17c 长度差>4倍大文本 O(1) 短路 (False + 相似比上界 + 亚秒级, 防大文本 O(n²))",
+          hit_c is False and abs(ratio_c - bound_c) < 1e-12 and dt_c < 1.0,
+          f"hit={hit_c} ratio={ratio_c} bound={bound_c} dt={dt_c:.4f}s")
+
+    base20 = "ABCDEFGHIJKLMNOPQRST"
+    echo20 = base20[:10] + "X" + base20[11:]  # 单字符替换 → 相似比恰为 0.95
+    hit95, r95 = pln_llm.detect_echo(echo20, base20, threshold=0.95)
+    hit_ov, r_ov = pln_llm.detect_echo(echo20, base20, threshold=0.951)
+    check("T17d 阈值边界 (0.95 恰命中 / +微差 0.951 即不命中, ≥阈值判回声)",
+          hit95 is True and abs(r95 - 0.95) < 1e-9 and hit_ov is False,
+          f"hit95={hit95} r95={r95} hit_ov={hit_ov} r_ov={r_ov}")
+
+    # ---- T17e-g: 冻结模式 (真实本地 HTTP, 链内重试 + 跨调用 + call_ai 透传) ----
+    fresh()
+    s17 = new_server()
+    sys_static17 = "你是资深剧本医生, 只输出修订稿。\n遵循反AI词表与导演档案, 不解释。"
+    run_line17 = "[RUN] 日期: 2026-08-31 | 种子: 42 | 工作流: T17冻结验证"
+    sys_full17 = sys_static17 + "\n" + run_line17
+    user17 = "请修订以下剧本初稿并保持章节结构。"
+    n17 = {"calls": 0}
+
+    def t17_resp(info):
+        n17["calls"] += 1
+        if n17["calls"] == 1:
+            return 500, {"error": {"message": "transient"}}  # 首请求失败 → 触发链内重试
+        return 200, ok_body("revised-ok")
+
+    s17.responder = t17_resp
+    ta, ea, ma = pln_llm.call_ai_ex(s17.url, "k", "m", sys_full17, user17, 0.3, 64, timeout=10,
+                                    max_retries_per_step=3, freeze_system=True)
+    tb, eb, mb = pln_llm.call_ai_ex(s17.url, "k", "m", sys_full17, user17, 0.3, 64, timeout=10,
+                                    max_retries_per_step=3, freeze_system=True)
+    tc2, ec2 = pln_llm.call_ai(s17.url, "k", "m", sys_full17, user17, 0.3, 64, timeout=10,
+                               freeze_system=True)  # call_ai 关键字透传
+    sys_reqs17 = [r["system"] for r in s17.requests]
+    usr_reqs17 = [r["user"] for r in s17.requests]
+    check("T17e 冻结 system 跨链内重试+两次 call_ai_ex+call_ai 透传逐字节一致 (纯静态前缀)",
+          ta == "revised-ok" and tb == "revised-ok" and tc2 == "revised-ok"
+          and len(sys_reqs17) == 4
+          and sys_reqs17[0] == sys_reqs17[1] == sys_reqs17[2] == sys_reqs17[3] == sys_static17
+          and ma.get("system_frozen") is True and ma.get("run_state_lines") == 1
+          and mb.get("system_frozen") is True,
+          f"errs={ea}/{eb}/{ec2} n={len(sys_reqs17)} "
+          f"ma={ma.get('system_frozen')}/{ma.get('run_state_lines')}")
+
+    check("T17f 动态信息整体外置 user 头部 [RUN] 段且不出现在任何 system 中",
+          all(u == run_line17 + "\n\n" + user17 for u in usr_reqs17)
+          and all(run_line17 not in s for s in sys_reqs17),
+          f"users={[u[:30] for u in usr_reqs17]}")
+
+    fresh()
+    s17b = new_server()
+    s17b.responder = lambda info: (200, ok_body("default-ok"))
+    td, ed, md = pln_llm.call_ai_ex(s17b.url, "k", "m", sys_full17, user17, 0.3, 64, timeout=10)
+    check("T17g 默认关闭行为与旧路径逐字节一致 (system/user 原样透传含 [RUN] 行, meta 无冻结键)",
+          td == "default-ok" and len(s17b.requests) == 1
+          and s17b.requests[0]["system"] == sys_full17
+          and s17b.requests[0]["user"] == user17
+          and "system_frozen" not in md and "run_state_lines" not in md,
+          f"err={ed} req_system={s17b.requests[0]['system'][:30]!r}")
+
 finally:
     # 恢复真实时钟/睡眠, 关停全部测试服务器
     pln_llm._clock, pln_llm._sleep = ORIG_CLOCK, ORIG_SLEEP
@@ -683,7 +772,7 @@ finally:
 # ---- 证据存档 ----
 RESULTS_DOC = {
     "suite": "test_llm_resilience",
-    "version": "16.2.0",
+    "version": "16.7.0",
     "timestamp": _time.strftime("%Y-%m-%d %H:%M:%S"),
     "pass": PASS,
     "fail": FAIL,

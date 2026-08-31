@@ -10,8 +10,8 @@ ComfyUI-DirectorMaster V16.3.0 自检脚本
 诊断 9 类问题:
     1. 安装路径 (是否位于 ComfyUI/custom_nodes 下)
     2. Python 环境 (版本/编码)
-    3. 模块导入 (17 节点依赖的全部模块)
-    4. 节点注册 (NODE_CLASS_MAPPINGS 是否恰好 17 个)
+    3. 模块导入 (18 节点依赖的全部模块)
+    4. 节点注册 (NODE_CLASS_MAPPINGS 是否恰好 18 个)
     5. 知识库完整性 (导演数据库/知识库子模块)
     6. 复活接线消费验证 (9 项孤儿库接线真实被调用, 非装饰)
     7. V15.0 引擎运行时消费验证 (融合/直觉/灵魂/多模态/共创/反AI)
@@ -108,6 +108,8 @@ AGGREGATOR_MODULES = [
     "narrative_arrangement", "aigc_prompt_builder", "aigc_adapter",
     # V16.4 情节拓扑引擎
     "plot_topology",
+    # V16.7 批次3 D6 独立审查引擎
+    "review_engine",
 ]
 LIB_MODULES = [
     "anti_ai_vocab", "director_data_unified",
@@ -159,11 +161,11 @@ try:
         "DirectorMasterCharacters", "DirectorMasterAsset", "DirectorMasterSummary",
         "DirectorMasterRouter", "DirectorMasterVideoRouter", "DirectorMasterArchive",
         "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
-        "DirectorMasterFusion",
+        "DirectorMasterFusion", "DirectorMasterReview",
         "DirectorMasterFinal",
     }
     if set(mappings.keys()) == expected:
-        ok(f"NODE_CLASS_MAPPINGS 恰好 17 个节点 (16 超级 + Final 别名)")
+        ok(f"NODE_CLASS_MAPPINGS 恰好 18 个节点 (17 超级 + Final 别名)")
     else:
         missing = expected - set(mappings.keys())
         extra = set(mappings.keys()) - expected
@@ -451,14 +453,14 @@ try:
 except Exception as e:
     err(f"__init__.py 加载失败, 无法做隔离检查: {e!r}")
 
-# 8a. 加载隔离清单必须为空 (全部 16 超级节点健康加载)
+# 8a. 加载隔离清单必须为空 (全部 17 超级节点健康加载)
 if _pkg16 is not None:
     try:
         _q = getattr(_pkg16, "DM_QUARANTINE", None)
         if _q is None:
             err("DM_QUARANTINE 不存在 (__init__.py 非 V16.2.0 结构)")
         elif not _q:
-            ok("加载隔离清单为空 (16 超级节点全部健康加载)")
+            ok("加载隔离清单为空 (17 超级节点全部健康加载)")
         else:
             for _qi in _q:
                 err(f"节点被隔离: {_qi.get('target')} [{_qi.get('phase')}] {_qi.get('error')}")
@@ -479,10 +481,10 @@ if _pkg16 is not None:
                 "DirectorMasterCharacters", "DirectorMasterAsset", "DirectorMasterSummary",
                 "DirectorMasterRouter", "DirectorMasterVideoRouter", "DirectorMasterArchive",
                 "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
-                "DirectorMasterFusion",
+                "DirectorMasterFusion", "DirectorMasterReview",
             }
             if set(_loaded.keys()) == _expected16:
-                ok("load_node_classes 隔离加载机制正常 (16/16 类)")
+                ok("load_node_classes 隔离加载机制正常 (17/17 类)")
             else:
                 err(f"load_node_classes 结果异常: 缺 {sorted(_expected16 - set(_loaded))} 多 {sorted(set(_loaded) - _expected16)}")
             # 隔离分支真实可用: 故意传一个不存在的模块, 应进隔离而非崩溃
@@ -639,7 +641,7 @@ if _manifest9 is not None and _widgets9 is not None:
                 for _m in _mism9:
                     err(f"manifest 枚举核对失败: {_m}")
             else:
-                ok("manifest 枚举 == live INPUT_TYPES (10 节点三方一致)")
+                ok("manifest 枚举 == live INPUT_TYPES (%d 节点三方一致)" % len(_widgets9))
         except Exception as e:
             err(f"manifest 枚举核对异常: {e!r}")
 
@@ -701,5 +703,5 @@ if ERRORS:
     print("      并在启动日志中搜索 DirectorMaster 关键词。")
     sys.exit(1)
 else:
-    print("\n全部通过 — 重启 ComfyUI 即可使用 17 个 DirectorMaster 节点。")
+    print("\n全部通过 — 重启 ComfyUI 即可使用 18 个 DirectorMaster 节点。")
     sys.exit(0)

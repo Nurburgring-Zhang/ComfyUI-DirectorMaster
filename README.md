@@ -2,7 +2,7 @@
 
 **导演级 AI 影视创作 ComfyUI 节点包** — 一句话创意 → 剧本 → 分镜 → AIGC 镜头级提示词，直供 Seedance / Wan / LTX / Hailuo / Sora 等主流视频生成模型。
 
-`V16.6.0-MERGED` · 17 注册节点（16 超级 + Final 别名，可选扩展至 63 节点） · 600 位真实导演风格库 · 244 创作模式（244 张模式卡全量入库） · 零第三方依赖
+`V16.7.0-MERGED` · 18 注册节点（17 超级 + Final 别名，可选扩展至 64 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
 
 ---
 
@@ -12,7 +12,7 @@ DirectorMaster 不是又一套提示词模板，而是一个**导演风格转译
 
 输出为 **AIGC 视频模型可直接消费的生产级提示词**：每镜生成七要素提示词（参考绑定 / 主体与动作 / 空间 / 镜头 / 视觉 / 音频 / 约束，遵循 Seedance 2.5 / Wan 3.0 官方手册范式）+ 首帧提示词 + 音频描述，并自动判别生产模式（参考视频 > 首尾帧 > 多参考图 > 首帧 > 文生）注入分镜 JSON 与交付 JSON。内置去 AI 味文本质量层（空洞词具象翻译 / 后缀去复读 / 元语言出清）与场景锚定引擎——分镜从你的输入场景里长出来，不跑题、不串场。
 
-无论是否接入 AI 增强端点，全部 244 创作模式均可在确定性轨道上运行：无 mock、无占位、无硬编码空数据，降级路径诚实上报。
+无论是否接入 AI 增强端点，全部 247 创作模式均可在确定性轨道上运行：无 mock、无占位、无硬编码空数据，降级路径诚实上报。
 
 ## 核心特性
 
@@ -33,7 +33,7 @@ cd ComfyUI/custom_nodes
 git clone https://github.com/Nurburgring-Zhang/ComfyUI-DirectorMaster.git
 ```
 
-重启 ComfyUI 即可使用 17 个 DirectorMaster 节点。无第三方依赖（可选 torch/PIL/numpy 用于 IMAGE 参考槽）。
+重启 ComfyUI 即可使用 18 个 DirectorMaster 节点。无第三方依赖（可选 torch/PIL/numpy 用于 IMAGE 参考槽）。
 
 安装后自检：
 
@@ -55,7 +55,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 
 现成工作流在 `workflows/`：`MINIMAL_PIPELINE_V8.2.json`（最小管线）、`MEGA_PIPELINE_V8.3.json`（全链路）。
 
-## 17 节点
+## 18 节点
 
 | 节点 | 能力 |
 |---|---|
@@ -76,8 +76,9 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 | DirectorMasterIntuition | 直觉修改：分镜JSON→确定性反常规镜头语法（含修改日志） |
 | DirectorMasterFusion | 风格融合：主0.6/次0.3/反0.1 确定性融合，反风格提取突破指令（含元数据JSON） |
 | DirectorMasterFinal | Summary 兼容别名 |
+| DirectorMasterReview | 独立审查：干净上下文 13 项清单核对（快速结构审查/全量审查/对比分镜），编号化报告（R-001 起，附镜头号/字段证据）+「无法验证」显式标注，多阶段 CheckpointStore 断点续跑，判例库自检引用，可选 LLM 语义轨 |
 
-另有 46 个 legacy 细粒度节点可选兼容层（V16.0.1 恢复）：设置环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 后加载 63 节点（17 注册 + 46 legacy），0 加载错误；默认不加载。
+另有 46 个 legacy 细粒度节点可选兼容层（V16.0.1 恢复）：设置环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 后加载 64 节点（18 注册 + 46 legacy），0 加载错误；默认不加载。
 
 ## 数据聚合（真实消费，非装饰）
 
@@ -85,7 +86,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 
 ## 质量验证（实测指标）
 
-- 全模式执行：258 个下拉选项全通过（244 创作模式为审定口径：剔除随机项/聚合项/别名重复，逐条理由见 tests/mode_manifest.json 排除审计表），唯一输出按节点实测 46/23/4/5/63/42/41/7/5/12（Script/Vibe/Art/Sound/Cine/Chars/Asset/Router/VideoRouter/Archive）
+- 全模式执行：261 个下拉选项全通过（247 创作模式为审定口径：剔除随机项/聚合项/别名重复，逐条理由见 tests/mode_manifest.json 排除审计表），唯一输出按节点实测 46/23/3/4/63/42/41/7/5/10/3（Script/Vibe/Art/Sound/Cine/Chars/Asset/Router/VideoRouter/Archive/Review，逐项相加=247，含 DirectorMasterReview 3）
 - AIGC 场景贴合：40 例全量随机测试 A–H 八维断言 PASS=543 FAIL=0（证据存档 tests/aigc_random_full_results.json；维度 H：≥60% 镜头提示词命中输入场景锚点）
 - Cinematic 镜头语法指纹（景别/运镜/焦段/时长）：63/63 唯一（含 4 个同节奏簇）
 - 同档期形态模式正文相似度：0.295-0.606（16 对实测，最大为纪录片对，门槛 <0.7）
@@ -96,16 +97,18 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 - 结构硬指标：中点 48-53%、灵魂黑夜 68-76%（含此节拍的结构）、高潮 76-84%（T10 四结构断言全过）
 - 安全：SSRF 防护（link-local/云 metadata 禁止 + DNS 解析失败即拒 + 校验后 IP 钉扎直连 + 禁重定向 + 显式禁用环境代理）、归档路径消毒
 - LLM 链路故障注入（V16.2.0 批次1）：110 断言全过 / FAIL=0 —— 退避重试、同端点与跨端点降级、冷却探测恢复与回落、溢出两层压缩（含压缩耗尽跨级）、上游截断拆分重试、终端类错误不计降级阈值、围栏 JSON 宽容抢救、4 线程并发状态机无撕裂、SSRF 链级拦截（含 IPv4 兼容 IPv6 形态）；真实 HTTP 服务器 + 确定性时钟注入，证据存档 tests/llm_resilience_results.json
-- 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 17 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
+- 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 18 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
 - 独立对抗验证（V16.3.0）：12 断言全过 / FAIL=0 —— 全节点 × 1100+ 次畸形输入（超长/Unicode/控制字符/畸形 JSON/异常种子）零崩溃；种子语义属性测试（种子0真随机非恒定、固定种子全链逐字节可复现、多种子分布多样）；独立口径复测导演库规模/唯一性/档案维度；final_capability_audit 30 轮全随机链路审计全部通过
 - 模式卡语料与索引（V16.6.0 批次2）：244/244 卡与 manifest 对账零漂移（tools/sync_mode_index.py --check）；孤儿卡/缺必填字段/错目录/名称错配/索引漂移 5 类负样本硬失败实测复现（8 断言全过）；实现指针双盲抽查 29 卡 × 10 目录全命中
-- 分镜 JSON 契约 v1（V16.6.0 批次2）：81 断言全过 / FAIL=0 —— 11 诊断码可达（含相对引用环检测）、41 例对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、接线 additive 证明（新旧产物对比仅增 contract_version 键、文本逐字一致）；V16.4/V16.5 增量键已吸收进契约注册表；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
+- 分镜 JSON 契约 v1（批次2 起）：82 断言全过 / FAIL=0 —— 11 诊断码可达（含相对引用环检测）、41 例对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、接线 additive 证明（新旧产物对比仅增 contract_version 键、文本逐字一致）；V16.4/V16.5 增量键已吸收进契约注册表；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
+- 独立审查引擎（V16.7.0 批次3 D6）：确定性轨 13 项清单核对（结构自检复用分镜契约 v1 诊断 + 规则核对：镜数/时长覆盖/字段完整/景别运镜多样性/场景锚定 60% 门槛/重复手法/元语言/空洞词）、编号化报告 R-001 起（每条附镜头号/字段证据）、「无法验证」显式标注（缺输入不猜测）、CheckpointStore 断点续跑（中断重入已完成阶段跳过、输入变更自动失效重算）、LLM 语义轨本地 OpenAI 兼容服务器实测、判例库缺位诚实降级——tests/test_review_node.py 全过
 
 ## 测试
 
 ```bash
 python doctor.py                     # 9 类自检
-python tests/test_all_modes.py       # 17 节点 × 全模式回归 (277 断言)
+python tests/test_all_modes.py       # 18 节点 × 全模式回归 (280 断言)
+python tests/test_review_node.py     # V16.7.0 独立审查引擎 (确定性轨/编号报告/断点续跑/LLM 轨/无法验证/判例降级)
 python tests/test_aigc_random_full.py # 40 例全量随机 AIGC 测试 (A–H 八维, 含场景贴合度)
 python tests/test_workflows.py       # 工作流 JSON 有效性
 python tests/ten_rounds.py           # 十轮全量测试 (43 断言: 部署/功能/数据/链路/AI/质量)
@@ -116,7 +119,13 @@ python tests/test_adversarial.py     # V16.3.0 独立对抗验证 (12 断言: �
 python tests/test_random_full_v16.py # V16.4.0 全量随机+叙事拓扑 (73 断言)
 python tests/test_matrix_full.py     # V16.5.0 全维度矩阵 (71 用例: 时长×题材×叙事×主角×导演×视觉×运镜×LLM)
 python tools/sync_mode_index.py --check  # 模式卡索引一致性 (孤儿/缺卡/漂移硬失败)
-python tests/test_storyboard_contract.py # V16.6.0 分镜 JSON 契约 v1 (81 断言, 对抗输入零异常逃逸)
+python tests/test_storyboard_contract.py # 分镜 JSON 契约 v1 (82 断言, 对抗输入零异常逃逸)
+python tests/test_contract_render.py  # 契约渲染层 (35 断言, 契约JSON→提示词确定性)
+python tests/test_golden_replay.py   # golden 回放 (20 断言, 固定种子42结构零漂移)
+python tests/test_review_node.py     # 独立审查节点 (66 断言, 确定性轨+LLM轨)
+python tests/test_mode_dedup.py      # 卖点映射+手法去重 (34 断言)
+python tests/test_pipeline_checkpoint.py # 产物检查点 (51 断言, 断点续跑)
+python tests/test_impact_analysis.py # 修订影响面 (61 断言)
 python tests/d1_grammar_probe.py     # 同簇镜头语法唯一性
 python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ```
@@ -124,7 +133,7 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ## 目录结构
 
 ```
-├── __init__.py              # 17 节点注册 (16 超级 + Final 别名)
+├── __init__.py              # 18 节点注册 (17 超级 + Final 别名)
 ├── doctor.py                # 安装自检
 ├── aggregator/              # 超级节点 + 引擎 (场景/节拍/节奏/长片/LLM/AIGC提示词/叙事编排/版本存储/格式导出)
 ├── knowledge_base/          # 知识库子模块 (摄影/叙事/类型/表演/镜头语汇/转场…)
@@ -136,6 +145,15 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ---
 
 ## 版本历史
+
+### V16.7.0-MERGED（批次3：质量闭环 + 管线韧性）
+
+- **来源与政策**：延续零代码借鉴纪律（ViMax 断点续跑/参照重选、lumenx echo 检测与 slot 思想、wind-comic stale 传播与反假绿测试、STAGE「结构化≠生成有效」警告、H3-Promptor「代码守契约」——均思想层独立重写），零第三方依赖不变（仅 stdlib，新增 difflib）。
+- **质量闭环**：独立审查节点 DirectorMasterReview（干净上下文 13 项清单、编号化报告 R-001 起逐条附镜号/字段证据、确定性轨无端点可用、LLM 轨可选、CheckpointStore 断点续跑）；提示词质量判例库 NP-001~012（每条含真实证据指针，脸崩/文字糊类诚实标注"预防性判例"）；golden 回放（固定种子 42，结构级+64 字符锚零漂移，--regen 显式再生成）；卖点→镜头位映射（漏拍即提示）+ 手法去重校验（同运镜/构图不得连续两镜当主角）。
+- **管线韧性**：产物检查点 CheckpointStore（逐产物存在即跳过、input_hash 变更自动失效重算、Win32 os.replace 有界重试）；修订影响面分析（核心包 diff→受影响下游清单，Archive 提交时对比上一版附 impact 段，只提示不自动执行）；LLM echo 回声检测（difflib ≥0.95 拒收降级）；LLM 经济性模式（system 字节级冻结开关 freeze_system，动态信息外置 [RUN] 段）。
+- **契约与渲染**：契约注册表吸收批次3 顶层键"手法去重"（19 顶层键）；新增契约渲染层（契约 JSON→每镜七要素提示词确定性渲染，SEEDANCE_25/WAN_30/GENERIC 三视图，STAGE 警告的落地对策）。
+- **注册口径**：18 注册节点（17 超级 + Final 别名），247 创作模式/247 张模式卡（manifest 同步吸收 Review 节点 3 模式）。
+- **回归基线**：并集回归 22 项全绿（280/543/43/18/11/117/19/82/12/73/71用例/35/20/66/34/51/61 断言 + audit/probe/d1/d2 + doctor 0 错误）；双盲互审 2 轮闭环（R1 双通道 conditional→修复 8 项→R2 approve 零 HIGH/MED 残留）。
 
 ### V16.6.0-MERGED（批次2：知识资产工程 + 分镜契约基座；并入他端 V16.3-V16.5 迭代后顺延编号）
 

@@ -4,13 +4,14 @@ tools/sync_mode_index.py — 模式卡目录校验 + 索引生成 (V16.3.0 批�
 ==============================================================================
 零第三方依赖 (仅 stdlib); frontmatter 手写解析, 禁 yaml。
 
-卡目录映射 (固定 10 目录 ↔ 10 个有模式下拉的注册节点):
+卡目录映射 (固定 11 目录 ↔ 11 个有模式下拉的注册节点):
   script→DirectorMasterScript      cinematic→DirectorMasterCinematic
   vibe→DirectorMasterVibe          art→DirectorMasterArt
   sound→DirectorMasterSound        characters→DirectorMasterCharacters
   asset→DirectorMasterAsset        router→DirectorMasterRouter
   video_router→DirectorMasterVideoRouter
   archive→DirectorMasterArchive
+  review→DirectorMasterReview  (V16.7 批次3 D6 独立审查)
 
 扫描 knowledge_base/mode_cards/<slug>/*.md; 根下 SCHEMA.md/_TEMPLATE.md/INDEX.md/index.json
 不算卡, 其余根级 md/json 文件 = 违例 (卡必须位于 <slug>/ 子目录)。
@@ -64,6 +65,7 @@ CATALOG = {
     "router": "DirectorMasterRouter",
     "video_router": "DirectorMasterVideoRouter",
     "archive": "DirectorMasterArchive",
+    "review": "DirectorMasterReview",  # V16.7 批次3 D6 独立审查
 }
 NODE_TO_SLUG = {v: k for k, v in CATALOG.items()}
 
@@ -445,12 +447,12 @@ def run_validation(root=None, node_scope=None, manifest_path=None,
     manifest_nodes = manifest["nodes"] if manifest else {}
     total_creative = manifest.get("total_creative") if manifest else None
 
-    # manifest 完整性: 单一事实源必须覆盖全部 10 个模式下拉节点
+    # manifest 完整性: 单一事实源必须覆盖全部模式下拉节点
     if manifest is not None:
         for node in CATALOG.values():
             if node not in manifest_nodes:
                 violations.append(f"manifest.nodes 缺少节点 '{node}' "
-                                  f"(单一事实源须覆盖全部 10 个模式下拉节点; "
+                                  f"(单一事实源须覆盖全部模式下拉节点; "
                                   f"重跑 tools/dump_mode_manifest.py 刷新)")
 
     violations.extend(selfcheck_docs(schema_path, template_path))

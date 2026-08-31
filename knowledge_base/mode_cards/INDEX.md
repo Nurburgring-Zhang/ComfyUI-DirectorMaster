@@ -1,7 +1,7 @@
 # DirectorMaster 模式卡索引
 
 > 自动生成: tools/sync_mode_index.py — 勿手改。重新生成: `python tools/sync_mode_index.py`
-> 对账基准: tests/mode_manifest.json (total_creative=244)
+> 对账基准: tests/mode_manifest.json (total_creative=247)
 
 ## DirectorMasterScript (目录: script) — 卡 46/46
 
@@ -296,3 +296,11 @@
 | archive-version-diff | 版本对比 | 按标签或 id 前缀解析两版本, 输出字符差与文件级差异 | low | 版本控制, 差异分析, 只读 |
 | archive-version-history | 版本历史 | 读版本库列最近 20 版状态与评分, 空库诚实提示先提交 | low | 版本控制, 只读, 审计 |
 | archive-version-rollback | 版本回滚 | 还原版本文件并逐字节 sha256 校验, 回滚自动成新版本 | medium | 版本控制, 写盘还原, 不可变历史 |
+
+## DirectorMasterReview (目录: review) — 卡 3/3
+
+| mode_id | name | one_liner | intensity | style_tags |
+|---|---|---|---|---|
+| review-compare-storyboard | 对比分镜 | 被审产物对照基准分镜JSON, 核镜数/逐镜时长/锚点覆盖 | medium | 对比核对, 镜数对齐, 时长漂移 |
+| review-full | 全量审查 | 干净上下文跑满 13 项清单, 判例库自检加可选 LLM 语义轨 | high | 13 项清单, 断点续跑, LLM语义轨 |
+| review-quick-structure | 快速结构审查 | 完整性阶段结构自检, 秒级判定产物可解析/契约/镜数/字段/时长有效 | low | 结构自检, 分镜契约, 确定性轨 |

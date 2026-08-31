@@ -7,7 +7,7 @@
 
 ## 1. 文件位置与命名
 
-- 卡片**只允许**放在 `knowledge_base/mode_cards/<slug>/<mode_id>.md`，slug↔节点映射固定 10 目录：
+- 卡片**只允许**放在 `knowledge_base/mode_cards/<slug>/<mode_id>.md`，slug↔节点映射模式节点目录集（随注册增长，当前 11 个）：
   `script→DirectorMasterScript`、`cinematic→DirectorMasterCinematic`、`vibe→DirectorMasterVibe`、
   `art→DirectorMasterArt`、`sound→DirectorMasterSound`、`characters→DirectorMasterCharacters`、
   `asset→DirectorMasterAsset`、`router→DirectorMasterRouter`、`video_router→DirectorMasterVideoRouter`、

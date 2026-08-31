@@ -3,12 +3,12 @@
   {
    "label": "doctor.py 7类自检",
    "ok": true,
-   "detail": "枚举 == live INPUT_TYPES (10 节点三方一致)\n  [OK] 模式卡 244/244 与 manifest 对账一致 (sync 校验通过)\n  [OK] 分镜 JSON 契约 v1 (STORYBOARD_CONTRACT_VERSION=1, 合法最小样例过 validate_storyboard 且相对时间拓扑解析正确)\n\n==================================================\n自检结果: 54 通过, 1 警告, 0 错误\n\n全部通过 — 重启 ComfyUI 即可使用 17 个 DirectorMaster 节点。\n"
+   "detail": "枚举 == live INPUT_TYPES (11 节点三方一致)\n  [OK] 模式卡 247/247 与 manifest 对账一致 (sync 校验通过)\n  [OK] 分镜 JSON 契约 v1 (STORYBOARD_CONTRACT_VERSION=1, 合法最小样例过 validate_storyboard 且相对时间拓扑解析正确)\n\n==================================================\n自检结果: 54 通过, 1 警告, 0 错误\n\n全部通过 — 重启 ComfyUI 即可使用 18 个 DirectorMaster 节点。\n"
   },
   {
    "label": "默认加载 17 节点",
-   "ok": true,
-   "detail": "17"
+   "ok": false,
+   "detail": "18"
   },
   {
    "label": "RETURN/FUNCTION 契约",
@@ -25,7 +25,7 @@
   {
    "label": "全模式回归 277 断言",
    "ok": true,
-   "detail": " 277 PASS / 0 FAIL\n============================================================\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n"
+   "detail": " 280 PASS / 0 FAIL\n============================================================\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n[DirectorMaster] 分镜契约校验发现内部不一致: invalid-duration (1 项)\n"
   }
  ],
  "T3": [
@@ -155,12 +155,12 @@
   {
    "label": "版本库体积",
    "ok": true,
-   "detail": "715B"
+   "detail": "716B"
   },
   {
    "label": "并发8线程×2提交零丢失",
    "ok": true,
-   "detail": "提交16/16 历史19/19 丢失0 sha异常0 并发后体积2456B 错误[]"
+   "detail": "提交16/16 历史19/19 丢失0 sha异常0 并发后体积2457B 错误[]"
   }
  ],
  "T8": [
@@ -231,7 +231,7 @@
   {
    "label": "D2 形态正文相似度<0.7",
    "ok": true,
-   "detail": "传片脚本 vs 品牌故事片脚本      0.346   OK\n人物纪录片脚本 vs 社会纪录片脚本      0.607   OK\n婚礼/活动脚本 vs Vlog脚本       0.359   OK\n课程教学脚本 vs Vlog脚本       0.371   OK\n互动剧分支剧本 vs 沉浸式戏剧脚本      0.368   OK\n\nD2 验证通过: 全部同档期形态对正文相似度 <0.7\n"
+   "detail": "传片脚本 vs 品牌故事片脚本      0.347   OK\n人物纪录片脚本 vs 社会纪录片脚本      0.604   OK\n婚礼/活动脚本 vs Vlog脚本       0.358   OK\n课程教学脚本 vs Vlog脚本       0.370   OK\n互动剧分支剧本 vs 沉浸式戏剧脚本      0.371   OK\n\nD2 验证通过: 全部同档期形态对正文相似度 <0.7\n"
   }
  ]
 }

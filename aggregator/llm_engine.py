@@ -242,8 +242,11 @@ def _bigram_overlap_ratio(a, b):
     return len(sa & sb) / len(sa)
 
 
-def _quality_gate(result, structural_reference, director, context=None):
+def _quality_gate(result, structural_reference, director, context=None, user_text=None):
     """质量门控 (V13.5 强化): 长度(可达基准) + 全词表反AI + 照抄检测 + 遵循度信号.
+    V16.7.0 批次3 D1: 新增"回声照抄"检查 (user_text 提供时生效) — LLM 把本次 user
+    提示词原样复述 = 零创作回声, 与照抄检测并列拒收, 走既有降级模板轨;
+    user_text 缺省 None 时跳过 (既有调用方与其他门行为零变化).
     返回 (accept, reason)."""
     context = context or {}
     # 长度门控 — 基准取 min(参考全长, 模型实际可见的5000字), 避免长模板下门槛数学不可达
@@ -257,6 +260,18 @@ def _quality_gate(result, structural_reference, director, context=None):
     copy_ratio = _bigram_overlap_ratio(result, structural_reference[:_REF_SHOWN])
     if copy_ratio > 0.85:
         return False, f"疑似照抄结构参考(重合{round(copy_ratio*100)}%)"
+
+    # 回声照抄检测 (V16.7.0 批次3 D1) — 与照抄检测并列: response vs 本次原始 user 文本,
+    # 相似比 ≥0.95 即把提示词整段抄回 (零创作), 拒收走既有降级模板轨。
+    # 检测器异常不阻断门控 (诚实降级为不做此项检查)。
+    if user_text:
+        try:
+            from pln_llm import detect_echo
+            echo_hit, echo_ratio = detect_echo(result, user_text)
+            if echo_hit:
+                return False, f"回声照抄user文本(相似{round(echo_ratio*100)}%)"
+        except Exception:
+            pass
 
     # 反AI词后置扫描 — 全词表 (修复只扫前60英文短语对中文套话致盲)
     try:
@@ -313,7 +328,9 @@ def _refine_draft(draft, node_type, mode, director, context, api_url, api_key, m
     result, err = call_ai(api_url, api_key, model_name,
                           f"你是 {director} 级别的剧本医生, 严格遵循反AI词表与导演档案。",
                           revise_prompt, temperature, max_tokens)
-    accept, reason = _quality_gate(result, structural_reference, director, context)
+    # V16.7.0 批次3 D1: 回声照抄检查喂入本次原始 user 文本 (质量门新增输入)
+    accept, reason = _quality_gate(result, structural_reference, director, context,
+                                   user_text=revise_prompt)
     if not accept:
         return None
     # 修订版套话不得多于初稿, 且长度达标
@@ -355,7 +372,9 @@ def generate_native(node_type, mode, director, context, api_url, api_key, model_
 
     result, err = call_ai(api_url, api_key, model_name, system_prompt,
                           user_message, temperature, max_tokens)
-    accept, reason = _quality_gate(result, structural_reference, director, context)
+    # V16.7.0 批次3 D1: 回声照抄检查喂入本次原始 user 文本 (质量门新增输入)
+    accept, reason = _quality_gate(result, structural_reference, director, context,
+                                   user_text=user_message)
     if accept:
         # 反AI词后置清洗 (保留内容, 去除AI套话)
         draft = result

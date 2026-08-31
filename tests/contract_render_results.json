@@ -1,0 +1,183 @@
+{
+  "suite": "test_contract_render",
+  "version": "16.6.0",
+  "pass": 35,
+  "fail": 0,
+  "results": [
+    {
+      "label": "T0 RENDER_VERSION == 1",
+      "ok": true,
+      "detail": "v=1"
+    },
+    {
+      "label": "T0 MODEL_KEYS = 两真实键 + 通用兜底",
+      "ok": true,
+      "detail": "keys=('SEEDANCE_25', 'WAN_30', 'GENERIC') default=GENERIC"
+    },
+    {
+      "label": "T0 ELEMENT_ORDER 七要素固定顺序",
+      "ok": true,
+      "detail": "order=('参考绑定', '主体动作', '空间', '镜头', '视觉', '音频', '约束')"
+    },
+    {
+      "label": "T0 FIELD_MAP 7 要素键与 ELEMENT_ORDER 对齐 (逐字段映射登记)",
+      "ok": true,
+      "detail": "map=['主体动作', '参考绑定', '空间', '约束', '视觉', '镜头', '音频']"
+    },
+    {
+      "label": "T1 返回结构 {per_shot, render_meta} 且 per_shot 3 条",
+      "ok": true,
+      "detail": "keys=['per_shot', 'render_meta'] n=3"
+    },
+    {
+      "label": "T1 meta 默认路由: model_key=GENERIC / source_form=raw_contract / shot_count=3 / contract_version=1 / deterministic=True",
+      "ok": true,
+      "detail": "meta={'render_version': 1, 'model_key': 'GENERIC', 'model_label': '通用', 'model_traits': [], 'capabilities_source': None, 'capabilities_version': None, 'element_order': ['参考绑定', '主体动作', '空间', '镜头', '视觉', '音频', '约束'], 'source_form': 'raw_contract', 'contract_ok': True, 'contract_version': 1, 'shot_cou"
+    },
+    {
+      "label": "T1 每镜 7 段头全在",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "label": "T1 段头出现顺序 == 七要素固定顺序 (find 下标递增)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T1 镜号保真保型 [1, 2, 'S3']",
+      "ok": true,
+      "detail": "ids=[1, 2, 'S3']"
+    },
+    {
+      "label": "T1 结构化字段逐字段映射落地 (镜1 文本含 主体/景别/焦段/运镜/时长/色彩/音频/约束)",
+      "ok": true,
+      "detail": "text0=【参考绑定】角色/场景/道具外观由参考图锁定, 提示词聚焦动作、运镜与情节推进。\n【主体动作】主体: 父亲的手停在砧板上; 动作意图: 建立空间; 情绪: 孤独。\n【空间】构图: 三分法; 视点: 主角 POV; 时间线: 现在; 叙事线: A。\n【镜头】景别: 全景; 角度: 平视; 焦段: 35mm; 运镜: 缓推; 转场: 硬切; 时长: 3.8s; 时间轴: 0-3.8s。\n【视觉】色彩:"
+    },
+    {
+      "label": "T2 同 dict 两次渲染 → 全结果逐字节一致",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T2 deepcopy 输入 → 渲染逐字节一致",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T2 JSON round-trip 输入 → 渲染逐字节一致",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T2 validate 报告形态与 raw 形态渲染文本一致 (同 normalize 同源)",
+      "ok": true,
+      "detail": "form=validate_report"
+    },
+    {
+      "label": "T3 同镜三键产出两两互异 (SEEDANCE/WAN/GENERIC)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T3 SEEDANCE: meta capabilities_version 只读引用能力表 version 且参数行含单镜时长上限",
+      "ok": true,
+      "detail": "ver=Seedance 2.5 (2026-08-07 火山引擎 API 正式上线)"
+    },
+    {
+      "label": "T3 SEEDANCE: 时间戳锚指令 + 相对引用时间轴 (镜2: 3.8-6.3s)",
+      "ok": true,
+      "detail": "t1=【参考绑定】角色/场景/道具外观由参考图锁定, 提示词聚焦动作、运镜与情节推进。 多参考位声明: 角色家谱/场景家谱/道具家谱参考位可绑定 (上限见模型参数)。\n【主体动作】主体: 女儿的侧脸; 动作意图: 情绪特写; 情绪: 孤独。\n【空间】构图: 未指定; 视点: 未指定; 时间线: 现在; 叙事线: 未指定。\n【"
+    },
+    {
+      "label": "T3 WAN: 含 简洁动作 与 美学 侧重标记, 零能力表版本",
+      "ok": true,
+      "detail": "traits=['中文提示词友好', '简洁动作', '强美学']"
+    },
+    {
+      "label": "T3 GENERIC: 零模型专属标记 (无秒级时间戳锚/无一镜一事) 且 traits 空表",
+      "ok": true,
+      "detail": "t=【参考绑定】角色/场景/道具外观由参考图锁定, 提示词聚焦动作、运镜与情节推进。\n【主体动作】主体: 父亲的手停在砧板上; 动作意图: 建立空间; 情绪: 孤独。\n【空间】构图: 三分法; 视点: 主角 POV; 时间线: 现在; 叙事线:"
+    },
+    {
+      "label": "T3 未知 model_key → 诚实 ValueError 且消息列出全部已知键",
+      "ok": true,
+      "detail": "msg=[contract_render] 未知 model_key 'KLING_99'; 已知键: SEEDANCE_25, WAN_30, GENERIC (键名大小写敏感)"
+    },
+    {
+      "label": "T3 键名大小写敏感 ('seedance_25' → ValueError 不静默兜底)",
+      "ok": true,
+      "detail": "msg=[contract_render] 未知 model_key 'seedance_25'; 已知键: SEEDANCE_25, WAN_30, GENERIC (键名大小写敏感)"
+    },
+    {
+      "label": "T4 非 dict 输入 → ValueError (不抛裸 TypeError)",
+      "ok": true,
+      "detail": "msg=[contract_render] 分镜契约输入必须为 dict, 实际为 list"
+    },
+    {
+      "label": "T4 无 contract_version 且非报告 → ValueError",
+      "ok": true,
+      "detail": "msg=[contract_render] 输入既非 validate_storyboard 报告 (缺 normalized 键) 也缺 contract_version 契约头, 拒绝渲染"
+    },
+    {
+      "label": "T4 缺 '分镜表' → ValueError",
+      "ok": true,
+      "detail": "msg=[contract_render] '分镜表' 必须为列表, 实际为 NoneType"
+    },
+    {
+      "label": "T4 空分镜表 → ValueError",
+      "ok": true,
+      "detail": "msg=[contract_render] '分镜表' 为空, 无镜头可渲染"
+    },
+    {
+      "label": "T4 镜非 dict → ValueError 定位到 分镜表[1]",
+      "ok": true,
+      "detail": "msg=[contract_render] 分镜表[1] 必须为对象(dict), 实际为 str"
+    },
+    {
+      "label": "T4 镜缺有效镜号 → ValueError",
+      "ok": true,
+      "detail": "msg=[contract_render] 分镜表[0] 缺少有效镜号, 无法渲染"
+    },
+    {
+      "label": "T4 validate 报告 normalized=None → ValueError (不抛裸 AttributeError)",
+      "ok": true,
+      "detail": "msg=[contract_render] 输入既非 validate_storyboard 报告 (缺 normalized 键) 也缺 contract_version 契约头, 拒绝渲染"
+    },
+    {
+      "label": "T4 None 输入 → ValueError",
+      "ok": true,
+      "detail": "msg=[contract_render] 分镜契约输入必须为 dict, 实际为 NoneType"
+    },
+    {
+      "label": "T5 镜内 extra 值绝不出现在任何渲染文本中",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T5 顶层/镜内未知键共存 → 不炸且未知值零渗出",
+      "ok": true,
+      "detail": "t=【参考绑定】生产模式未声明, 按文生视频处理 (无参考绑定)。\n【主体动作】主体: 未指定; 动作意图: 未指定; 情绪: 未指定。\n【空间】构图: 未指定; 视点: 未指定; 时间线: 现在; 叙事线: 未指定。\n【镜头】景别: 全景; "
+    },
+    {
+      "label": "T6 真实产物渲染: per_shot 数 == 分镜数 且 meta.shot_count 对齐",
+      "ok": true,
+      "detail": "n=8 shots=8"
+    },
+    {
+      "label": "T6 真实产物每镜 7 段全在且顺序正确",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "T6 真实产物每镜键 ⊆ 契约 32 键且镜号保真",
+      "ok": true,
+      "detail": "diff=[]"
+    },
+    {
+      "label": "T6 真实产物 SEEDANCE 路由: 每镜含秒级时间戳锚或链断诚实留空 (零异常)",
+      "ok": true,
+      "detail": "meta=Seedance 2.5 (2026-08-07 火山引擎 API 正式上线)"
+    }
+  ]
+}

@@ -112,7 +112,7 @@ def run_suite():
     check("T1 derived 三键齐备", set(DERIVED_KEYS) <= set(n1.keys()), f"keys={sorted(n1)}")
 
     # -----------------------------------------------------------------
-    print("T2 合法全量结构 (18 顶层 + 32 每镜 canonical, 含 V16.4/V16.5 增量键)")
+    print("T2 合法全量结构 (19 顶层 + 32 每镜 canonical, 含 V16.4/V16.5 增量键与批次3 手法去重)")
     full_shot = {k: v for k, v in {
         "镜号": 1, "阶段": "建置", "类型阶段": "开场", "景别": "全景", "角度": "平视",
         "运镜": "缓推", "焦段": "35mm", "时长": "3.8s", "画面焦点": "父亲的手",
@@ -131,7 +131,10 @@ def run_suite():
             "叙事元数据": [{"line": "A", "pov": "全知", "timeline": "现在"}],
             "叙事拓扑": {"结构": "波浪式", "反转点": []}, "场景实体": {"角色": []},
             "设备美学包": {"摄影机": "ARRICAM"}, "同期声枚举": "雨声, 缆绳吱呀",
-            "分镜表": [full_shot], "上游应用统计": {"剧本": "已应用"}}
+            "分镜表": [full_shot],
+            "手法去重": {"校验口径": "同一运镜词/构图模板不得连续两镜当镜头主角",
+                         "镜数": 1, "违规数": 0, "运镜违规": [], "构图违规": []},
+            "上游应用统计": {"剧本": "已应用"}}
     rep2 = validate_storyboard(full)
     n2 = rep2["normalized"]["分镜表"][0]
     check("T2 全量结构 ok=True 且零 errors/warnings",
@@ -140,9 +143,12 @@ def run_suite():
     check("T2 32 个每镜 canonical 键全保留于 normalized",
           set(full_shot.keys()) <= set(n2.keys()),
           f"missing={sorted(set(full_shot.keys()) - set(n2.keys()))}")
-    check("T2 18 顶层键全保留 (含 contract_version)",
+    check("T2 19 顶层键全保留 (含 contract_version 与批次3 手法去重)",
           set(CANON_TOP_KEYS) <= set(rep2["normalized"].keys()),
           f"missing={sorted(set(CANON_TOP_KEYS) - set(rep2['normalized'].keys()))}")
+    check("T2 手法去重 dict 原样保留于 normalized 顶层 (批次3 增量键入注册表, 非 extra)",
+          rep2["normalized"].get("手法去重") == full["手法去重"],
+          f"got={rep2['normalized'].get('手法去重')!r:.120}")
     check("T2 数值字段类型原样保留 (情感强度 float / 银幕序 int)",
           n2["情感强度"] == 6.2 and n2["银幕序"] == 1)
 
@@ -389,7 +395,7 @@ def run_suite():
           rep17["ok"] is True and rep17["errors"] == [], f"e={_codes(rep17)}")
     check("T17 真实产物零 warnings (无 unknown/deprecated 误报)",
           rep17["warnings"] == [], f"w={_codes(rep17, 'warnings')}")
-    check("T17 顶层键集合 == 真实 18 键 + contract_version (零漂移, 含 V16.4/V16.5 增量键)",
+    check("T17 顶层键集合 == 真实 19 键 + contract_version (零漂移, 含 V16.4/V16.5 增量键与批次3 手法去重)",
           set(new_data.keys()) == set(CANON_TOP_KEYS),
           f"diff={sorted(set(new_data.keys()) ^ set(CANON_TOP_KEYS))}")
     check("T17 每镜键集合 ⊆ 真实 32 键 (start/end 表达式键非必填)",

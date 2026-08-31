@@ -3,7 +3,7 @@
 加载崩溃隔离真实机制测试 (T12, 批次1 起始) + 版本口径一致性 (动态三处校验, 随包版本自适应)
 ====================================================================
 验证 __init__.py 的 load_node_classes 隔离加载机制是真实机制而非装饰:
-  1. 真实注册表: 17 节点全部加载, DM_QUARANTINE 为空, 显示名全覆盖, Final 别名同源
+  1. 真实注册表: 18 节点全部加载, DM_QUARANTINE 为空, 显示名全覆盖, Final 别名同源
   2. 故障注入: 坏模块 (phase=import) / 坏类名 (phase=getattr) 被隔离且不拖垮好节点
   3. 隔离条目结构完整 (target/error/phase)
   4. 版本口径: __version__ / pyproject.toml / README 三处动态一致 (升版只改三处源, 不改本测试)
@@ -41,13 +41,13 @@ def check(label, cond, detail=""):
         print(f"  [FAIL] {label} {detail}")
 
 
-EXPECTED_16 = [
+EXPECTED_SUPER = [
     "DirectorMasterCore", "DirectorMasterScript", "DirectorMasterVibe",
     "DirectorMasterArt", "DirectorMasterSound", "DirectorMasterCinematic",
     "DirectorMasterAsset", "DirectorMasterSummary", "DirectorMasterRouter",
     "DirectorMasterCharacters", "DirectorMasterVideoRouter", "DirectorMasterArchive",
     "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
-    "DirectorMasterFusion",
+    "DirectorMasterFusion", "DirectorMasterReview",
 ]
 
 # legacy 兼容层由环境变量控制, 测试必须在默认 (不加载 legacy) 口径下进行
@@ -62,9 +62,9 @@ try:
     # ---------------- 1. 真实注册表 ----------------
     print("1. 真实注册表 (默认口径)")
     mappings = pkg.NODE_CLASS_MAPPINGS
-    check("注册节点恰好 17 个 (16 超级 + Final 别名)", len(mappings) == 17, f"n={len(mappings)}")
-    missing = [n for n in EXPECTED_16 if n not in mappings]
-    check("16 个超级节点全部在册", not missing, f"missing={missing}")
+    check("注册节点恰好 18 个 (17 超级 + Final 别名)", len(mappings) == 18, f"n={len(mappings)}")
+    missing = [n for n in EXPECTED_SUPER if n not in mappings]
+    check("17 个超级节点全部在册", not missing, f"missing={missing}")
     check("Final 别名在册", "DirectorMasterFinal" in mappings)
     check("隔离清单为空 (全部健康加载)", pkg.DM_QUARANTINE == [], f"q={pkg.DM_QUARANTINE}")
     check("Final 别名与 Summary 同源 (同一个类对象)",
@@ -109,7 +109,7 @@ try:
           all(set(e) == {"target", "error", "phase"} for e in q1 + q2 + q3))
 
     # 隔离机制不得污染真实注册表
-    check("故障注入后真实注册表仍为 17 节点", len(pkg.NODE_CLASS_MAPPINGS) == 17)
+    check("故障注入后真实注册表仍为 18 节点", len(pkg.NODE_CLASS_MAPPINGS) == 18)
 
     # ---------------- 3. 版本口径一致性 ----------------
     # V16.3: 动态三处一致性校验 (意图不变: __version__/pyproject/README 必须同版),

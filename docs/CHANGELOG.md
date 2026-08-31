@@ -4,6 +4,26 @@
 
 ---
 
+## [v16.7.0-MERGED] - 2026-08-31 - 批次3 质量闭环 + 管线韧性
+
+### 新增 (Added)
+- `aggregator/review_engine.py` 独立审查引擎 + `DirectorMasterReview` 节点（注册口径 17→18）：干净上下文 13 项清单、编号化报告（R-001 起逐条附镜号/字段证据）、确定性轨（无端点可用）+ LLM 轨可选、CheckpointStore 断点续跑、判例库 NP 编号引用、"无法验证"诚实标注。
+- `aggregator/pipeline_checkpoint.py` CheckpointStore：逐产物"存在即跳过"断点续跑，input_hash 变更自动失效，Win32 os.replace 有界重试；`aggregator/impact_analysis.py` 修订影响面（核心包 diff→受影响下游清单，静态规则表 14 条）；Archive 提交对比上一版附 impact 段。
+- `aggregator/contract_render.py` 契约渲染层：契约 JSON→每镜七要素提示词确定性渲染（SEEDANCE_25/WAN_30/GENERIC 视图）。
+- pln_llm：echo 回声检测（difflib ≥0.95 拒收降级，质量门新检查）+ LLM 经济性模式（freeze_system system 字节级冻结，动态信息外置 [RUN]）。
+- `knowledge_base/quality_precedents/` 判例库 NP-001~012（规则+判例+自检问题+真实证据指针）；`benchmark/` 成本基准 runner（mock 通路已验，真实端点数据待用户提供）。
+- cinematic_studio additive：卖点→镜头位映射段 + 手法去重校验（同运镜/构图不得连续两镜当主角）。
+- 测试七组新增：render 35 / golden 20 / review 66 / dedup 34 / checkpoint 51 / impact 61 / llm_resilience 117（+7）。
+
+### 修复 (Fixed)
+- golden 回放首跑暴露 fixture 缺批次3 新键（按 --regen 设计口径收口）；checkpoint Win32 并发 os.replace 竞态（有界重试）；判例库 3 条证据指针行号漂移（逐条重对齐）。
+
+### 口径 (Changed)
+- 注册口径 17→18 节点（+DirectorMasterReview），创作模式 244→247（manifest 同步）；契约注册表 18→19 顶层键（吸收"手法去重"）。
+
+### 已知风险
+- 4 个 Cinematic 节奏模式（蒙太奇大师/一秒三闪/子弹时间/MV 慢镜）在部分输入下触发契约 invalid-duration 既有口径差异（差分证明早于批次3，修复权属批次6 契约 v2 时长口径统一）。
+
 ## [v16.6.0-MERGED] - 2026-08-30 - 批次2 知识资产工程 + 分镜契约基座（并入 V16.3-V16.5 迭代后顺延编号）
 
 ### 背景

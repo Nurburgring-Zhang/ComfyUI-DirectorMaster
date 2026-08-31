@@ -588,6 +588,157 @@ def _parse_script_shot_drivers(script_text):
 #   凤梨罐头/厨房/杜可风 内容, 违反零虚假红线。
 
 
+# ============================================================
+# V16.7 批次3 B2 (纯增量): 卖点映射 + 手法去重校验 (设计文档 §8, D8)
+#   ① 卖点映射: 卖点/主题清单 → 镜头位映射, 漏拍=返工提示;
+#      无卖点输入时文本段与分镜JSON'卖点映射'键整体缺席。
+#   ② 手法去重校验: 同一运镜词/构图模板不得连续两镜当镜头主角,
+#      违规进诊断列表 (只诊断不改写, 镜头既有字段零变更)。
+#   两段均为 additive: 不增删既有键, 全确定性 (同输入同输出, 无时间戳/无随机)。
+# ============================================================
+
+# 卖点匹配扫描的镜头字段 (内部英文键; 覆盖画面内容/首帧/叙事目的/设计/构图/景别/运镜)
+_SP_SCAN_KEYS = ("focus", "首帧描述", "purpose", "note", "composition", "size", "move")
+
+_DEDUP_NOTE = ("同一运镜词/构图模板连续≥2镜当镜头主角各记 1 条违规 "
+               "(复合词取首段, 如'快切+推拉'按'快切'); 只诊断不改写, 分镜既有键零变更。")
+
+
+def _split_selling_points(raw):
+    """卖点清单文本 → 去重保序的卖点列表 (逗号/顿号/分号/换行分隔)。"""
+    parts = _re.split(r"[,，、;；\n]+", str(raw or ""))
+    seen, out = set(), []
+    for p in parts:
+        p = p.strip()
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
+def _point_in_text(p, t):
+    """单卖点是否承载于一镜文本 (确定性三级匹配):
+    1. 全文子串命中;
+    2. 显式分段 (空白/斜杠/加号分隔, 各段≥2字) 全部命中 (AND);
+    3. 无分隔复合词 (≥4字, 如'机甲变身'): 任一切分位 (两段各≥2字) 两段都命中。
+    """
+    if p in t:
+        return True
+    segs = [x for x in _re.split(r"[\s/／+＋]+", p) if x]
+    if len(segs) > 1 and all(len(x) >= 2 and x in t for x in segs):
+        return True
+    if len(segs) == 1 and len(p) >= 4:
+        for k in range(2, len(p) - 1):
+            if p[:k] in t and p[k:] in t:
+                return True
+    return False
+
+
+def build_selling_point_map(raw, shots):
+    """V16.7 B2: 卖点/主题清单 → 镜头位映射 (确定性子串匹配)。
+
+    匹配规则见 _point_in_text (全文 / 显式分段 AND / 复合词切分 AND)。
+    返回 list[dict]: 每卖点 {卖点, 命中镜号(list[int]), 首镜(int, 0=未命中), 覆盖(bool)};
+    未覆盖卖点附 '返工提示' 键 (漏拍=返工)。无有效卖点或 shots 为空 → [] (上层段缺席)。
+    """
+    points = _split_selling_points(raw)
+    if not points or not shots:
+        return []
+    texts = []
+    for s in shots:
+        if not isinstance(s, dict):
+            texts.append("")
+            continue
+        texts.append(" ".join(str(s.get(k, "") or "") for k in _SP_SCAN_KEYS))
+    result = []
+    for p in points:
+        hits = []
+        for i, t in enumerate(texts):
+            if _point_in_text(p, t):
+                s_i = shots[i] if isinstance(shots[i], dict) else {}
+                n = s_i.get("n", i + 1)
+                try:
+                    n = int(n)
+                except (TypeError, ValueError):
+                    n = i + 1
+                hits.append(n)
+        entry = {"卖点": p, "命中镜号": hits, "首镜": hits[0] if hits else 0,
+                 "覆盖": bool(hits)}
+        if not hits:
+            entry["返工提示"] = ("漏拍=返工: 该卖点未映射到任何镜头 "
+                                 "(画面焦点/首帧/叙事目的/构图均无承载), 需补拍或改写画面焦点")
+        result.append(entry)
+    return result
+
+
+def render_selling_point_block(sp_map):
+    """卖点映射 → 【卖点映射】文本段 (确定性; 空映射返回 "", 上层段缺席)。"""
+    if not sp_map:
+        return ""
+    lines = ["【卖点映射】卖点/主题 → 镜头位 (口径: 画面焦点/首帧/叙事目的/构图承载; 漏拍=返工提示)"]
+    for i, e in enumerate(sp_map, 1):
+        nums = ", ".join(str(n) for n in e.get("命中镜号", []))
+        if e.get("覆盖"):
+            lines.append("  %d. %s → 镜 %s (首镜 %s, 共 %s 镜承载)" % (
+                i, e.get("卖点", ""), nums or "-", e.get("首镜", 0),
+                len(e.get("命中镜号", []))))
+        else:
+            lines.append("  %d. %s → 未命中 — %s" % (
+                i, e.get("卖点", ""), e.get("返工提示", "漏拍=返工")))
+    covered = sum(1 for e in sp_map if e.get("覆盖"))
+    missed = "、".join(e.get("卖点", "") for e in sp_map if not e.get("覆盖"))
+    lines.append("覆盖: %d/%d 卖点已映射; 未覆盖: %s" % (covered, len(sp_map), missed or "无"))
+    return "\n".join(lines)
+
+
+def check_technique_dedup(shots):
+    """V16.7 B2: 手法去重校验 — 同一运镜词/构图模板不得连续两镜当镜头主角。
+
+    纯只读 (不修改 shots), 全确定性。返回诊断报告 dict:
+      {校验口径, 镜数, 违规数, 运镜违规: [...], 构图违规: [...]}
+    每条违规: {类型, 手法, 连续镜号(list[int]), 连续镜数(int), 区间("a-b")};
+    同一连续段只记 1 条 (3 连镜=1 条, 不按对拆分)。shots 少于 2 镜 → 零违规。
+    """
+    report = {"校验口径": _DEDUP_NOTE, "镜数": len(shots) if isinstance(shots, list) else 0,
+              "违规数": 0, "运镜违规": [], "构图违规": []}
+    if not isinstance(shots, list) or len(shots) < 2:
+        return report
+
+    def _primary(word):
+        w = str(word or "").strip()
+        return _re.split(r"[+＋/／]", w)[0].strip() if w else ""
+
+    def _runs(key_of):
+        runs, cur_w, cur_ns = [], None, []
+        for i, s in enumerate(shots):
+            if not isinstance(s, dict):
+                continue
+            w = key_of(s)
+            n = s.get("n", i + 1)
+            try:
+                n = int(n)
+            except (TypeError, ValueError):
+                n = i + 1
+            if w and w == cur_w:
+                cur_ns.append(n)
+            else:
+                if cur_w and len(cur_ns) >= 2:
+                    runs.append((cur_w, cur_ns))
+                cur_w, cur_ns = (w, [n]) if w else (None, [])
+        if cur_w and len(cur_ns) >= 2:
+            runs.append((cur_w, cur_ns))
+        return runs
+
+    for w, ns in _runs(lambda s: _primary(s.get("move"))):
+        report["运镜违规"].append({"类型": "运镜", "手法": w, "连续镜号": ns,
+                                   "连续镜数": len(ns), "区间": "%d-%d" % (ns[0], ns[-1])})
+    for w, ns in _runs(lambda s: str(s.get("composition", "") or "").strip()):
+        report["构图违规"].append({"类型": "构图", "手法": w, "连续镜号": ns,
+                                   "连续镜数": len(ns), "区间": "%d-%d" % (ns[0], ns[-1])})
+    report["违规数"] = len(report["运镜违规"]) + len(report["构图违规"])
+    return report
+
+
 class DirectorMasterCinematic(DirectorNodeBase):
     """画面执行聚合节点 — 5 合 1."""
     NODE_TYPE = "画面"
@@ -668,6 +819,9 @@ class DirectorMasterCinematic(DirectorNodeBase):
             "AIGC生产模式": (["自动判别", "文生视频", "首帧生视频", "首尾帧生视频", "多参考图生视频", "参考视频生视频"],
                 {"default": "自动判别",
                 "tooltip": "V16.0 需求4: AIGC 视频生产适配. 自动判别=按首尾帧/参考图/参考视频输入自动判定; 或手动指定. 分镜JSON按模式适配输出"}),
+            # V16.7 批次3 B2 (纯增量): 卖点清单 → 分镜输出追加【卖点映射】段 (漏拍=返工提示; 无输入缺席)
+            "卖点清单": ("STRING", {"default": "", "multiline": True,
+                "tooltip": "★ V16.7 卖点映射: 逗号/顿号/分号/换行分隔的卖点或主题清单 (例: '机甲变身, 暴雨, 父女和解'). 非空时分镜输出追加【卖点映射】段: 每个卖点→承载镜头位; 未覆盖卖点=漏拍返工提示. 留空则该段与分镜JSON'卖点映射'键缺席"}),
         }}
 
     RETURN_TYPES = ("STRING", "STRING")
@@ -988,7 +1142,18 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 import sys as _ar_s
                 _ar_s.stderr.write(f"[DirectorMaster] 分镜叙事编排降级: {type(_ar_e).__name__}\n")
 
+        # === V16.7 批次3 B2 (纯增量): 卖点映射 + 手法去重校验 —
+        #   在镜头序列全部定稿 (叙事编排重排之后) 计算, 保证镜号即最终银幕序。
+        #   卖点映射: 仅当 卖点清单 输入非空时生成 (无输入 → 段与JSON键缺席);
+        #   手法去重: 只诊断不改写, 违规进 JSON 诊断键, 既有键/既有文本零变更。 ===
+        _sp_input = str(kwargs.get("卖点清单", "") or "")
+        _sp_map = build_selling_point_map(_sp_input, shots) if _sp_input.strip() else []
+        _sp_block = render_selling_point_block(_sp_map)
+        _dedup_report = check_technique_dedup(shots)
+
         main = format_shot_table(director, mood, shots)
+        if _sp_block:
+            main += "\n\n" + _sp_block
 
         # 视觉参数 — V13.3 场景/年代驱动 (不再固定蓝绿雨夜)
         try:
@@ -1255,6 +1420,12 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "Asset": "已应用" if asset_in else "未连接",
             },
         }
+        # V16.7 批次3 B2 (纯增量): 手法去重诊断 + 卖点映射 (仅卖点输入非空时整键出现)。
+        # 既有键零增删; 契约 v1 校验器将新键按 unknown-field 警告收进 normalized.extra
+        # (warning 非错误, 不触发分镜契约 stderr 上报门槛)。
+        _storyboard_payload["手法去重"] = _dedup_report
+        if _sp_map:
+            _storyboard_payload["卖点映射"] = _sp_map
 
         # V16.3 批次2: 分镜契约 v1 additive 接线 (builder-contract 所有) —
         # 注入 contract_version=1 + 侧带 validate_storyboard。校验发现内部不一致 →

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ComfyUI-DirectorMaster V16.6.0-MERGED — 17 注册节点 (16 超级节点 + Final 别名) + 600 导演库
+ComfyUI-DirectorMaster V16.7.0-MERGED — 18 注册节点 (17 超级节点 + Final 别名) + 600 导演库
 ====================================================================
 V16.5.0 场景实体引擎 (参考真实生产级 AI 视频提示词标准库的"真实素材设计"范式):
   · aggregator/scene_entity.py: 实体提取(角色/道具/地点/天气/色彩/动作) + 设备美学包
@@ -45,7 +45,7 @@ V16.2.0 批次1 — LLM 链路健壮性加固 + 加载崩溃隔离 (六仓经验
   · 节点加载崩溃隔离 (失败入 DM_QUARANTINE 隔离清单, 不拖垮其余节点)
   · doctor 9 类诊断 (新增"加载隔离与 LLM 容错"、"模式卡与分镜契约一致性")
 
-17 注册节点 (Core 驱动 + forceInput):
+18 注册节点 (Core 驱动 + forceInput):
   1. DirectorMasterCore         — 起点 → 统一电影提示词 + 核心数据包
   2. DirectorMasterScript       — 剧本 46 模式
   3. DirectorMasterVibe         — 创意 23 模式
@@ -63,6 +63,7 @@ V16.2.0 批次1 — LLM 链路健壮性加固 + 加载崩溃隔离 (六仓经验
  15. DirectorMasterIntuition    — V15.0 直觉引擎
  16. DirectorMasterFusion       — V15.0 风格融合
  17. DirectorMasterFinal        — DirectorMasterSummary 兼容别名
+ 18. DirectorMasterReview       — 独立审查 (V16.7 批次3: 干净上下文 13 项清单, 快速结构/全量/对比分镜, 断点续跑)
 
 工作流: Core 节点 (forceInput 唯一入口) → 下游节点用 forceInput 接核心数据包。
 自检: python doctor.py。
@@ -95,6 +96,7 @@ _NODE_SPECS = [
     ("aggregator.archive_master", "DirectorMasterArchive"),          # V13 归档 (真实写盘)
     ("aggregator.v15_nodes", ("DirectorMasterCoCreator", "DirectorMasterSoul",
                               "DirectorMasterIntuition", "DirectorMasterFusion")),  # V15.0 AI 赋能
+    ("aggregator.review_engine", "DirectorMasterReview"),            # V16.7 批次3 D6 独立审查
 ]
 
 DM_QUARANTINE = []
@@ -153,15 +155,17 @@ _ALL_DISPLAY_NAMES = {
     "DirectorMasterSoul": "💠 灵魂 [V15.0 灵魂引擎: 创作者体验→物件/动作/沉默母题, 场景驱动零罐头]",
     "DirectorMasterIntuition": "⚡ 直觉 [V15.0 直觉引擎: 确定性反常规镜头语法, 风险分级 safe/bold/chaotic]",
     "DirectorMasterFusion": "🎨 融合 [V15.0 风格融合: 主0.6/次0.3/反0.1 确定性融合, 反风格突破指令]",
+    "DirectorMasterReview": "🔍 审查 [独立审查·13 项清单: 快速结构/全量/对比分镜 — 干净上下文+编号报告+断点续跑]",
 }
 NODE_DISPLAY_NAME_MAPPINGS = {k: v for k, v in _ALL_DISPLAY_NAMES.items() if k in NODE_CLASS_MAPPINGS}
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "DM_QUARANTINE", "load_node_classes"]
 
 # =====================================================================
-# V15.0-MERGED: 16 超级节点 + DirectorMasterFinal 别名 (共 17 注册)。
+# V15.0-MERGED: 17 超级节点 + DirectorMasterFinal 别名 (共 18 注册)。
 # 每个超级节点以下拉框聚合几十种模式, 能力全覆盖。
 # V15.0 新增 3 个 AI 赋能节点 (共创/灵魂/直觉), 全部确定性可降级。
+# V16.7 批次3 新增独立审查节点 (DirectorMasterReview, aggregator/review_engine.py)。
 # V14 之前的 46 个 legacy 细粒度节点作为可选兼容层保留 (V16.0 修订: 恢复 V14.2 的兼容机制):
 #   默认不注册 (避免节点选择器臃肿); 设环境变量 DIRECTORMASTER_LEGACY_NODES=1 恢复全部 legacy 节点。
 #   (其中 mv_pro/picture_book_pro/comic_drama_pro 等引擎库同时被超级节点作为内部引擎接线。)
@@ -279,15 +283,15 @@ if "DirectorMasterSummary" in NODE_CLASS_MAPPINGS:
 else:
     print("[DirectorMaster] DirectorMasterSummary 已隔离, Final 别名同步不下发")
 
-# 标记 V16.6.0-MERGED 版本 (V16.6.0 批次2: 知识资产工程 + 分镜契约基座; 并入他端 V16.3 随机引擎诚实化 / V16.4 情节拓扑 / V16.5 场景实体; 批次1: LLM 链路加固 + 加载隔离)
-__version__ = "16.6.0"
+# 标记 V16.7.0-MERGED 版本 (V16.7.0 批次3: 质量闭环+管线韧性; 批次2: 知识资产工程+分镜契约基座; 批次1: LLM 链路加固+加载隔离)
+__version__ = "16.7.0"
 __description__ = ("V15.0-MERGED = V14.3-MERGED + AI赋能升级。"
                    "导演库534→600(当代新锐/跨界/非西方66位真实导演17维); 风格融合(主0.6/次0.3/反0.1确定性); "
                    "直觉引擎(确定性反常规镜头语法8规则, 真实作者电影依据); 灵魂引擎(创作者体验→物件/动作/沉默母题, 零罐头); "
                    "多模态理解(真实图像分析, 音视频诚实降级); 共创引擎(五阶段循环: 失败记忆/方向分支/门阵/精炼/预算收敛, "
                    "基于Self-Refine/Reflexion/GoT/Best-of-N研究, 无端点确定性可运行); 反AI正则检测层。"
-                   "新增4节点: CoCreator/Soul/Intuition/Fusion → 16超级节点+Final别名=17注册。"
-                   "V16.0.1修订: 恢复46个legacy细粒度节点可选兼容层(DIRECTORMASTER_LEGACY_NODES=1 → 63节点, 0加载错误)。"
+                   "新增4节点: CoCreator/Soul/Intuition/Fusion → 17超级节点+Final别名=18注册(批次3新增DirectorMasterReview独立审查)。"
+                   "V16.0.1修订: 恢复46个legacy细粒度节点可选兼容层(DIRECTORMASTER_LEGACY_NODES=1 → 64节点, 0加载错误)。"
                    "V16.1输出AIGC化: 叙事编排引擎(正叙/倒叙结果先行/穿插倒叙/穿插乱叙/循环叙事 × 单线/双线/三线/POV, "
                    "确定性时序重排+时间线/线索图谱+导演批注+字幕位); 每镜七要素AIGC提示词(参考绑定/主体动作/空间/镜头/视觉/音频/约束, "
                    "Seedance2.5/Wan3.0官方手册范式)+首帧提示词+音频三轴声学; 短形态AIGC五段结构(核心主题/人物设定/氛围画质/运镜规则/画面内容+结尾克制+模型建议+自检); "
@@ -309,4 +313,9 @@ __description__ = ("V15.0-MERGED = V14.3-MERGED + AI赋能升级。"
                    "frontmatter八键+意图/核心手法/参数表典型值与越界后果/已知坑/节点映射实现指针, 单一事实源mode_manifest.json含排除审计表, 口径246→244诚实修正); "
                    "sync索引自动生成(全量--check零漂移, 孤儿/缺字段/错目录/名称错配/漂移硬失败); "
                    "分镜JSON契约v1(三态字段+11诊断码+相对镜头表达式拓扑解析与环检测+永不抛宽容解析, Cinematic additive接线仅增contract_version键); "
+                   "批次3(质量闭环+管线韧性, 六仓二轮思想独立重写): echo回声检测入质量门+LLM经济性模式(system字节级冻结开关); "
+                   "契约渲染层(契约JSON→每镜提示词确定性渲染, 三模型侧重视图); golden回放(固定种子42结构级零漂移); "
+                   "产物检查点断点续跑(CheckpointStore, hash失效自动重算); 修订影响面分析(Archive提交对比上一版附impact段); "
+                   "独立审查节点DirectorMasterReview(干净上下文13项清单, 编号报告+镜号证据, 确定性轨无端点可用, LLM轨可选); "
+                   "判例库NP-001~012(证据指针全真实); 卖点→镜头映射+手法去重校验; benchmark/成本基准 runner; 注册口径18节点/247创作模式); "
                    "零第三方依赖纪律不变(仅stdlib)。")

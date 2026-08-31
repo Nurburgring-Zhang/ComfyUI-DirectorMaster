@@ -1,8 +1,8 @@
 {
   "suite": "test_llm_resilience",
-  "version": "16.2.0",
-  "timestamp": "2026-08-30 19:35:44",
-  "pass": 110,
+  "version": "16.7.0",
+  "timestamp": "2026-08-31 16:41:02",
+  "pass": 117,
   "fail": 0,
   "results": [
     {
@@ -43,7 +43,7 @@
     {
       "label": "T2 两次退避睡眠且递增",
       "ok": true,
-      "detail": "sleeps=[1.5464386853354624, 2.352657121137484]"
+      "detail": "sleeps=[1.5572043829633806, 2.7597249968358444]"
     },
     {
       "label": "T3 请求序列 A,A,B",
@@ -118,7 +118,7 @@
     {
       "label": "T5 recovered 标记",
       "ok": true,
-      "detail": "meta={'url': 'http://127.0.0.1:62995/v1/chat/completions', 'model': 'A', 'levels_tried': 1, 'attempts': 0, 'fallback_used': False, 'recovered': True, 'compression': None, 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
+      "detail": "meta={'url': 'http://127.0.0.1:54808/v1/chat/completions', 'model': 'A', 'levels_tried': 1, 'attempts': 0, 'fallback_used': False, 'recovered': True, 'compression': None, 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
     },
     {
       "label": "T5 状态恢复 primary_ok 且失败清零",
@@ -208,7 +208,7 @@
     {
       "label": "T7b levels_tried=2 且 fallback_used",
       "ok": true,
-      "detail": "meta={'url': 'http://127.0.0.1:63029/v1/chat/completions', 'model': 'bigctx', 'levels_tried': 2, 'attempts': 3, 'fallback_used': True, 'recovered': False, 'compression': 'aggressive', 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
+      "detail": "meta={'url': 'http://127.0.0.1:54853/v1/chat/completions', 'model': 'bigctx', 'levels_tried': 2, 'attempts': 3, 'fallback_used': True, 'recovered': False, 'compression': 'aggressive', 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
     },
     {
       "label": "T7b OVERFLOW 计入降级阈值 (失败计数=1)",
@@ -554,6 +554,41 @@
       "label": "T16 503+溢出短语判 OVERFLOW (备用模型上下文可能更大)",
       "ok": true,
       "detail": ""
+    },
+    {
+      "label": "T17a 改写后高相似判回声 (hit=True 且 ratio≥0.95)",
+      "ok": true,
+      "detail": "hit=True ratio=0.9743589743589743"
+    },
+    {
+      "label": "T17b 正常改写不判回声 (hit=False 且 ratio<0.95)",
+      "ok": true,
+      "detail": "hit=False ratio=0.19548872180451127"
+    },
+    {
+      "label": "T17c 长度差>4倍大文本 O(1) 短路 (False + 相似比上界 + 亚秒级, 防大文本 O(n²))",
+      "ok": true,
+      "detail": "hit=False ratio=0.3157894736842105 bound=0.3157894736842105 dt=0.0000s"
+    },
+    {
+      "label": "T17d 阈值边界 (0.95 恰命中 / +微差 0.951 即不命中, ≥阈值判回声)",
+      "ok": true,
+      "detail": "hit95=True r95=0.95 hit_ov=False r_ov=0.95"
+    },
+    {
+      "label": "T17e 冻结 system 跨链内重试+两次 call_ai_ex+call_ai 透传逐字节一致 (纯静态前缀)",
+      "ok": true,
+      "detail": "errs=// n=4 ma=True/1"
+    },
+    {
+      "label": "T17f 动态信息整体外置 user 头部 [RUN] 段且不出现在任何 system 中",
+      "ok": true,
+      "detail": "users=['[RUN] 日期: 2026-08-31 | 种子: 42 ', '[RUN] 日期: 2026-08-31 | 种子: 42 ', '[RUN] 日期: 2026-08-31 | 种子: 42 ', '[RUN] 日期: 2026-08-31 | 种子: 42 ']"
+    },
+    {
+      "label": "T17g 默认关闭行为与旧路径逐字节一致 (system/user 原样透传含 [RUN] 行, meta 无冻结键)",
+      "ok": true,
+      "detail": "err= req_system='你是资深剧本医生, 只输出修订稿。\\n遵循反AI词表与导演档案'"
     }
   ]
 }

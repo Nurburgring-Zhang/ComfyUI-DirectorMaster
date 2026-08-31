@@ -3,8 +3,8 @@
 tools/dump_mode_manifest.py — 模式卡 manifest 单一事实源 (V16.3.0 批次2 / 设计 §1)
 ================================================================================
 黑盒加载本包 (与 tests/test_load_isolation.py 同法: importlib spec + pop legacy 环境变量),
-从 tests/test_all_modes.py 的 MODE_KEY 提取 "10 个模式下拉" 口径锚点 (AST 解析, 不执行测试),
-对 10 个节点的模式下拉逐个读取真实 INPUT_TYPES() 枚举, 按审计规则排除非创作选项后
+从 tests/test_all_modes.py 的 MODE_KEY 提取模式下拉口径锚点 (AST 解析, 不执行测试),
+对全部模式节点逐个读取真实 INPUT_TYPES() 枚举, 按审计规则排除非创作选项后
 落盘 tests/mode_manifest.json。
 
 审计规则 (排除 = 非创作选项, 逐条给理由, 理由内附实现文件+分支证据):
@@ -14,7 +14,7 @@ tools/dump_mode_manifest.py — 模式卡 manifest 单一事实源 (V16.3.0 批�
       Archive"自动保存全部资产"。
   R3 纯别名重复: 下拉内逐字重复项 — 出现即硬失败上报 (当前 258 个选项无重复)。
 
-诚实阀门: 审计后 total_creative != 246 (README 口径) 时不凑数 — manifest 落盘真实数字,
+诚实阀门: 审计后 total_creative 与 README 口径不符时不凑数 — manifest 落盘真实数字,
 stdout 显著打印审计差异, 由编排者裁决口径。
 
 用法:
@@ -45,9 +45,9 @@ DEFAULT_SCHEMA = os.path.join(ROOT, "knowledge_base", "mode_cards", "SCHEMA.md")
 DEFAULT_TEMPLATE = os.path.join(ROOT, "knowledge_base", "mode_cards", "_TEMPLATE.md")
 
 FINAL_ALIAS = "DirectorMasterFinal"
-EXPECTED_REGISTRY = 17   # 16 超级 + Final 别名
-EXPECTED_SUPER = 16
-README_CREATIVE_CLAIM = 246  # README "质量验证" 节的创作模式口径 (诚实阀门对账基准)
+EXPECTED_REGISTRY = 18   # 17 超级 + Final 别名 (V16.7 批次3: +DirectorMasterReview)
+EXPECTED_SUPER = 17
+README_CREATIVE_CLAIM = 247  # README "质量验证" 节的创作模式口径 (诚实阀门对账基准)
 RANDOM_OPTION = "🎲 随机"
 
 # 节点 → 聚合模块 (供排除理由引用, 与 __init__.py _NODE_SPECS 同源)
@@ -62,6 +62,7 @@ _NODE_MODULE = {
     "DirectorMasterRouter": "aggregator/router.py",
     "DirectorMasterVideoRouter": "aggregator/video_router_master.py",
     "DirectorMasterArchive": "aggregator/archive_master.py",
+    "DirectorMasterReview": "aggregator/review_engine.py",
 }
 
 # R2 聚合/自动批量排除表: (节点, 选项) → 理由 (含实现文件+分支证据)
@@ -112,8 +113,8 @@ def get_mode_widgets(tests_dir=None):
                         if (isinstance(k, ast.Constant) and isinstance(v, ast.Tuple)
                                 and v.elts and isinstance(v.elts[0], ast.Constant)):
                             out[k.value] = v.elts[0].value
-                    if len(out) != 10:
-                        raise AuditError(f"MODE_KEY 锚点解析出 {len(out)} 对 (期望 10 个模式下拉)")
+                    if len(out) != 11:
+                        raise AuditError(f"MODE_KEY 锚点解析出 {len(out)} 对 (期望 11 个模式下拉)")
                     return out
     raise AuditError("test_all_modes.py 中未找到 MODE_KEY 锚点")
 
@@ -135,7 +136,7 @@ def load_registry():
 
 
 def check_registry_shape(mappings):
-    """校验 17 注册 / 16 超级 / Final 别名同源; 返回超级类名集合。"""
+    """校验 18 注册 / 17 超级 / Final 别名同源; 返回超级类名集合。"""
     if len(mappings) != EXPECTED_REGISTRY:
         raise AuditError(f"注册表 {len(mappings)} 个节点 (期望 {EXPECTED_REGISTRY})")
     if mappings.get(FINAL_ALIAS) is not mappings.get("DirectorMasterSummary"):
@@ -217,17 +218,17 @@ def print_audit(manifest):
             print(f"  排除 [{node}] {e['option']}")
             print(f"         理由: {e['reason']}")
     print("-" * 66)
-    print(f"  下拉枚举总数 {raw_total} (tests/test_all_modes.py 全模式回归口径 258)"
+    print(f"  下拉枚举总数 {raw_total} (tests/test_all_modes.py 全模式回归口径 261)"
           f" → 排除 {ex_total} → total_creative = {total}")
     if total != README_CREATIVE_CLAIM:
         print()
         print("*" * 66)
         print(f"  ⚠ 诚实阀门触发: 审计后 total_creative = {total} != README 口径 "
               f"{README_CREATIVE_CLAIM} (差 {total - README_CREATIVE_CLAIM:+d})")
-        print(f"  差异构成: {README_CREATIVE_CLAIM} = 258 - 10×🎲随机 - 2×'全部(...)'拼接聚合;"
-              f" 本审计按 R2 规则额外排除 VideoRouter'全部生成' 与 Archive'自动保存全部资产'")
-        print("  (默认/自动批量通道, 产物为兄弟选项并集)。manifest 落盘真实数字, 不凑数;")
-        print("  246 如何对齐由编排者裁决 (接受 244, 或裁定上述 2 项为创作模式并修订规则)。")
+        print(f"  差异构成: {README_CREATIVE_CLAIM} = {raw_total} - 11×🎲随机 - 2×'全部(...)'拼接聚合"
+              f" - 1×VideoRouter'全部生成' - 1×Archive'自动保存全部资产'")
+        print("  (后两项为默认/自动批量通道, 产物为兄弟选项并集)。manifest 落盘真实数字, 不凑数;")
+        print("  与 README 口径不符时由编排者裁决 (改文案或修订规则)。")
         print("*" * 66)
 
 
@@ -292,7 +293,7 @@ def cmd_verify(manifest_path, schema_path, template_path):
         if rec is not None and rec.get("widget") != widget:
             problems.append(f"{node}: manifest.widget={rec.get('widget')!r} != 锚点 {widget!r}")
     if not problems:
-        print("  [OK] 节点集合与模式下拉 widget 与锚点一致 (10 对)")
+        print(f"  [OK] 节点集合与模式下拉 widget 与锚点一致 ({len(widgets)} 对)")
 
     # 4/5. 逐节点: live 枚举逐位一致 + 审计规则重建一致 + 分区计数
     total_live = 0
@@ -324,9 +325,9 @@ def cmd_verify(manifest_path, schema_path, template_path):
             problems.append(f"{node}: creative 含 live 枚举之外的项: {sorted(c_set - set(opts))}")
     _node_problems = [p for p in problems if p.split(":", 1)[0] in widgets]
     if not _node_problems:
-        print(f"  [OK] 10 节点 live 枚举逐位一致 (合计 {total_live} 选项, 口径 258)"
-              if total_live == 258 else
-              f"  [OK] 10 节点 live 枚举逐位一致 (合计 {total_live} 选项)")
+        print(f"  [OK] {len(widgets)} 节点 live 枚举逐位一致 (合计 {total_live} 选项, 口径 261)"
+              if total_live == 261 else
+              f"  [OK] {len(widgets)} 节点 live 枚举逐位一致 (合计 {total_live} 选项)")
 
     # 6. 计数
     total_manifest = manifest.get("total_creative")
