@@ -32,3 +32,4 @@ tests/*_results.json
 
 # benchmark 运行产物 (逐请求 CSV — 本地生成, 不入库)
 benchmark/results/
+.acs/
