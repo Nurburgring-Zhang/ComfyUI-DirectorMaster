@@ -2,7 +2,7 @@
 
 **导演级 AI 影视创作 ComfyUI 节点包** — 一句话创意 → 剧本 → 分镜 → AIGC 镜头级提示词，直供 Seedance / Wan / LTX / Hailuo / Sora 等主流视频生成模型。
 
-`V16.7.0-MERGED` · 18 注册节点（17 超级 + Final 别名，可选扩展至 64 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
+`V16.8.0-MERGED` · 18 注册节点（17 超级 + Final 别名，可选扩展至 64 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
 
 ---
 
@@ -100,8 +100,12 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 - 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 18 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
 - 独立对抗验证（V16.3.0）：12 断言全过 / FAIL=0 —— 全节点 × 1100+ 次畸形输入（超长/Unicode/控制字符/畸形 JSON/异常种子）零崩溃；种子语义属性测试（种子0真随机非恒定、固定种子全链逐字节可复现、多种子分布多样）；独立口径复测导演库规模/唯一性/档案维度；final_capability_audit 30 轮全随机链路审计全部通过
 - 模式卡语料与索引（V16.6.0 批次2）：244/244 卡与 manifest 对账零漂移（tools/sync_mode_index.py --check）；孤儿卡/缺必填字段/错目录/名称错配/索引漂移 5 类负样本硬失败实测复现（8 断言全过）；实现指针双盲抽查 29 卡 × 10 目录全命中
-- 分镜 JSON 契约 v1（批次2 起）：82 断言全过 / FAIL=0 —— 11 诊断码可达（含相对引用环检测）、41 例对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、接线 additive 证明（新旧产物对比仅增 contract_version 键、文本逐字一致）；V16.4/V16.5 增量键已吸收进契约注册表；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
+- 分镜 JSON 契约 v1→v2（批次2 起，批次6 升 v2）：83 断言全过 / FAIL=0 —— 14 诊断码可达（含相对引用环检测、槽位双射/越界拦截）、对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、v1 文件结构零漂移；V16.4/V16.5/V16.8 增量键已吸收进契约注册表；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
 - 独立审查引擎（V16.7.0 批次3 D6）：确定性轨 13 项清单核对（结构自检复用分镜契约 v1 诊断 + 规则核对：镜数/时长覆盖/字段完整/景别运镜多样性/场景锚定 60% 门槛/重复手法/元语言/空洞词）、编号化报告 R-001 起（每条附镜头号/字段证据）、「无法验证」显式标注（缺输入不猜测）、CheckpointStore 断点续跑（中断重入已完成阶段跳过、输入变更自动失效重算）、LLM 语义轨本地 OpenAI 兼容服务器实测、判例库缺位诚实降级——tests/test_review_node.py 全过
+- 角色 DNA 档案（V16.8.0 批次6）：8 维（眼型/脸型/发型/发色/肤色/体态/标志着装/气质锚）+ 禁词表 36 词拒绝抽象词（"神秘/高级"类不落档、计数入证据）；跨镜注入（角色卡→每镜提示词）；prompt block 超限按段边界截断不腰斩；merge 基座维度同管线禁词+白名单复核（同输入同判定）——tests/test_character_dna.py 54 断言全过；项目风格锚 `_项目风格锚` 确定性拼装经 core 包与第 3 路输出双通道下发，资产台账/视频路由/角色卡/cinematic 4 消费方条件注入缺键零漂移（golden 回放钉死锚字段）
+- 资产派生谱系（V16.8.0 批次6）：version_store 快照台账 + 四态词汇表（完整锚定/母版缺失/派生缺失/母版已更新待同步）；母版变更但快照入库失败时诚实标"待同步"绝不伪造一致性；首次入库/滞后/派生失效各有自解释说明；滞后确认不重复入库——tests/test_asset_lineage.py 57 断言全过
+- 视频路由槽位协议（V16.8.0 批次6）：Seedance 2.5 reference_images 按参考槽位升序注入；槽位映射折入载荷（槽位→数组下标 1:1、镜头槽位逐镜记录、prompt 标签核对）；缺槽（负数/越界）诚实跳过逐槽说明，绝不伪造占位；非法元素（str/bool）未入计划但如实记录"损坏元素"，双射硬校验归契约层——tests/test_contract_v2.py 58 断言全过
+- 时长口径统一（V16.8.0 批次6）：4 模式时长口径统一修复；plot_topology 时长归一对 NaN/Inf 病态输入守卫（诚实返回不扩散）；前镜时长断裂链诚实断开——tests/test_duration_consistency.py 27 断言全过
 
 ## 测试
 
@@ -119,8 +123,12 @@ python tests/test_adversarial.py     # V16.3.0 独立对抗验证 (12 断言: �
 python tests/test_random_full_v16.py # V16.4.0 全量随机+叙事拓扑 (73 断言)
 python tests/test_matrix_full.py     # V16.5.0 全维度矩阵 (71 用例: 时长×题材×叙事×主角×导演×视觉×运镜×LLM)
 python tools/sync_mode_index.py --check  # 模式卡索引一致性 (孤儿/缺卡/漂移硬失败)
-python tests/test_storyboard_contract.py # 分镜 JSON 契约 v1 (82 断言, 对抗输入零异常逃逸)
+python tests/test_storyboard_contract.py # 分镜 JSON 契约 v2 口径 (83 断言, 对抗输入零异常逃逸, v1 零漂移)
+python tests/test_contract_v2.py     # 批次6 契约v2槽位协议 (58 断言, 双射/越界/稀疏库/非法元素点名)
 python tests/test_contract_render.py  # 契约渲染层 (35 断言, 契约JSON→提示词确定性)
+python tests/test_character_dna.py   # 批次6 角色DNA档案 (54 断言, 禁词表/跨镜注入/段边界截断)
+python tests/test_asset_lineage.py   # 批次6 资产派生谱系 (57 断言, 四态词汇/快照台账/入库失败不伪造一致性)
+python tests/test_duration_consistency.py # 批次6 4模式时长口径统一 (27 断言, NaN/Inf守卫)
 python tests/test_golden_replay.py   # golden 回放 (20 断言, 固定种子42结构零漂移)
 python tests/test_review_node.py     # 独立审查节点 (66 断言, 确定性轨+LLM轨)
 python tests/test_mode_dedup.py      # 卖点映射+手法去重 (34 断言)
@@ -145,6 +153,17 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ---
 
 ## 版本历史
+
+### V16.8.0-MERGED（批次6：一致性资产化）
+
+- **来源与政策**：延续零代码借鉴纪律（六仓二轮经验思想层独立重写），零第三方依赖不变（仅 stdlib，本批新增 hashlib/re/math 均标准库）。
+- **角色 DNA 档**：8 维档案（眼型/脸型/发型/发色/肤色/体态/标志着装/气质锚）+ 禁词表 36 词（"神秘/高级"类抽象词不落档、计数入证据）；跨镜注入；prompt block 超限按段边界截断（回退最近分号，段完整不腰斩）；merge 基座维度过同管线禁词+白名单复核（build 与 merge 同输入同判定）——tests/test_character_dna.py 54 断言全过。
+- **项目风格锚**：`_项目风格锚` 导演风格确定性拼装（空段跳过、全空缺省串），core 包 + 第 3 路输出双通道下发；资产台账/视频路由/角色卡/cinematic 4 消费方统一 .get 条件注入，缺键零漂移（golden 回放钉死锚字段）。
+- **分镜契约 v2**：contract_version=2（合法集 {1,2}，生产链仍按 v1 兼容章输出），锚定库 + 每镜 参考槽位/锚定/机位锚 新增；诊断码 11→14；槽位↔prompt【参考@N】标签双射校验（非整数元素逐个点名）+ 库大小=整数键最大值+1（稀疏键不误报）；v1 文件结构零漂移——test_contract_v2.py 58 断言 + test_storyboard_contract.py 83 断言全过。
+- **资产派生谱系**：version_store 快照台账 + 四态词汇表（完整锚定/母版缺失/派生缺失/母版已更新待同步）；母版变更但快照入库失败时诚实标"待同步"，绝不伪造一致性；首次入库/滞后/派生失效各有自解释说明；滞后确认快照不重复入库——tests/test_asset_lineage.py 57 断言全过。
+- **视频路由槽位协议**：Seedance 2.5 reference_images 按参考槽位升序注入；槽位映射折入载荷（槽位→数组下标 1:1、镜头槽位逐镜记录、prompt 标签核对）；缺槽（负数/越界）诚实跳过逐槽说明，绝不伪造占位；非法元素（str/bool）未入计划但如实记录"损坏元素"，双射硬校验归契约层。
+- **时长口径统一**：4 模式时长口径统一修复；plot_topology 时长归一对 NaN/Inf 病态输入守卫（诚实返回不扩散）；前镜时长断裂链诚实断开——tests/test_duration_consistency.py 27 断言全过。
+- **注册口径**：18 注册节点 / 247 创作模式不变；版本三处口径 16.8.0（__version__/pyproject/README）。
 
 ### V16.7.0-MERGED（批次3：质量闭环 + 管线韧性）
 

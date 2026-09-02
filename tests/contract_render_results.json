@@ -1,6 +1,6 @@
 {
   "suite": "test_contract_render",
-  "version": "16.6.0",
+  "version": "16.8.0",
   "pass": 35,
   "fail": 0,
   "results": [

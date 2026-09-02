@@ -16,6 +16,7 @@ from aggregator.narrative_arrangement import (arrange_scenes, arrange_shots_by_s
                                               ARRANGEMENT_MODES, NARRATIVE_LINE_MODES)
 from aggregator import aigc_prompt_builder as _aigc_pb
 import re as _re
+import hashlib as _hashlib
 
 # V12.6 v8: 画面模式按 长/短/微/竖/短视/动漫/绘本/MV/广告 10 大类拆分
 CINE_MODES = [
@@ -237,6 +238,32 @@ def _clamp_int10(v):
         return max(1, min(10, int(round(float(v)))))
     except (TypeError, ValueError):
         return 5
+
+
+# 批次6 D6 机位锚 (数据层, 渲染消费不在本批): 张力→机位族, 同张力族内由 seed 域盐+镜号确定性变体
+_CAM_ANCHOR_FAMILIES = (
+    (3, ("平机位缓移", "低机位固定", "桌面机位")),
+    (6, ("肩高机位", "过肩机位", "腰际机位", "平机位缓推")),
+    (10, ("高机位俯拍", "手持晃动机位", "急推机位", "顶机位俯瞰")),
+)
+
+
+def _derive_camera_anchor(tension, size, move, salt, shot_no, light=""):
+    """机位锚 = 机位族选一/光影/运镜 (空段跳过); 同张力族内按域盐+镜号确定性变体, 零随机源."""
+    t = _clamp_int10(tension)
+    family = _CAM_ANCHOR_FAMILIES[0][1]
+    for cap, opts in _CAM_ANCHOR_FAMILIES:
+        if t <= cap:
+            family = opts
+            break
+    key = "{}|{}|{}|{}|{}".format(salt if salt is not None else "", shot_no, size, move, t)
+    idx = int(_hashlib.md5(key.encode("utf-8", "replace")).hexdigest(), 16) % len(family)
+    parts = [family[idx]]
+    if light:
+        parts.append(str(light)[:12])
+    if move:
+        parts.append(str(move)[:12])
+    return "/".join(parts)
 
 
 def _build_emotion_curve(shot_idx, total_shots, story_theory="三幕剧", director="王家卫", narrative_meta=None):
@@ -1314,6 +1341,8 @@ class DirectorMasterCinematic(DirectorNodeBase):
             _aigc_ctx = {"scene": scene, "director": director, "mood": mood,
                          "characters": ["主角"], "production_mode": _prod_mode}
 
+        # 批次6 D6: 机位锚域盐 (同张力族内确定性变体; seed 缺省时按镜头字段哈希, 仍零随机源)
+        _cam_salt = derive_seed(core.get("_随机种子"), "机位锚")
         shots_json = []
         for i, s in enumerate(shots):
             meta = narrative_meta[i] if i < len(narrative_meta) else {"line":"A","pov":"全知","timeline":"现在"}
@@ -1356,6 +1385,10 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 # V16.5 场景实体层 (纯增量): 构图四件套 + 真实首帧
                 "构图": s.get("composition", ""),
                 "首帧描述": s.get("首帧描述", s.get("stage_name", "")),
+                # 批次6 D6 机位锚 (数据层): 张力→机位族 + seed 域盐族内确定性变体
+                "机位锚": _derive_camera_anchor(s.get("tension_level", 5), s.get("size", ""),
+                                                s.get("move", ""), _cam_salt, s.get("n", i + 1),
+                                                light=str(s.get("stage_light", "") or "")),
             })
         # V14.3 E1: 浮点统一 1 位小数 (总时长/情感曲线)
         _total_dur = round(sum(float(str(s.get("时长", 0)).replace("s", "") or 0) for s in shots_json), 1)
@@ -1420,6 +1453,11 @@ class DirectorMasterCinematic(DirectorNodeBase):
                 "Asset": "已应用" if asset_in else "未连接",
             },
         }
+        # 批次6 D4 风格锚贯通: core 有值才注入顶层键 (v1 核心数据包缺键不炸, 不注入)
+        _style_anchor = core.get("_项目风格锚", "")
+        if _style_anchor:
+            _storyboard_payload["_项目风格锚"] = _style_anchor
+
         # V16.7 批次3 B2 (纯增量): 手法去重诊断 + 卖点映射 (仅卖点输入非空时整键出现)。
         # 既有键零增删; 契约 v1 校验器将新键按 unknown-field 警告收进 normalized.extra
         # (warning 非错误, 不触发分镜契约 stderr 上报门槛)。

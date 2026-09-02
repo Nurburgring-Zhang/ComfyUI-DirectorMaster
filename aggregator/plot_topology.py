@@ -19,6 +19,7 @@ aggregator/plot_topology.py — V16.4 情节拓扑引擎 (吸收自 V16.6-AIGC �
     (新增 narrative_tag/dur_note 键; tension_level 就近取整; 不改动既有键的语义)
 """
 import hashlib as _hl
+import math as _math
 
 COMPLEX_MODES = ["自动", "无", "套层叙事", "罗生门", "时间循环", "环形叙事"]
 
@@ -165,18 +166,30 @@ _LADDER_BY_BAND = {
 
 
 def _renorm_durations(shots, budget_sec, seed):
-    """V16.4 吸收修复: 阶段+张力驱动时长重塑, 总时长精确归一到预算 (兑现'总时长恒覆盖片长').
+    """V16.4 吸收修复 (批次6 D2 重做第三步): 阶段+张力驱动时长重塑, 总时长精确归一到预算
+    (兑现'总时长恒覆盖片长')。
 
     权重: 低张力(建立/留白)更长, 高张力(高潮/快切)更短, 确定性 jitter 防全同。
-    三步闭合: 加权目标 → 精确归一 → 1位小数取整+残差按比例摊回 (最终偏差 <0.1s 量级)。
-    返回 (修改的镜数, 原总时长)."""
+    三步闭合: 加权目标 → 精确归一 → 1位小数取整+0.2s 地板, 残差以 0.1s 为单位在能力池内
+    迭代摊回 (让出方池=可下探到 0.2s 以上的镜, 吸收方池=全部镜, 每轮重算残差, ≤10 轮,
+    按时长比例 largest-remainder 整数摊分, 禁止单镜整包倾倒);
+    病态预算 (budget_sec < 0.2s×有效镜数) 诚实跳过: 原时长保留, 返回 (0, total), 绝不产负值。
+    返回 (修改的镜数, 原总时长)。"""
     total = 0.0
+    n_active = 0
     for s in shots:
         try:
-            total += float(s.get("dur_sec", 0) or 0)
+            cur = float(s.get("dur_sec", 0) or 0)
         except (TypeError, ValueError):
-            total += 0.0
+            cur = 0.0
+        total += cur
+        if cur > 0:
+            n_active += 1
+    if not _math.isfinite(total) or not _math.isfinite(budget_sec):
+        return 0, total          # NaN/Inf 预算或时长: 病态输入诚实跳过 (R1 LOW-4, 不抛异常)
     if total <= 1 or budget_sec <= 1:
+        return 0, total
+    if budget_sec < 0.2 * n_active:
         return 0, total
     # 第一步: 加权目标 (张力驱动 + 确定性 jitter)
     scale = budget_sec / total
@@ -199,20 +212,55 @@ def _renorm_durations(shots, budget_sec, seed):
         return 0, total
     corr = budget_sec / tsum
     targets = [None if x is None else x * corr for x in targets]
-    # 第三步: 取整 + 残差摊回 (残差只会在长镜上按比例分摊, 单镜扰动 ≤0.1s 量级)
-    rounded = [None if x is None else max(0.2, round(x, 1)) for x in targets]
-    residual = round(budget_sec - sum(x for x in rounded if x), 1)
-    pool = [i for i, x in enumerate(rounded) if x and x >= 1.0]
-    if pool and abs(residual) >= 0.1:
-        pool_sum = sum(rounded[i] for i in pool)
-        for i in pool:
-            rounded[i] = round(rounded[i] + residual * rounded[i] / pool_sum, 1)
-        residual2 = round(budget_sec - sum(x for x in rounded if x), 1)
-        if abs(residual2) >= 0.1:
-            big = max(pool, key=lambda i: rounded[i])
-            rounded[big] = round(rounded[big] + residual2, 1)
+    # 第三步: 取整+地板, 残差以 0.1s 整数单位迭代摊回 (全程每镜 ≥0.2s)
+    durs = [None if x is None else max(0.2, round(x, 1)) for x in targets]
+    idx = [i for i, x in enumerate(durs) if x is not None]
+    if idx:
+        budget_t = int(round(budget_sec * 10))
+        durs_t = [None if x is None else int(round(x * 10)) for x in durs]
+        for _round in range(10):
+            residual_t = budget_t - sum(x for x in durs_t if x is not None)
+            if residual_t == 0:
+                break
+            if residual_t < 0:
+                pool = [i for i in idx if durs_t[i] > 2]        # 让出方: 高于 0.2s 地板
+                caps = dict((i, durs_t[i] - 2) for i in pool)
+            else:
+                pool = list(idx)                                 # 吸收方: 全部有效镜
+                caps = dict((i, None) for i in pool)
+            if not pool:
+                break
+            pool_sum = sum(durs_t[i] for i in pool)
+            alloc = dict((i, 0) for i in pool)
+            order = []
+            for i in pool:
+                ideal = abs(residual_t) * durs_t[i] / pool_sum
+                q = int(ideal)
+                if caps[i] is not None:
+                    q = min(q, caps[i])
+                alloc[i] += q
+                order.append((ideal - int(ideal), i))
+            order.sort(key=lambda p: (-p[0], p[1]))
+            leftover = abs(residual_t) - sum(alloc.values())
+            while leftover > 0:
+                progressed = False
+                for _, i in order:
+                    if leftover <= 0:
+                        break
+                    if caps[i] is None or alloc[i] < caps[i]:
+                        alloc[i] += 1
+                        leftover -= 1
+                        progressed = True
+                if not progressed:
+                    break
+            sign = 1 if residual_t > 0 else -1
+            for i in pool:
+                durs_t[i] += sign * alloc[i]
+        final = [None if x is None else x / 10.0 for x in durs_t]
+    else:
+        final = durs
     changed = 0
-    for s, x in zip(shots, rounded):
+    for s, x in zip(shots, final):
         if x is None:
             continue
         try:

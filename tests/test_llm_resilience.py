@@ -770,9 +770,12 @@ finally:
         _s.stop()
 
 # ---- 证据存档 ----
+import re as _re_ver_src
+_src_init = open(os.path.join(ROOT, "__init__.py"), encoding="utf-8").read()
+_m_ver = _re_ver_src.search(r'__version__\s*=\s*"(\d+\.\d+\.\d+)"', _src_init)
 RESULTS_DOC = {
     "suite": "test_llm_resilience",
-    "version": "16.7.0",
+    "version": _m_ver.group(1) if _m_ver else "unknown",
     "timestamp": _time.strftime("%Y-%m-%d %H:%M:%S"),
     "pass": PASS,
     "fail": FAIL,

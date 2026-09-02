@@ -1,23 +1,23 @@
 {
   "suite": "test_storyboard_contract",
-  "version": "16.7.0",
-  "pass": 82,
+  "version": "16.8.0",
+  "pass": 83,
   "fail": 0,
   "results": [
     {
-      "label": "T0 STORYBOARD_CONTRACT_VERSION == 1",
+      "label": "T0 STORYBOARD_CONTRACT_VERSION == 2 (批次6 v2)",
       "ok": true,
-      "detail": "v=1"
+      "detail": "v=2"
     },
     {
-      "label": "T0 CONTRACT_VERSION 别名 == 1 (doctor 口径)",
+      "label": "T0 CONTRACT_VERSION 别名 == 2 (doctor 口径, 合法集合 {1,2})",
       "ok": true,
-      "detail": "v=1"
+      "detail": "v=2"
     },
     {
-      "label": "T0 诊断码全集 11 个且含环/未知引用/废弃/未知键",
+      "label": "T0 诊断码全集 14 个且含环/未知引用/废弃/未知键/批次6 三新码",
       "ok": true,
-      "detail": "codes=('missing-contract-version', 'invalid-contract-version', 'missing-shot-id', 'duplicate-shot-id', 'invalid-duration', 'type-mismatch', 'empty-shots', 'relative-ref-unknown', 'relative-ref-cycle', 'deprecated-field', 'unknown-field')"
+      "detail": "codes=('missing-contract-version', 'invalid-contract-version', 'missing-shot-id', 'duplicate-shot-id', 'invalid-duration', 'type-mismatch', 'empty-shots', 'relative-ref-unknown', 'relative-ref-cycle', 'deprecated-field', 'unknown-field', 'slot-out-of-range', 'slot-prompt-mismatch', 'anchor-invalid')"
     },
     {
       "label": "T0 self_check() 最小样例自检通过",
@@ -55,19 +55,24 @@
       "detail": "keys=['duration_s', 'end_s', 'start_s', '时长', '镜号']"
     },
     {
-      "label": "T2 全量结构 ok=True 且零 errors/warnings",
+      "label": "T2 全量结构 ok=True 且零 errors/warnings (v1 头 + v2 块双射/库内/完整锚定)",
       "ok": true,
       "detail": "e=[] w=[]"
     },
     {
-      "label": "T2 32 个每镜 canonical 键全保留于 normalized",
+      "label": "T2 35 个每镜 canonical 键全保留于 normalized",
       "ok": true,
       "detail": "missing=[]"
     },
     {
-      "label": "T2 19 顶层键全保留 (含 contract_version 与批次3 手法去重)",
+      "label": "T2 22 顶层键全保留 (含 contract_version、批次3 手法去重、批次6 锚定库与条件键 _项目风格锚)",
       "ok": true,
       "detail": "missing=[]"
+    },
+    {
+      "label": "T2 锚定库 dict 原样保留于 normalized 顶层 (批次6 v2 键入注册表, 非 extra)",
+      "ok": true,
+      "detail": "got={'0': {'媒体': 'asset://hero_v1', '类型': '角色参考'}}"
     },
     {
       "label": "T2 手法去重 dict 原样保留于 normalized 顶层 (批次3 增量键入注册表, 非 extra)",
@@ -95,9 +100,9 @@
       "detail": ""
     },
     {
-      "label": "T3 非法值 (2 / bool True) 盖章覆盖为 1",
+      "label": "T3 合法 2 原样保留 (v2 合法集合); 非法值 (bool True) 盖章覆盖为 1",
       "ok": true,
-      "detail": "c={'contract_version': 1} d={'contract_version': 1}"
+      "detail": "c={'contract_version': 2} d={'contract_version': 1}"
     },
     {
       "label": "T3 非 dict 输入原样返回不抛",
@@ -340,12 +345,12 @@
       "detail": "w=[]"
     },
     {
-      "label": "T17 顶层键集合 == 真实 19 键 + contract_version (零漂移, 含 V16.4/V16.5 增量键与批次3 手法去重)",
+      "label": "T17 顶层键集合 == 注册表 − v2 可选键 (零漂移, 含 V16.4/V16.5 增量键与批次3 手法去重; 锚定库与 _项目风格锚为条件键: 空核心包不注入)",
       "ok": true,
       "detail": "diff=[]"
     },
     {
-      "label": "T17 每镜键集合 ⊆ 真实 32 键 (start/end 表达式键非必填)",
+      "label": "T17 每镜键集合 ⊆ 契约 35 键 (start/end 表达式键与 v2 块键非必填)",
       "ok": true,
       "detail": "diff=[]"
     },

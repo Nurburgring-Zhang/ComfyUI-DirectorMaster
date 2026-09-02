@@ -157,10 +157,9 @@ def _hellgrind_states():
         return ["(默认)"]
 
 
-def _build_hellgrind_asset(kwargs, project, director):
-    """HellGrind 资产库 — 真实引擎输出: descriptor/状态变体/voice/behavior/完整prompt块/压测/锁定."""
+def _hellgrind_resolve(kwargs):
+    """V16.0 需求1: HellGrind 资产名/状态版本 🎲 随机解析 (V16.3 种子驱动, 同输入同输出) — 构建与谱系两处复用."""
     import asset_registry as _ar
-    # V16.0 需求1: HellGrind 资产名/状态版本支持 🎲 随机; V16.3 种子驱动
     from aggregator.node_base import seeded_choice
     _seed0 = parse_core_pack(kwargs.get("核心数据包", "")).get("_随机种子")
     name = kwargs.get("HellGrind资产名") or "@roco"
@@ -170,7 +169,13 @@ def _build_hellgrind_asset(kwargs, project, director):
     if state_raw == "🎲 随机":
         _states = sorted({s for a in _ar.ASSET_REGISTRY.values() for s in a.states.keys()})
         state_raw = seeded_choice(_seed0, "资产库状态", _states, default="(默认)")
-    state = None if state_raw == "(默认)" else state_raw
+    return name, (None if state_raw == "(默认)" else state_raw)
+
+
+def _build_hellgrind_asset(kwargs, project, director):
+    """HellGrind 资产库 — 真实引擎输出: descriptor/状态变体/voice/behavior/完整prompt块/压测/锁定."""
+    import asset_registry as _ar
+    name, state = _hellgrind_resolve(kwargs)
     do_test = bool(kwargs.get("HellGrind压力测试", True))
     do_lock = bool(kwargs.get("HellGrind锁定", False))
 
@@ -220,6 +225,165 @@ def _build_hellgrind_asset(kwargs, project, director):
         for k, v in lr.items():
             lines.append(f"  {k}: {v}")
     return "\n".join(lines)
+
+
+# ============================================================
+# V16.8 D5: 资产派生谱系 — 母版/派生 状态机 (诚实四态, 无库/无先前存档 → 母版缺失, 绝不伪造一致性)
+# ============================================================
+_LINEAGE_MASTER_IMG = ("角色正面", "环境母版", "道具母版")
+_LINEAGE_MASTER_VID = ("运动母版", "风格母版")
+_LINEAGE_DERIVED = (("角色侧面", "角色正面"), ("角色背面", "角色正面"))
+_ST_FULL, _ST_NO_MASTER, _ST_NO_DERIVED, _ST_RESYNC = "完整锚定", "母版缺失", "派生缺失", "母版已更新待同步"
+
+
+def _lineage_sha(text):
+    # 与 version_store._sha256 同配方 (sha256/utf-8/replace) — 可与库内 blob sha 直接比对
+    import hashlib as _lh
+    return _lh.sha256((text or "").encode("utf-8", errors="replace")).hexdigest()
+
+
+def _lineage_store(kwargs, project):
+    """谱系版本库句柄 — 目录解析与归档节点同源 (输出目录 > ComfyUI output > 插件 output); 打开失败返回 (None, 原因)."""
+    out_dir = (kwargs.get("输出目录", "") or "").strip()
+    if out_dir:
+        try:
+            cand = _os.path.expandvars(_os.path.expanduser(out_dir))
+            if not _os.path.isabs(cand):
+                cand = _os.path.abspath(cand)
+            _os.makedirs(cand, exist_ok=True)
+            out_dir = cand if _os.path.isdir(cand) else ""
+        except Exception:
+            out_dir = ""
+    if not out_dir:
+        try:
+            from aggregator.archive_master import _get_output_dir
+            out_dir = _get_output_dir()
+        except Exception as e:
+            return None, f"版本库目录解析失败: {type(e).__name__}"
+    try:
+        from aggregator.version_store import open_store
+        return open_store(out_dir, project), ""
+    except Exception as e:
+        return None, f"版本库打开失败: {type(e).__name__}: {e}"
+
+
+def _lineage_vids(store, kind):
+    return [vid for vid in store.data.get("order", [])
+            if kind in ((store.get(vid) or {}).get("files") or {})]
+
+
+def _lineage_commit(store, files):
+    try:
+        return store.commit(name="资产母版快照", files={k: ("", c) for k, c in files.items()},
+                            metadata={"来源": "美术指导·资产派生谱系"}, notes="资产派生谱系: 母版状态快照")
+    except Exception:
+        return ""
+
+
+def _build_lineage(kwargs, project, ref_images, ref_videos, hg):
+    """参考库JSON 可选 `谱系` 块 — 无母版无派生声明时返回 None (旧消费方零影响).
+    派生四态: 完整锚定(母版在场且与库存最新存档一致) / 母版缺失(无库/无先前存档/母版参考缺) /
+    派生缺失(派生媒体缺) / 母版已更新待同步(当前内容≠最新存档, 或最近两次存档间存在变更)."""
+    masters = {}  # kind -> (标签, 当前内容)
+    for tag in _LINEAGE_MASTER_IMG:
+        if ref_images.get(tag):
+            masters[f"资产母版_{tag}"] = (tag, ref_images[tag])
+    for tag in _LINEAGE_MASTER_VID:
+        if ref_videos.get(tag):
+            masters[f"资产母版_{tag}"] = (tag, ref_videos[tag])
+    if hg:
+        masters[hg["kind"]] = (hg["master_key"], hg["content"])
+    derived = []  # (条目键, 母版kind, 母版名, 派生媒体在场)
+    for dtag, mtag in _LINEAGE_DERIVED:
+        dval, mval = ref_images.get(dtag, ""), ref_images.get(mtag, "")
+        if dval or mval:
+            derived.append((dtag, f"资产母版_{mtag}", mtag, bool(dval)))
+    if hg and hg.get("derived_key"):
+        derived.append((hg["derived_key"], hg["kind"], hg["master_key"], True))
+    if not masters and not derived:
+        return None
+    store, err = _lineage_store(kwargs, project)
+    pre, judge, reason = {}, {}, {}
+    for kind, (_tag, content) in masters.items():
+        vids = _lineage_vids(store, kind) if store else []
+        pre[kind] = vids
+        cur = _lineage_sha(content)
+        last = (((store.get(vids[-1]) or {}).get("files", {}).get(kind, {}) or {}).get("sha256", "")) if vids else ""
+        prev = (((store.get(vids[-2]) or {}).get("files", {}).get(kind, {}) or {}).get("sha256", "")) if len(vids) >= 2 else None
+        if not vids:
+            judge[kind], reason[kind] = "首次", "母版首次入库(本次运行), 无先前存档可比对, 下次运行可锚定"
+        elif cur != last:
+            judge[kind], reason[kind] = "变更", "母版相对上次存档已变更"
+        elif prev is not None and prev != last:
+            judge[kind], reason[kind] = "滞后", (f"母版在存档 {vids[-2]}→{vids[-1]} 间存在变更"
+                                                f"(当前内容与最新存档一致), 派生资产请重新核对锚定")
+        else:
+            judge[kind], reason[kind] = "稳定", ""
+    committed = ""
+    if store is not None:
+        todo = {k: c for k, (_t, c) in masters.items() if judge[k] in ("首次", "变更")}
+        if todo:
+            committed = _lineage_commit(store, todo)
+    lineage = {}
+    for kind, (tag, _c) in masters.items():
+        entry = {"类型": "母版", "状态": _ST_FULL}
+        if store is None:
+            entry["状态"] = _ST_NO_MASTER
+            entry["说明"] = err
+        else:
+            vids = _lineage_vids(store, kind)
+            if vids:
+                entry["库引用"] = vids[-1]
+                if judge[kind] == "首次":
+                    entry["状态"] = _ST_NO_MASTER
+                    entry["说明"] = reason[kind]
+                elif judge[kind] == "变更" and not committed:
+                    entry["状态"] = _ST_RESYNC
+                    entry["说明"] = f"{reason[kind]}, 快照入库失败"
+                elif judge[kind] == "滞后":
+                    entry["说明"] = reason[kind]
+            else:
+                entry["状态"] = _ST_NO_MASTER
+                entry["说明"] = "母版状态快照入库失败, 无库引用"
+        lineage[tag] = entry
+    for dkey, mkind, mtag, d_present in derived:
+        if not d_present:
+            lineage[dkey] = {"类型": "派生", "母版": mtag, "状态": _ST_NO_DERIVED,
+                             "说明": "派生参考媒体缺失, 母版在场, 该派生未完成锚定"}
+            continue
+        if mkind not in masters:
+            lineage[dkey] = {"类型": "派生", "母版": mtag, "状态": _ST_NO_MASTER,
+                             "说明": f"母版参考 {mtag} 未提供, 无法锚定"}
+            continue
+        if store is None:
+            lineage[dkey] = {"类型": "派生", "母版": mtag, "状态": _ST_NO_MASTER, "说明": err}
+            continue
+        vids = _lineage_vids(store, mkind)
+        entry = {"类型": "派生", "母版": mtag}
+        if not vids:
+            entry["状态"], entry["说明"] = _ST_NO_MASTER, f"母版 {mtag} 无库存存档且快照入库失败, 无法验证一致性"
+        elif judge[mkind] == "首次":
+            entry["状态"], entry["说明"] = _ST_NO_MASTER, reason[mkind]
+        elif judge[mkind] in ("变更", "滞后"):
+            entry["状态"], entry["库引用"] = _ST_RESYNC, vids[-1]
+            note = reason[mkind]
+            if judge[mkind] == "变更":
+                if committed:
+                    note += f", 已入库新快照 {vids[-1]}"
+                    try:
+                        d = store.diff(vids[-2], vids[-1]) if len(vids) >= 2 else None
+                        row = next((f for f in ((d or {}).get("文件级差异") or []) if f.get("资产") == mkind), None)
+                        if row:
+                            note += f" (diff 核实: {row.get('变化')})"
+                    except Exception:
+                        note += " (diff 不可用, 按 sha256 判定)"
+                else:
+                    note += ", 新快照入库失败"
+            entry["说明"] = note
+        else:
+            entry["状态"], entry["库引用"] = _ST_FULL, vids[-1]
+        lineage[dkey] = entry
+    return lineage or None
 
 
 class DirectorMasterAsset(DirectorNodeBase):
@@ -288,6 +452,8 @@ class DirectorMasterAsset(DirectorNodeBase):
                 "tooltip": "V14.2: 运行同帧一致性+失败模式压力测试"}),
             "HellGrind锁定": ("BOOLEAN", {"default": False,
                 "tooltip": "V14.2: 锁定 descriptor (Higgsfield 铁律: 锁定后不可再改)"}),
+            "输出目录": ("STRING", {"default": "", "multiline": False,
+                "tooltip": "★ V16.8 D5: 谱系快照版本库目录 (绝对/相对路径, 自动创建)。留空 = ComfyUI output 目录 (与归档节点同源)。母版状态经 version_store 入库, 供派生资产锚定/失效判定"}),
         }}
 
     RETURN_TYPES = ("STRING", "STRING")
@@ -313,7 +479,23 @@ class DirectorMasterAsset(DirectorNodeBase):
         director = core.get("_导演风格", "王家卫") if core else "王家卫"
         scene = core.get("_场景描述", "") if core else ""
         mood = core.get("_情绪基调", "") if core else ""
+        style_anchor = core.get("_项目风格锚", "") if core else ""
         visual_style = kwargs.get("视觉风格", "写实")
+
+        # V16.8 D5: HellGrind 母版谱系源 (锁定态才构成母版 — Higgsfield 铁律: 锁定后不可再改)
+        hg = None
+        if mode == "HellGrind资产库" and kwargs.get("HellGrind锁定", False):
+            try:
+                import asset_registry as _ar
+                hg_name, hg_state = _hellgrind_resolve(kwargs)
+                _desc = _ar.get_descriptor(hg_name)
+                if hg_state:
+                    _desc = _desc + "\n" + _ar.get_state_descriptor(hg_name, hg_state)
+                hg = {"master_key": f"HellGrind:{hg_name}", "kind": f"资产母版_HellGrind_{hg_name}",
+                      "content": _desc,
+                      "derived_key": f"HellGrind:{hg_name}@{hg_state}" if hg_state else ""}
+            except Exception:
+                hg = None
 
         # V13 合并: 收集多图多视频参考 — IMAGE 张量优先(落盘返回文件名), 否则 STRING 路径
         ref_images = {
@@ -352,6 +534,13 @@ class DirectorMasterAsset(DirectorNodeBase):
                 "参考视频总数": sum(1 for v in ref_videos.values() if v),
             }
         }
+        # V16.8 D6: 项目风格锚贯通 (R1 MED-2) — 条件键, 空核心包不注入 (旧消费方零影响)
+        if style_anchor:
+            ref_library["_项目风格锚"] = style_anchor
+        # V16.8 D5: 资产派生谱系 — 可选键, 无母版/派生声明时不产出 (旧消费方零影响)
+        _lineage = _build_lineage(kwargs, project, ref_images, ref_videos, hg)
+        if _lineage:
+            ref_library["谱系"] = _lineage
         ref_json_str = _json.dumps(ref_library, ensure_ascii=False, indent=2)
 
         # 参考库文本块 (显示在资产设定输出里)

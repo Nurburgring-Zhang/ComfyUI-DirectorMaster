@@ -100,7 +100,7 @@ def run_chain(mod):
     Core = mod.NODE_CLASS_MAPPINGS["DirectorMasterCore"]
     ck = defaults(Core)
     ck.update({k: v for k, v in FIXED_INPUTS.items() if k not in ("目标时长(分钟)", "画面模式")})
-    _, core_pack = Core().build(**ck)
+    _, core_pack, _style_anchor = Core().build(**ck)
 
     S = mod.NODE_CLASS_MAPPINGS["DirectorMasterScript"]
     sk = defaults(S)
@@ -284,7 +284,7 @@ def run_suite():
     mod = load_pkg()
     from aggregator.storyboard_contract import CANON_SHOT_KEYS
     cine_main, cine_data, sum_data = run_chain(mod)
-    check("T1 重放: 分镜表非空且每镜键 ⊆ 契约 32 键",
+    check("T1 重放: 分镜表非空且每镜键 ⊆ 契约 35 键",
           len(cine_data.get("分镜表", [])) > 0
           and all(set(s.keys()) <= set(CANON_SHOT_KEYS) for s in cine_data["分镜表"]),
           f"n={len(cine_data.get('分镜表', []))} "
@@ -304,7 +304,7 @@ def run_suite():
     check("T2 顶层键集合精确一致",
           set(cine_data.keys()) == set(sb_fx["expect"].keys()),
           f"diff={sorted(set(cine_data.keys()) ^ set(sb_fx['expect'].keys()))}")
-    check("T2 contract_version == 1",
+    check("T2 contract_version == 1 (生产链 v1 兼容章; v2 产物自行声明 2)",
           cine_data.get("contract_version") == 1 and sb_fx["expect"].get("contract_version") == 1)
     check("T2 文本锚口径: 首镜 AIGC提示词 前 64 字符锚与 fixture 逐字符一致",
           (cine_data["分镜表"][0]["AIGC提示词"][:ANCHOR_LEN] + "…")

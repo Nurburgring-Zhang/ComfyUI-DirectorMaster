@@ -686,8 +686,8 @@ else:
     except Exception as e:
         err(f"分镜契约自检异常 (self_check 约定永不抛): {e!r}")
     else:
-        if _sbv9 == 1 and _sb_ok9 is True:
-            ok("分镜 JSON 契约 v1 (STORYBOARD_CONTRACT_VERSION=1, "
+        if _sbv9 in (1, 2) and _sb_ok9 is True:
+            ok(f"分镜 JSON 契约 (STORYBOARD_CONTRACT_VERSION={_sbv9}, "
                "合法最小样例过 validate_storyboard 且相对时间拓扑解析正确)")
         else:
             err(f"分镜契约断言失败: version={_sbv9!r}, self_check={_sb_ok9!r}")

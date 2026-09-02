@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-批次2 — 《DM 分镜 JSON 契约 v1》契约测试 (tests/test_storyboard_contract.py)
+批次2 — 《DM 分镜 JSON 契约》契约测试 (tests/test_storyboard_contract.py)
 =============================================================================
+批次6 v2 口径吸收: 版本声明 2 / 合法集合 {1,2} / 诊断码 14 个 / canonical
+22 顶层 (含 锚定库 与条件键 _项目风格锚) + 35 每镜 (参考槽位/锚定/机位锚); v1 文件零漂移断言保持。
 覆盖矩阵:
   T1  合法最小结构 (ok + 派生 start_s/end_s/duration_s)
-  T2  合法全量结构 (14 顶层 + 28 每镜 canonical 全保留)
+  T2  合法全量结构 (22 顶层 + 35 每镜 canonical 全保留)
   T3  contract_version 注入与幂等 (空对象/已有1/非法值覆盖/非dict安全)
   T4  legacy 键映射 + deprecated-field 警告
   T5  相对引用字典形态 {"ref","op","offset_s"} (start_s/end_s 计算值断言)
@@ -81,16 +83,18 @@ def _has_code(rep, code, which="errors"):
 def run_suite():
     # -----------------------------------------------------------------
     print("T0 契约头常量")
-    check("T0 STORYBOARD_CONTRACT_VERSION == 1", STORYBOARD_CONTRACT_VERSION == 1,
-          f"v={STORYBOARD_CONTRACT_VERSION}")
-    check("T0 CONTRACT_VERSION 别名 == 1 (doctor 口径)", CONTRACT_VERSION == 1,
-          f"v={CONTRACT_VERSION}")
-    check("T0 诊断码全集 11 个且含环/未知引用/废弃/未知键",
-          len(DIAGNOSTIC_CODES) == 11
+    check("T0 STORYBOARD_CONTRACT_VERSION == 2 (批次6 v2)",
+          STORYBOARD_CONTRACT_VERSION == 2, f"v={STORYBOARD_CONTRACT_VERSION}")
+    check("T0 CONTRACT_VERSION 别名 == 2 (doctor 口径, 合法集合 {1,2})",
+          CONTRACT_VERSION == 2, f"v={CONTRACT_VERSION}")
+    check("T0 诊断码全集 14 个且含环/未知引用/废弃/未知键/批次6 三新码",
+          len(DIAGNOSTIC_CODES) == 14
           and {"relative-ref-cycle", "relative-ref-unknown", "deprecated-field",
                "unknown-field", "duplicate-shot-id", "invalid-duration",
                "empty-shots", "type-mismatch", "missing-contract-version",
-               "invalid-contract-version", "missing-shot-id"} <= set(DIAGNOSTIC_CODES),
+               "invalid-contract-version", "missing-shot-id",
+               "slot-out-of-range", "slot-prompt-mismatch",
+               "anchor-invalid"} <= set(DIAGNOSTIC_CODES),
           f"codes={DIAGNOSTIC_CODES}")
     check("T0 self_check() 最小样例自检通过", self_check() is True)
 
@@ -112,7 +116,7 @@ def run_suite():
     check("T1 derived 三键齐备", set(DERIVED_KEYS) <= set(n1.keys()), f"keys={sorted(n1)}")
 
     # -----------------------------------------------------------------
-    print("T2 合法全量结构 (19 顶层 + 32 每镜 canonical, 含 V16.4/V16.5 增量键与批次3 手法去重)")
+    print("T2 合法全量结构 (20 顶层 + 35 每镜 canonical, 含 V16.4/V16.5 增量键、批次3 手法去重与批次6 v2 块)")
     full_shot = {k: v for k, v in {
         "镜号": 1, "阶段": "建置", "类型阶段": "开场", "景别": "全景", "角度": "平视",
         "运镜": "缓推", "焦段": "35mm", "时长": "3.8s", "画面焦点": "父亲的手",
@@ -121,8 +125,10 @@ def run_suite():
         "首帧描述": "厨房夜景", "情感强度": 6.2, "线": "A", "POV": "主角 POV",
         "时间线": "现在", "银幕序": 1, "时序位": 1, "构图": "三分法",
         "叙事标签": "波浪上行", "节奏手记": "呼吸感手持", "拓扑张力": 6,
-        "AIGC提示词": "prompt-body",
+        "AIGC提示词": "prompt-body 【参考@0】",
         "首帧提示词": "ff-body", "音频描述": "audio-body", "AIGC适配提示词": "adapt-body",
+        "参考槽位": [0], "锚定": {"首帧": "ff-a1", "尾帧": "ef-b2", "帧数": 48},
+        "机位锚": "高机位俯拍/缓推",
     }.items()}
     full = {"contract_version": 1, "分镜数": 1, "总时长秒": 3.8, "导演": "王家卫",
             "情绪": "孤独", "画面模式": "电影工作室", "故事理论": "三幕剧",
@@ -131,21 +137,26 @@ def run_suite():
             "叙事元数据": [{"line": "A", "pov": "全知", "timeline": "现在"}],
             "叙事拓扑": {"结构": "波浪式", "反转点": []}, "场景实体": {"角色": []},
             "设备美学包": {"摄影机": "ARRICAM"}, "同期声枚举": "雨声, 缆绳吱呀",
+            "锚定库": {"0": {"媒体": "asset://hero_v1", "类型": "角色参考"}},
+            "_项目风格锚": "王家卫·写实·当代",
             "分镜表": [full_shot],
             "手法去重": {"校验口径": "同一运镜词/构图模板不得连续两镜当镜头主角",
                          "镜数": 1, "违规数": 0, "运镜违规": [], "构图违规": []},
             "上游应用统计": {"剧本": "已应用"}}
     rep2 = validate_storyboard(full)
     n2 = rep2["normalized"]["分镜表"][0]
-    check("T2 全量结构 ok=True 且零 errors/warnings",
+    check("T2 全量结构 ok=True 且零 errors/warnings (v1 头 + v2 块双射/库内/完整锚定)",
           rep2["ok"] is True and rep2["errors"] == [] and rep2["warnings"] == [],
           f"e={_codes(rep2)} w={_codes(rep2, 'warnings')}")
-    check("T2 32 个每镜 canonical 键全保留于 normalized",
+    check("T2 35 个每镜 canonical 键全保留于 normalized",
           set(full_shot.keys()) <= set(n2.keys()),
           f"missing={sorted(set(full_shot.keys()) - set(n2.keys()))}")
-    check("T2 19 顶层键全保留 (含 contract_version 与批次3 手法去重)",
+    check("T2 22 顶层键全保留 (含 contract_version、批次3 手法去重、批次6 锚定库与条件键 _项目风格锚)",
           set(CANON_TOP_KEYS) <= set(rep2["normalized"].keys()),
           f"missing={sorted(set(CANON_TOP_KEYS) - set(rep2['normalized'].keys()))}")
+    check("T2 锚定库 dict 原样保留于 normalized 顶层 (批次6 v2 键入注册表, 非 extra)",
+          rep2["normalized"].get("锚定库") == full["锚定库"],
+          f"got={rep2['normalized'].get('锚定库')!r:.120}")
     check("T2 手法去重 dict 原样保留于 normalized 顶层 (批次3 增量键入注册表, 非 extra)",
           rep2["normalized"].get("手法去重") == full["手法去重"],
           f"got={rep2['normalized'].get('手法去重')!r:.120}")
@@ -169,8 +180,8 @@ def run_suite():
           list(d3b.keys()) == _keys_before and d3b["contract_version"] == 1)
     d3c = attach_contract_version({"contract_version": 2})
     d3d = attach_contract_version({"contract_version": True})
-    check("T3 非法值 (2 / bool True) 盖章覆盖为 1",
-          d3c["contract_version"] == 1 and d3d["contract_version"] == 1,
+    check("T3 合法 2 原样保留 (v2 合法集合); 非法值 (bool True) 盖章覆盖为 1",
+          d3c["contract_version"] == 2 and d3d["contract_version"] == 1,
           f"c={d3c} d={d3d}")
     keep = [1, 2]
     check("T3 非 dict 输入原样返回不抛", attach_contract_version(keep) is keep
@@ -395,10 +406,10 @@ def run_suite():
           rep17["ok"] is True and rep17["errors"] == [], f"e={_codes(rep17)}")
     check("T17 真实产物零 warnings (无 unknown/deprecated 误报)",
           rep17["warnings"] == [], f"w={_codes(rep17, 'warnings')}")
-    check("T17 顶层键集合 == 真实 19 键 + contract_version (零漂移, 含 V16.4/V16.5 增量键与批次3 手法去重)",
-          set(new_data.keys()) == set(CANON_TOP_KEYS),
-          f"diff={sorted(set(new_data.keys()) ^ set(CANON_TOP_KEYS))}")
-    check("T17 每镜键集合 ⊆ 真实 32 键 (start/end 表达式键非必填)",
+    check("T17 顶层键集合 == 注册表 − v2 可选键 (零漂移, 含 V16.4/V16.5 增量键与批次3 手法去重; 锚定库与 _项目风格锚为条件键: 空核心包不注入)",
+          set(new_data.keys()) == set(CANON_TOP_KEYS) - {"锚定库", "_项目风格锚"},
+          f"diff={sorted(set(new_data.keys()) ^ (set(CANON_TOP_KEYS) - {'锚定库', '_项目风格锚'}))}")
+    check("T17 每镜键集合 ⊆ 契约 35 键 (start/end 表达式键与 v2 块键非必填)",
           set(new_data["分镜表"][0].keys()) <= set(CANON_SHOT_KEYS)
           and len(new_data["分镜表"]) > 0,
           f"diff={sorted(set(new_data['分镜表'][0].keys()) - set(CANON_SHOT_KEYS))}")
@@ -537,7 +548,7 @@ def main():
     out_json = os.path.join(HERE, "storyboard_contract_results.json")
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(results_doc, f, ensure_ascii=False, indent=2)
-    print(f"\n分镜契约 v1 测试结果: {PASS} PASS / {FAIL} FAIL (证据: {out_json})")
+    print(f"\n分镜契约测试结果 (v2 口径): {PASS} PASS / {FAIL} FAIL (证据: {out_json})")
     sys.exit(1 if FAIL else 0)
 
 

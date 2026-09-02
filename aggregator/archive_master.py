@@ -116,6 +116,8 @@ class DirectorMasterArchive(DirectorNodeBase):
                 "tooltip": "接 Router.视频生成请求 — 保存为API payload JSON"}),
             "制作手册": ("STRING", {"default": "", "multiline": True, "forceInput": True,
                 "tooltip": "接 Final.完整制作手册 — 保存为手册文件"}),
+            "角色DNA档": ("STRING", {"default": "", "multiline": True, "forceInput": True,
+                "tooltip": "★ V16.8 D5: 接 Characters.角色DNA档 (或 外貌DNA_JSON) — 跨项目角色DNA存档; 非空时随保存/版本提交存为独立文件 角色DNA, 留空不影响既有行为"}),
             "输入文本": ("STRING", {"default": "", "multiline": True, "tooltip": "可选: 额外文本"}),
             "输出目录": ("STRING", {"default": "", "multiline": False,
                 "tooltip": "★ V13.2: 手动指定归档目录 (绝对/相对路径均可, 自动创建)。留空 = ComfyUI output 目录, 再 fallback 到插件目录/output"}),
@@ -214,6 +216,11 @@ class DirectorMasterArchive(DirectorNodeBase):
             assets = [("制作手册", manual or extra, "txt")]
         else:  # 资产清单 / 版本历史 / 版本对比 / 版本回滚 / 最优版本
             assets = []
+
+        # V16.8 D5: 角色DNA档 — 非空时随保存/版本提交存为独立文件 (空时不改变既有 commit 行为)
+        _dna = (kwargs.get("角色DNA档", "") or "").strip()
+        if _dna and (mode in _SAVE_MODES or mode == "版本提交"):
+            assets.append(("角色DNA", _dna, "json"))
 
         # V14.2: 保存格式多选 — 每个资产按所选格式逐一真实转换写盘
         from aggregator.format_export import parse_formats, convert

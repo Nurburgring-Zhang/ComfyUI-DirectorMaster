@@ -2,7 +2,7 @@
 """
 ① DirectorMasterCore — 起点·核心总控
 =====================================
-2 输出: 统一电影提示词 + 核心数据包.
+2 输出: 统一电影提示词 + 核心数据包. (批次6 D4: 追加第 3 路输出 项目风格锚, 末位追加顺序零改动)
 11 能力块 (灵魂+审美+风格+意图+提示词+签名+反AI+维度+8原则+色板+元数据) 折入核心数据包 JSON.
 AI 配置打包进核心数据包, 下游连接即继承.
 """
@@ -97,6 +97,13 @@ PARAM_PRESETS = {
 }
 PARAM_NAMES = list(PARAM_PRESETS.keys())
 
+
+def build_style_anchor(director, visual, year):
+    """批次6 D4: 确定性拼装 导演·视觉调性·年代 (空段跳过); 全空给合理缺省串, 无 AI 调用."""
+    parts = [str(p).strip() for p in (director, visual, year)]
+    parts = [p for p in parts if p]
+    return "·".join(parts) if parts else "未定导演·未定调性·未定年代"
+
 # V16.0 需求1: Core 属性下拉选项常量 (供 INPUT_TYPES 与 build 随机解析共用)
 _RND = "🎲 随机"
 CORE_YEAR_OPTS = ["现代","80年代","90年代","2000s","2010s","2020s","未来","架空/奇幻","历史(1900前)"]
@@ -116,7 +123,7 @@ CORE_PROMISE_OPTS = ["感动落泪","爆笑","震撼","治愈","深度思考","�
 
 
 class DirectorMasterCore(DirectorNodeBase):
-    """V12.6 起点节点 — 世界级导演总控. 32 输入参数 + 2 输出 (统一电影提示词 + 核心数据包)."""
+    """V12.6 起点节点 — 世界级导演总控. 32 输入参数 + 3 输出 (统一电影提示词 + 核心数据包 + 项目风格锚)."""
     NODE_TYPE = "核心"
 
     @classmethod
@@ -198,8 +205,8 @@ class DirectorMasterCore(DirectorNodeBase):
                 "tooltip": "gpt-4o/qwen-max/deepseek-chat/glm-4 等"}),
         }}
 
-    RETURN_TYPES = ("STRING","STRING")
-    RETURN_NAMES = ("统一电影提示词","核心数据包")
+    RETURN_TYPES = ("STRING","STRING","STRING")
+    RETURN_NAMES = ("统一电影提示词","核心数据包","项目风格锚")
     FUNCTION = "build"
     CATEGORY = "PromptLibrary/聚合/起点"
 
@@ -287,6 +294,8 @@ class DirectorMasterCore(DirectorNodeBase):
             if dname == "🎲 随机":
                 dname = _rng.choice(DIR_NAMES)
             director = dname.split("] ",1)[1] if "] " in dname else dname
+        # 批次6 D4: 项目风格锚 (core pack 新键 _项目风格锚, 下游一律 core.get(..., "") 读取, 缺键不炸)
+        style_anchor = build_style_anchor(director, visual, year)
 
         # 灵魂注入 (V16.0 需求1: 灵魂预设支持 🎲 随机; V16.1 改用确定性种子)
         raw_soul = (kwargs.get("灵魂注入_自定义") or "").strip()
@@ -450,10 +459,12 @@ class DirectorMasterCore(DirectorNodeBase):
             "_对标作品": ref_films, "_关键道具": props, "_潜文本_情感": subtext_desc,
             # === V16.1 叙事编排 (下游剧本/分镜节点继承) ===
             "_叙事编排": narrative_arrangement, "_叙事线型": narrative_line,
+            # === 批次6 D4 项目风格锚 (导演·视觉调性·年代 确定性拼装) ===
+            "_项目风格锚": style_anchor,
             # === V16.3 随机引擎种子 (下游全部 🎲 随机由它派生, 固定种子时全链可复现) ===
             "_随机种子": _seed_val,
             # === AI 配置 (★ 用户唯一 AI 入口) ===
             "_ai_api_url": api_url, "_ai_api_key": api_key, "_ai_api_model": ai_model,
         }, ensure_ascii=False)
 
-        return (prompt, core_pack)
+        return (prompt, core_pack, style_anchor)

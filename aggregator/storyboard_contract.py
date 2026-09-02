@@ -1,29 +1,36 @@
 # -*- coding: utf-8 -*-
 """
-《DM 分镜 JSON 契约 v1》— 分镜 JSON 的结构契约 / 宽容解析 / 规范化校验
+《DM 分镜 JSON 契约 v2》— 分镜 JSON 的结构契约 / 宽容解析 / 规范化校验
 =======================================================================
 批次2-WaveA2 (builder-contract). 设计文档 §5, 以 V16.2.0 真实 Cinematic JSON
 结构为基 (设计文档英文键框架 → 真实中文键为准, 偏差记录见实现日志 contract.md)。
+批次6 D1 升版 v2: 合法版本集合 {1, 2} (v1 文件照常通过, 诊断零增量);
+新增顶层可选键 锚定库 与镜头级可选键 参考槽位/锚定/机位锚 (批次6 slot 协议+锚定字段);
+新增诊断码 slot-out-of-range / slot-prompt-mismatch / anchor-invalid
+(仅在新键块出现时触发 — v1 零漂移的结构保障)。
 
 三态字段:
-  canonical — 契约核心键 = contract_version + 真实 19 顶层键（含批次3 手法去重） + 真实 32 每镜键
+  canonical — 契约核心键 = contract_version + 真实 21 顶层键（19 真实业务键 + 批次3 手法去重
+  + 批次6 锚定库 + 批次6 条件键 _项目风格锚, 空核心包不注入） + 真实 35 每镜键
   (V16.4/V16.5 增量键 叙事拓扑/场景实体/设备美学包/同期声枚举 与
-   叙事标签/节奏手记/拓扑张力/构图 已吸收进注册表)
+   叙事标签/节奏手记/拓扑张力/构图 已吸收进注册表; 批次6 参考槽位/锚定/机位锚)
               + 契约表达式键 start/end (相对/绝对时间入口)
   derived   — start_s / end_s (拓扑解析计算) + duration_s (时长数值化)
   legacy    — 旧键别名 (设计文档英文键 + 内部 shot dict 英文键), 命中即映射
               进 normalized 并记 deprecated-field 警告
 
-诊断码 (11 个, {code, field, value, message} 结构化):
+诊断码 (14 个, {code, field, value, message} 结构化):
   missing-contract-version / invalid-contract-version / missing-shot-id /
   duplicate-shot-id / invalid-duration / type-mismatch / empty-shots /
   relative-ref-unknown / relative-ref-cycle / deprecated-field(warning) /
-  unknown-field(warning, 值保留于 normalized 的 extra)
+  unknown-field(warning, 值保留于 normalized 的 extra) /
+  slot-out-of-range / slot-prompt-mismatch / anchor-invalid
 
 公共 API:
   validate_storyboard(data)     → {"ok", "errors", "warnings", "normalized"} 永不抛
   parse_storyboard_json(text)   → (data|None, warnings) 复用 pln_llm.json_loads_tolerant 永不抛
-  attach_contract_version(data) → 幂等注入 "contract_version": 1 永不抛
+  attach_contract_version(data) → 幂等注入 "contract_version": 1 永不抛 (生产链 v1 兼容章;
+                                  合法版本 1/2 原样保留, v2 产物自行声明)
   self_check()                  → 最小样例自检 (doctor 第 9 类消费)
 
 相对镜头表达式 (start/end 两键, F2-2/F2-6):
@@ -40,8 +47,10 @@ import copy as _copy
 import math as _math
 import re as _re
 
-STORYBOARD_CONTRACT_VERSION = 1
-# 别名导出 (doctor 第 9 类口径保险: "CONTRACT_VERSION==1")
+STORYBOARD_CONTRACT_VERSION = 2
+# 合法版本集合 (批次6 v2: v1 文件照常通过零漂移, v2 文档显式声明 2)
+LEGAL_CONTRACT_VERSIONS = (1, 2)
+# 别名导出 (doctor 第 9 类口径保险; 批次6 升版后 doctor 9d 断言需随合法集合联动 — 集成端裁决)
 CONTRACT_VERSION = STORYBOARD_CONTRACT_VERSION
 
 # ------------------------------------------------------------------
@@ -52,16 +61,18 @@ CANON_TOP_KEYS = (
     "分镜数", "总时长秒", "导演", "情绪", "画面模式", "故事理论", "叙事结构",
     "AIGC生产模式", "AIGC判别依据", "叙事编排", "情感曲线", "叙事元数据",
     "叙事拓扑", "场景实体", "设备美学包", "同期声枚举",
+    "锚定库", "_项目风格锚",
     "分镜表", "手法去重", "上游应用统计",
 )
 
-# 每镜 canonical 键 (实测顺序) + 契约表达式键 start/end
+# 每镜 canonical 键 (实测顺序) + 批次6 v2 块键 + 契约表达式键 start/end
 CANON_SHOT_KEYS = (
     "镜号", "阶段", "类型阶段", "景别", "角度", "运镜", "焦段", "时长",
     "画面焦点", "声音", "转场", "叙事目的", "色彩", "光影", "材质", "氛围",
     "情绪", "首帧描述", "情感强度", "线", "POV", "时间线", "银幕序", "时序位",
     "构图", "叙事标签", "节奏手记", "拓扑张力",
     "AIGC提示词", "首帧提示词", "音频描述", "AIGC适配提示词",
+    "参考槽位", "锚定", "机位锚",
     "start", "end",
 )
 
@@ -122,6 +133,7 @@ _TOP_TYPED = {
     "情感曲线": "list", "叙事元数据": "list", "分镜表": "list",
     "叙事拓扑": "dict", "场景实体": "dict", "设备美学包": "dict",
     "同期声枚举": "str",
+    "锚定库": "dict",
     "手法去重": "dict",
     "上游应用统计": "dict",
 }
@@ -131,12 +143,16 @@ _SHOT_STR_KEYS = (
     "线", "POV", "时间线", "构图", "叙事标签", "节奏手记",
     "AIGC提示词", "首帧提示词", "音频描述",
     "AIGC适配提示词",
+    "机位锚",
 )
 _SHOT_TYPED = {
     "镜号": "id", "情感强度": "num", "银幕序": "num", "时序位": "num",
     "拓扑张力": "num",
+    "参考槽位": "list",
     # 注: "时长" 不入通用类型表 — 时长全部类型/取值问题统一由 _parse_duration
     #     单一诊断通道负责 (invalid-duration), 避免 bool 等双重报码。
+    # 注: "锚定" 不入通用类型表 — 锚定块类型/缺键/帧数取值统一由 anchor-invalid
+    #     单一诊断通道负责 (契约 v2, 同时长单通道纪律)。
 }
 for _k in _SHOT_STR_KEYS:
     _SHOT_TYPED[_k] = "str"
@@ -148,7 +164,10 @@ DIAGNOSTIC_CODES = (
     "invalid-duration", "type-mismatch", "empty-shots",
     "relative-ref-unknown", "relative-ref-cycle",
     "deprecated-field", "unknown-field",
+    "slot-out-of-range", "slot-prompt-mismatch", "anchor-invalid",
 )
+
+_SLOT_TAG_RE = _re.compile(r"【参考@(\d+)】")
 
 _REL_STR_RE = _re.compile(
     r"^\s*(?P<ref>.+?)\s*(?P<op>[+-])\s*(?P<off>\d+(?:\.\d+)?)\s*[sS秒]?\s*$")
@@ -295,18 +314,87 @@ def _classify_expr(value, add_err, field):
     return ("bad", None)
 
 
+def _intish(v):
+    """槽位数值化: int(拒 bool) 或整值 float → int; 其余 → None。"""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float) and _math.isfinite(v) and float(v).is_integer():
+        return int(v)
+    return None
+
+
+def _lib_key_int(k):
+    """锚定库键 → int (JSON 键恒为 str, 兼容进程内 int 键); 非整键 → None。"""
+    if isinstance(k, bool):
+        return None
+    if isinstance(k, int):
+        return k
+    if isinstance(k, str):
+        t = k.strip()
+        return int(t) if t.lstrip("-").isdigit() else None
+    if isinstance(k, float) and _math.isfinite(k) and float(k).is_integer():
+        return int(k)
+    return None
+
+
+def _check_v2_blocks(s, path, top_src, err):
+    """契约 v2 新块校验 (批次6 D1)。全部新码仅在新键出现时触发 — v1 文件零漂移的结构保障。
+      锚定: dict 且含 首帧/尾帧, 帧数为正数 → 否则 anchor-invalid (单通道, 不与 type-mismatch 双报)
+      参考槽位: 与镜头 AIGC提示词 中 【参考@N】 标签集合构成双射 → 否则 slot-prompt-mismatch
+                (非整数槽位元素无论库在场与否一律触发, 消息指明非法元素);
+                顶层 锚定库 (dict) 在场时库大小可得, 槽位 <0 或 ≥库大小 → slot-out-of-range
+                (库大小 = 整数键最大值+1, 稀疏键容错; 库缺席只查集合一致性, 不越界判)。"""
+    if "锚定" in s:
+        a = s.get("锚定")
+        if not isinstance(a, dict) or a.get("首帧") is None or a.get("尾帧") is None:
+            err("anchor-invalid", "%s.锚定" % path, a,
+                "锚定块须为 dict 且含 首帧/尾帧 (契约 v2)")
+        else:
+            fs = a.get("帧数")
+            if isinstance(fs, bool) or not isinstance(fs, (int, float)) \
+                    or not _math.isfinite(float(fs)) or fs <= 0:
+                err("anchor-invalid", "%s.锚定" % path, a,
+                    "锚定块 帧数 须为正数 (契约 v2)")
+    if "参考槽位" in s:
+        refs = s.get("参考槽位")
+        if isinstance(refs, list):
+            illegal = [r for r in refs if _intish(r) is None]
+            slot_set = set(x for x in (_intish(r) for r in refs) if x is not None)
+            prompt = s.get("AIGC提示词")
+            tag_set = set(int(m) for m in _SLOT_TAG_RE.findall(prompt)) \
+                if isinstance(prompt, str) else set()
+            if tag_set != slot_set or illegal:
+                msg = ("prompt 【参考@N】 标签集合 %s 与 参考槽位 集合 %s 不构成双射 (契约 v2)"
+                       % (sorted(tag_set), sorted(slot_set)))
+                if illegal:
+                    msg += "; 非整数槽位元素: %s" % illegal
+                err("slot-prompt-mismatch", "%s.参考槽位" % path, refs, msg)
+            lib = top_src.get("锚定库")
+            if isinstance(lib, dict):
+                keys = [x for x in (_lib_key_int(k) for k in lib.keys()) if x is not None]
+                size = (max(keys) + 1) if keys else len(lib)
+                bad = [r for r in (_intish(r) for r in refs)
+                       if r is None or r < 0 or r >= size]
+                if bad:
+                    err("slot-out-of-range", "%s.参考槽位" % path, refs,
+                        "槽位须落在 [0, 锚定库大小=%d) 内 (契约 v2)" % size)
+
+
 # ------------------------------------------------------------------
 # 公共 API
 # ------------------------------------------------------------------
 def attach_contract_version(data):
-    """幂等注入 "contract_version": 1 (契约版本权威盖章)。永不抛异常。
-    非 dict 原样返回; 已是合法 int 1 则不动 (保持既有键位); 其他值覆盖为 1。"""
+    """幂等注入 "contract_version": 1 (生产链 v1 兼容章)。永不抛异常。
+    非 dict 原样返回; 已是合法 int 1/2 则不动 (保持既有键位, v2 产物自行声明 2);
+    其他值覆盖为 1 (18 节点冻结的生产链在本批仍是 v1 产物口径)。"""
     try:
         if isinstance(data, dict):
             cv = data.get("contract_version")
             if not (isinstance(cv, int) and not isinstance(cv, bool)
-                    and cv == STORYBOARD_CONTRACT_VERSION):
-                data["contract_version"] = STORYBOARD_CONTRACT_VERSION
+                    and cv in LEGAL_CONTRACT_VERSIONS):
+                data["contract_version"] = 1
         return data
     except Exception:
         return data
@@ -364,15 +452,19 @@ def _validate_inner(data):
             "分镜契约根必须是对象(dict), 实际为 %s" % type(data).__name__)
         return {"ok": False, "errors": errors, "warnings": warnings, "normalized": None}
 
-    # ---- 契约版本头 ----
+    # ---- 契约版本头 (合法版本集合 {1, 2}: v1 文件照常通过零漂移) ----
+    cv_out = STORYBOARD_CONTRACT_VERSION
     if "contract_version" not in data:
         err("missing-contract-version", "contract_version", None,
             "缺少契约版本头 contract_version (attach_contract_version 可注入)")
     else:
         cv = data.get("contract_version")
-        if isinstance(cv, bool) or not isinstance(cv, int) or cv != STORYBOARD_CONTRACT_VERSION:
+        if isinstance(cv, bool) or not isinstance(cv, int) \
+                or cv not in LEGAL_CONTRACT_VERSIONS:
             err("invalid-contract-version", "contract_version", cv,
-                "contract_version 必须为整数 %d" % STORYBOARD_CONTRACT_VERSION)
+                "contract_version 必须为整数 1 或 2 (合法版本集合 {1, 2})")
+        else:
+            cv_out = cv
 
     # ---- 顶层 legacy 重命名 (确定性: 按别名表序迭代, 不依赖输入键序) ----
     src = {}
@@ -470,6 +562,9 @@ def _validate_inner(data):
             # start/end 表达式分类
             start_expr = _classify_expr(s.get("start"), err, "%s.start" % path)
             end_expr = _classify_expr(s.get("end"), err, "%s.end" % path)
+
+            # 契约 v2 新块校验 (新码仅在新键出现时触发; v1 文件零增量)
+            _check_v2_blocks(s, path, src, err)
 
             shot_metas.append({
                 "path": path, "dict": s, "extra": shot_extra, "sid": sid_key,
@@ -628,8 +723,8 @@ def _validate_inner(data):
                                    for k in sorted(meta["extra"].keys()))
             normalized_shots.append(ns)
 
-    # ---- normalized 顶层 (canonical 定序 + extra) ----
-    normalized = {"contract_version": STORYBOARD_CONTRACT_VERSION}
+    # ---- normalized 顶层 (canonical 定序 + extra; 版本头回显文档自身合法声明) ----
+    normalized = {"contract_version": cv_out}
     for k in CANON_TOP_KEYS[1:]:
         if k == "分镜表" and shots_ok:
             normalized[k] = normalized_shots

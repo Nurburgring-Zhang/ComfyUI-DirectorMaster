@@ -15,7 +15,7 @@ V12.6 VideoRouter 一次同时输出 5 路: Seedance 2.5 / LTX-2.5 / Wan 2.6 / H
 接 Core.核心数据包 (forceInput) → 继承导演/场景/情绪/AI 配置.
 接 Cinematic.分镜 或 Summary.分镜脚本 (forceInput) → 内容基础.
 """
-import os as _os, sys as _sys, json as _json
+import os as _os, sys as _sys, json as _json, re as _re
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
 _PARENT = _os.path.dirname(_HERE)
 if _PARENT not in _sys.path: _sys.path.insert(0, _PARENT)
@@ -26,6 +26,93 @@ from aggregator.ref_media import resolve_ref, image_batch_to_ref_paths
 
 
 VIDEO_ROUTER_MODES = ["Seedance 2.5", "LTX-2.5", "Wan 2.6", "Hailuo 2.3", "Sora 2"]
+
+
+# ============================================================
+# V16.8 D6: 契约 v2 参考槽位 — reference_images 槽位序排列 + 槽位映射
+# (缺槽诚实跳过并记录, 绝不静默丢弃、绝不伪造占位; 无 参考槽位 → v1 原路径零变化)
+# ============================================================
+def _extract_slot_plan(storyboard):
+    """分镜JSON 各镜头 `参考槽位` (list[int]) → {"镜头":[{镜号,参考槽位}], "槽位":[sorted unique]}; 无槽位返回 None."""
+    text = (storyboard or "").strip()
+    if not (text.startswith("{") or text.startswith("[")):
+        return None
+    try:
+        data = _json.loads(text)
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    shots = data.get("分镜表") if isinstance(data.get("分镜表"), list) else data.get("shots")
+    if not isinstance(shots, list):
+        return None
+    per, all_slots, corrupt = [], [], []
+    for sh in shots:
+        if not isinstance(sh, dict):
+            continue
+        sl = sh.get("参考槽位")
+        if not isinstance(sl, list):
+            continue
+        vals, bad = [], []
+        for x in sl:
+            if isinstance(x, bool):
+                bad.append(x)
+                continue
+            if isinstance(x, int):
+                vals.append(x)
+            elif isinstance(x, str) and x.strip().lstrip("-").isdigit():
+                vals.append(int(x.strip()))
+            else:
+                bad.append(x)
+        if vals:
+            row = {"镜号": sh.get("镜号", ""), "参考槽位": vals}
+            if bad:
+                row["损坏元素"] = bad
+                row["处理"] = "非法元素未入计划 (双射校验归契约层, 此处如实记录)"
+            per.append(row)
+            all_slots.extend(vals)
+        else:
+            corrupt.append({"镜号": sh.get("镜号", ""), "参考槽位": sl,
+                            "处理": "诚实跳过: 无任何可解析整数槽位, 该镜未入槽位计划 (双射校验归契约层)"})
+    if not per:
+        return None
+    plan = {"镜头": per, "槽位": sorted(set(all_slots))}
+    if corrupt:
+        plan["损坏跳过"] = corrupt
+    return plan
+
+
+def _slot_ordered_refs(ref_imgs, plan, content):
+    """参考槽位 → (按槽位序排列的 reference_images, 槽位映射块). 槽位池 = 参考库JSON 参考图 非空项按库序."""
+    pool = [v for v in (ref_imgs or {}).values() if v]
+    ordered, mapped, missing = [], [], []
+    for s in plan["槽位"]:
+        if 0 <= s < len(pool):
+            mapped.append({"槽位": s, "标签": f"参考@{s}", "数组下标": len(ordered), "媒体": pool[s]})
+            ordered.append(pool[s])
+        else:
+            missing.append({"槽位": s, "状态": "缺失",
+                            "跳过": f"参考图池共 {len(pool)} 项, 槽位 {s} 无对应参考媒体",
+                            "处理": "诚实跳过: 未注入数组, 未伪造占位"})
+    slot_map = {"协议": "契约v2·参考槽位",
+                "槽位池": f"参考库JSON 参考图 非空项按库序, 共 {len(pool)} 项",
+                "镜头槽位": plan["镜头"], "映射": mapped, "缺失跳过": missing}
+    corrupt = plan.get("损坏跳过") or []
+    if corrupt:
+        slot_map["损坏跳过"] = corrupt
+    notes = []
+    if missing:
+        notes.append(f"{len(missing)} 个槽位无对应参考媒体, 已诚实跳过 (逐槽记录于 缺失跳过, 未伪造占位)")
+    if corrupt:
+        notes.append(f"{len(corrupt)} 个镜头 参考槽位 无任何可解析整数槽位, 已诚实跳过 (逐镜记录于 损坏跳过)")
+    if notes:
+        slot_map["说明"] = "; ".join(notes)
+    tags = sorted({int(m) for m in _re.findall(r"【参考@(\d+)】", content or "")})
+    if tags:
+        slot_map["prompt标签"] = tags
+        if tags != sorted({e["槽位"] for e in mapped} | {e["槽位"] for e in missing}):
+            slot_map["标签核对"] = "prompt 标签集合与 参考槽位 集合不一致 (双射校验归契约层, 此处如实记录)"
+    return ordered, slot_map
 
 
 class DirectorMasterVideoRouter(DirectorNodeBase):
@@ -105,6 +192,7 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
         director = core.get("_导演风格", "王家卫") if core else "王家卫"
         scene = core.get("_场景描述", "") if core else ""
         mood = core.get("_情绪基调", "") if core else ""
+        style_anchor = core.get("_项目风格锚", "") if core else ""
         unified_prompt = kwargs.get("统一电影提示词", "")
         storyboard = kwargs.get("分镜脚本", "")
         script_in = kwargs.get("剧本输入", "")  # V13.3: 接线此前声明未用的 剧本输入
@@ -173,6 +261,9 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
         else:
             content = scene or "(未提供内容)"
 
+        # V16.8 D6: 契约 v2 参考槽位提取 (仅分镜JSON; 无槽位 → v1 原路径零变化)
+        slot_plan = _extract_slot_plan(storyboard)
+
         if target == "全部生成":
             targets = VIDEO_ROUTER_MODES
         elif target in VIDEO_ROUTER_MODES:
@@ -226,10 +317,18 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
 
         return (results["Seedance 2.5"], results["LTX-2.5"], results["Wan 2.6"],
                 results["Hailuo 2.3"], results["Sora 2"], meta,
-                self._build_api_requests_json(results, meta, target, duration, aspect, fps, director, scene, ref_library, negative))
+                self._build_api_requests_json(results, meta, target, duration, aspect, fps, director, scene,
+                                              ref_library, negative, content=content, slot_plan=slot_plan,
+                                              style_anchor=style_anchor))
 
-    def _build_api_requests_json(self, results, meta_str, target, duration, aspect, fps, director, scene, ref_library, negative):
-        """V12.6 v7: 构建 5 视频模型完整 API 请求 JSON (一键提交给视频 API)."""
+    def _build_api_requests_json(self, results, meta_str, target, duration, aspect, fps, director, scene, ref_library, negative,
+                                 content="", slot_plan=None, style_anchor=""):
+        """V12.6 v7: 构建 5 视频模型完整 API 请求 JSON (一键提交给视频 API).
+        V16.8 D6: 分镜带 参考槽位 → reference_images 槽位序排列 + 槽位映射折入载荷 (RETURN 7 路冻结, 不新增输出路)."""
+        seedance_refs = [v for v in ref_library.get("参考图", {}).values() if v]
+        slot_map = None
+        if slot_plan:
+            seedance_refs, slot_map = _slot_ordered_refs(ref_library.get("参考图", {}), slot_plan, content)
         api_requests = {
             "_meta": _json.loads(meta_str) if isinstance(meta_str, str) else meta_str,
             "Seedance 2.5": {
@@ -240,7 +339,7 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
                     "ratio": aspect.split(" ")[0],
                     "duration": duration,
                     "fps": fps,
-                    "reference_images": [v for v in ref_library.get("参考图", {}).values() if v],
+                    "reference_images": seedance_refs,
                     "negative_prompt": negative,
                 }
             },
@@ -284,6 +383,11 @@ class DirectorMasterVideoRouter(DirectorNodeBase):
                 }
             },
         }
+        if slot_map is not None:
+            api_requests["槽位映射"] = slot_map
+        # V16.8 D6: 项目风格锚贯通 (R1 MED-2) — 条件键, core 缺键不注入 (v1 载荷零漂移)
+        if style_anchor:
+            api_requests["_项目风格锚"] = style_anchor
         return _json.dumps(api_requests, ensure_ascii=False, indent=2)
 
     def _optimize_for_model(self, model, content, director, scene, mood, aspect, duration, ref_library):
