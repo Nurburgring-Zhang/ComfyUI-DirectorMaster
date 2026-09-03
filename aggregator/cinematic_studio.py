@@ -1511,4 +1511,23 @@ class DirectorMasterCinematic(DirectorNodeBase):
             _mp_s.stderr.write(f"[DirectorMaster] 大师原则注入降级: {type(_mp_e).__name__}\n")
 
         main = self._apply_anti_ai(main, kwargs, core)
+
+        # === 批次4 m3 (纯增量): 分镜提示词面可选记忆段 — 消费 dm_memory.injection.injection_block。
+        #  全记忆访问 try/except 保护: 缺 dm_memory 目录 / 未到重申节奏 / 任何异常 →
+        #  该段整体不出现, 分镜文本逐字节不变 (additive 零漂移硬断言: tests/test_dm_memory_bible.py)。
+        #  轮次口径: 项目版本库已提交版本数 (每轮归档提交=1 轮); 本段只读, 绝不创建记忆目录。
+        try:
+            from aggregator.dm_memory import injection as _dm_inj
+            from aggregator.dm_memory import open_memory as _dm_open
+            _dm_out = _dm_inj.resolve_out_dir()
+            if _dm_out:
+                _dm_project = str(core.get("_项目名") or kwargs.get("项目名", "") or "项目")
+                _dm_round = _dm_inj.project_rounds(_dm_out, _dm_project)
+                _dm_seg = _dm_inj.injection_block(_dm_open(_dm_out, _dm_project), _dm_round)
+                if _dm_seg:
+                    main += "\n\n" + _dm_seg
+        except Exception as _dm_e:
+            import sys as _dm_sys
+            _dm_sys.stderr.write(f"[DirectorMaster] 记忆注入降级: {type(_dm_e).__name__}\n")
+
         return (main, json_str)

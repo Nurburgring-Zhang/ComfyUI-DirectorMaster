@@ -2,7 +2,7 @@
 
 **导演级 AI 影视创作 ComfyUI 节点包** — 一句话创意 → 剧本 → 分镜 → AIGC 镜头级提示词，直供 Seedance / Wan / LTX / Hailuo / Sora 等主流视频生成模型。
 
-`V16.8.0-MERGED` · 18 注册节点（17 超级 + Final 别名，可选扩展至 64 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
+`V16.9.0-MERGED` · 18 注册节点（17 超级 + Final 别名，可选扩展至 64 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
 
 ---
 
@@ -153,6 +153,15 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ---
 
 ## 版本历史
+
+### V16.9.0-MERGED（批次4：记忆层）
+
+- **来源与政策**：延续零代码借鉴纪律（六仓二轮经验思想层独立重写），零第三方依赖不变（仅 stdlib）。节点拓扑与下拉口径零改动（记忆层为纯库模块，不新增节点）。
+- **四域记忆与信任注入**：`aggregator/dm_memory/` 10 模块——决策卡（shot_cards，脱敏后 digest 稳定 card_id + 原子追加）、偏好（preference_store 六分支 + verify_counts 计数自校验）、程序性记忆（procedure_memory）、进化日志（evolution 阈值记账 maybe_reflect 确定性提议，失败永不致命）；检索（retrieval 词频索引召回）；风格圣经（style_bible）与系列继承（series_inherit 世界观/风格锚/DNA 跨项目长存 + anchor_link 锚点联动）；cinematic_studio 出口 additive 信任注入（rounds 信任序 + 已验证卡），缺记忆目录输出逐字节零漂移（T7 硬断言）。
+- **脱敏层**：redact_free_text 手机号/邮箱/API 密钥/Bearer/JWT 正则脱敏；决策卡/偏好/程序性/series 四条自由文本写路径全接线，先脱敏后哈希后落盘（card_id 哈希稳定）；永不致命（内部异常原样放行 + stderr 降级）；结构字段保护（seed/镜号/counts 等结构键不误伤）。
+- **管线韧性**：_safe_name 同源碰撞防护（含 ASCII 字母/尾点尾空格名追加 sha1 后缀，9 处副本同步——NTFS 大小写折叠/Windows 剥尾点/保留名不再跨项目串档）；preference 二级结构损坏逐元素过滤自愈（好条目存活，不隔离整个文件）；evolution.jsonl 二进制容错解码 + stderr 诚实告警（损坏不再静默锁死记账）；幽灵卡软过滤（缺卡片标识字段的损坏行不入列表与检索索引）。
+- **质量与双盲**：三套件 264 断言全过（core 131 / retrieve 61 / bible 72），T7 additive 零漂移硬断言保持绿；双盲互审 3 轮闭环（R1 两通道 1 HIGH+4 MED → 修复 → R2 对抗审计 4 MED+6 LOW → 修复 → R3 复攻 111 项探针 PASS），零 HIGH/MED 残留；3 项已知 LOW 取舍留档（超深/循环容器整体放行、redaction 高召回残余误伤、card_id 型幽灵行绕过有界）。
+- **注册口径**：18 注册节点 / 247 创作模式不变；版本三处口径 16.9.0（__version__/pyproject/README）。
 
 ### V16.8.0-MERGED（批次6：一致性资产化）
 

@@ -1,7 +1,7 @@
 {
   "suite": "test_llm_resilience",
-  "version": "16.8.0",
-  "timestamp": "2026-09-02 12:28:35",
+  "version": "16.9.0",
+  "timestamp": "2026-09-02 20:26:11",
   "pass": 117,
   "fail": 0,
   "results": [
@@ -43,7 +43,7 @@
     {
       "label": "T2 两次退避睡眠且递增",
       "ok": true,
-      "detail": "sleeps=[1.202348920782972, 2.7515211562950634]"
+      "detail": "sleeps=[1.6813594971993813, 2.5210395682320677]"
     },
     {
       "label": "T3 请求序列 A,A,B",
@@ -118,7 +118,7 @@
     {
       "label": "T5 recovered 标记",
       "ok": true,
-      "detail": "meta={'url': 'http://127.0.0.1:55915/v1/chat/completions', 'model': 'A', 'levels_tried': 1, 'attempts': 0, 'fallback_used': False, 'recovered': True, 'compression': None, 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
+      "detail": "meta={'url': 'http://127.0.0.1:54234/v1/chat/completions', 'model': 'A', 'levels_tried': 1, 'attempts': 0, 'fallback_used': False, 'recovered': True, 'compression': None, 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
     },
     {
       "label": "T5 状态恢复 primary_ok 且失败清零",
@@ -208,7 +208,7 @@
     {
       "label": "T7b levels_tried=2 且 fallback_used",
       "ok": true,
-      "detail": "meta={'url': 'http://127.0.0.1:55945/v1/chat/completions', 'model': 'bigctx', 'levels_tried': 2, 'attempts': 3, 'fallback_used': True, 'recovered': False, 'compression': 'aggressive', 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
+      "detail": "meta={'url': 'http://127.0.0.1:54263/v1/chat/completions', 'model': 'bigctx', 'levels_tried': 2, 'attempts': 3, 'fallback_used': True, 'recovered': False, 'compression': 'aggressive', 'split_hint_retries': 0, 'finish_reason': 'stop', 'events': []}"
     },
     {
       "label": "T7b OVERFLOW 计入降级阈值 (失败计数=1)",
