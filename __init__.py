@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ComfyUI-DirectorMaster V16.9.0-MERGED — 18 注册节点 (17 超级节点 + Final 别名) + 600 导演库
+ComfyUI-DirectorMaster V17.0.0 — 19 注册节点 (17 超级节点 + Final 别名 + 长篇分集接入) + 600 导演库
 ====================================================================
 V16.5.0 场景实体引擎 (参考真实生产级 AI 视频提示词标准库的"真实素材设计"范式):
   · aggregator/scene_entity.py: 实体提取(角色/道具/地点/天气/色彩/动作) + 设备美学包
@@ -45,7 +45,7 @@ V16.2.0 批次1 — LLM 链路健壮性加固 + 加载崩溃隔离 (六仓经验
   · 节点加载崩溃隔离 (失败入 DM_QUARANTINE 隔离清单, 不拖垮其余节点)
   · doctor 9 类诊断 (新增"加载隔离与 LLM 容错"、"模式卡与分镜契约一致性")
 
-18 注册节点 (Core 驱动 + forceInput):
+19 注册节点 (Core 驱动 + forceInput):
   1. DirectorMasterCore         — 起点 → 统一电影提示词 + 核心数据包
   2. DirectorMasterScript       — 剧本 46 模式
   3. DirectorMasterVibe         — 创意 23 模式
@@ -64,6 +64,7 @@ V16.2.0 批次1 — LLM 链路健壮性加固 + 加载崩溃隔离 (六仓经验
  16. DirectorMasterFusion       — V15.0 风格融合
  17. DirectorMasterFinal        — DirectorMasterSummary 兼容别名
  18. DirectorMasterReview       — 独立审查 (V16.7 批次3: 干净上下文 13 项清单, 快速结构/全量/对比分镜, 断点续跑)
+ 19. DirectorMasterNovelIntake — 长篇分集接入 (批次7: 章节感知切分+覆盖账本+锚点回溯+三指标钩子+断点续跑+dm_memory桥)
 
 工作流: Core 节点 (forceInput 唯一入口) → 下游节点用 forceInput 接核心数据包。
 自检: python doctor.py。
@@ -97,6 +98,7 @@ _NODE_SPECS = [
     ("aggregator.v15_nodes", ("DirectorMasterCoCreator", "DirectorMasterSoul",
                               "DirectorMasterIntuition", "DirectorMasterFusion")),  # V15.0 AI 赋能
     ("aggregator.review_engine", "DirectorMasterReview"),            # V16.7 批次3 D6 独立审查
+    ("aggregator.episode_pipeline.node", "DirectorMasterNovelIntake"),  # 批次7 长篇输入管线
 ]
 
 DM_QUARANTINE = []
@@ -156,6 +158,7 @@ _ALL_DISPLAY_NAMES = {
     "DirectorMasterIntuition": "⚡ 直觉 [V15.0 直觉引擎: 确定性反常规镜头语法, 风险分级 safe/bold/chaotic]",
     "DirectorMasterFusion": "🎨 融合 [V15.0 风格融合: 主0.6/次0.3/反0.1 确定性融合, 反风格突破指令]",
     "DirectorMasterReview": "🔍 审查 [独立审查·13 项清单: 快速结构/全量/对比分镜 — 干净上下文+编号报告+断点续跑]",
+    "DirectorMasterNovelIntake": "📖 长篇接入 [小说→分集: 章节感知切分+覆盖账本Σ校验+锚点回溯+三指标钩子+断点续跑+记忆桥]",
 }
 NODE_DISPLAY_NAME_MAPPINGS = {k: v for k, v in _ALL_DISPLAY_NAMES.items() if k in NODE_CLASS_MAPPINGS}
 
@@ -283,8 +286,8 @@ if "DirectorMasterSummary" in NODE_CLASS_MAPPINGS:
 else:
     print("[DirectorMaster] DirectorMasterSummary 已隔离, Final 别名同步不下发")
 
-# 标记 V16.9.0-MERGED 版本 (V16.9.0 批次4: 记忆层; V16.8.0 批次6: 一致性资产化; V16.7.0 批次3: 质量闭环+管线韧性; 批次2: 知识资产工程+分镜契约基座; 批次1: LLM 链路加固+加载隔离)
-__version__ = "16.9.0"
+# 标记 V17.0.0 版本 (V17.0.0 批次7: 长篇输入管线; V16.9.0 批次4: 记忆层; V16.8.0 批次6: 一致性资产化; V16.7.0 批次3: 质量闭环+管线韧性; 批次2: 知识资产工程+分镜契约基座; 批次1: LLM 链路加固+加载隔离)
+__version__ = "17.0.0"
 __description__ = ("V15.0-MERGED = V14.3-MERGED + AI赋能升级。"
                    "导演库534→600(当代新锐/跨界/非西方66位真实导演17维); 风格融合(主0.6/次0.3/反0.1确定性); "
                    "直觉引擎(确定性反常规镜头语法8规则, 真实作者电影依据); 灵魂引擎(创作者体验→物件/动作/沉默母题, 零罐头); "

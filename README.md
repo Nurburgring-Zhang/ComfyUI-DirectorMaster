@@ -2,7 +2,7 @@
 
 **导演级 AI 影视创作 ComfyUI 节点包** — 一句话创意 → 剧本 → 分镜 → AIGC 镜头级提示词，直供 Seedance / Wan / LTX / Hailuo / Sora 等主流视频生成模型。
 
-`V16.9.0-MERGED` · 18 注册节点（17 超级 + Final 别名，可选扩展至 64 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
+`V17.0.0` · 19 注册节点（17 超级 + Final 别名 + 长篇接入，可选扩展至 65 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
 
 ---
 
@@ -33,7 +33,7 @@ cd ComfyUI/custom_nodes
 git clone https://github.com/Nurburgring-Zhang/ComfyUI-DirectorMaster.git
 ```
 
-重启 ComfyUI 即可使用 18 个 DirectorMaster 节点。无第三方依赖（可选 torch/PIL/numpy 用于 IMAGE 参考槽）。
+重启 ComfyUI 即可使用 19 个 DirectorMaster 节点。无第三方依赖（可选 torch/PIL/numpy 用于 IMAGE 参考槽）。
 
 安装后自检：
 
@@ -55,7 +55,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 
 现成工作流在 `workflows/`：`MINIMAL_PIPELINE_V8.2.json`（最小管线）、`MEGA_PIPELINE_V8.3.json`（全链路）。
 
-## 18 节点
+## 19 节点
 
 | 节点 | 能力 |
 |---|---|
@@ -77,8 +77,9 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 | DirectorMasterFusion | 风格融合：主0.6/次0.3/反0.1 确定性融合，反风格提取突破指令（含元数据JSON） |
 | DirectorMasterFinal | Summary 兼容别名 |
 | DirectorMasterReview | 独立审查：干净上下文 13 项清单核对（快速结构审查/全量审查/对比分镜），编号化报告（R-001 起，附镜头号/字段证据）+「无法验证」显式标注，多阶段 CheckpointStore 断点续跑，判例库自检引用，可选 LLM 语义轨 |
+| DirectorMasterNovelIntake | 长篇分集接入：小说原文 → 分集产物（章节感知切分 + 覆盖账本 Σ 校验 + 锚点回溯 + 三指标钩子 + CheckpointStore 断点续跑 + dm_memory 记忆桥），输出人读接入报告 + 管线 JSON（每集 9 键产物含 core_pack_seed） |
 
-另有 46 个 legacy 细粒度节点可选兼容层（V16.0.1 恢复）：设置环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 后加载 64 节点（18 注册 + 46 legacy），0 加载错误；默认不加载。
+另有 46 个 legacy 细粒度节点可选兼容层（V16.0.1 恢复）：设置环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 后加载 65 节点（19 注册 + 46 legacy），0 加载错误；默认不加载。
 
 ## 数据聚合（真实消费，非装饰）
 
@@ -97,7 +98,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 - 结构硬指标：中点 48-53%、灵魂黑夜 68-76%（含此节拍的结构）、高潮 76-84%（T10 四结构断言全过）
 - 安全：SSRF 防护（link-local/云 metadata 禁止 + DNS 解析失败即拒 + 校验后 IP 钉扎直连 + 禁重定向 + 显式禁用环境代理）、归档路径消毒
 - LLM 链路故障注入（V16.2.0 批次1）：110 断言全过 / FAIL=0 —— 退避重试、同端点与跨端点降级、冷却探测恢复与回落、溢出两层压缩（含压缩耗尽跨级）、上游截断拆分重试、终端类错误不计降级阈值、围栏 JSON 宽容抢救、4 线程并发状态机无撕裂、SSRF 链级拦截（含 IPv4 兼容 IPv6 形态）；真实 HTTP 服务器 + 确定性时钟注入，证据存档 tests/llm_resilience_results.json
-- 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 18 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
+- 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 19 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
 - 独立对抗验证（V16.3.0）：12 断言全过 / FAIL=0 —— 全节点 × 1100+ 次畸形输入（超长/Unicode/控制字符/畸形 JSON/异常种子）零崩溃；种子语义属性测试（种子0真随机非恒定、固定种子全链逐字节可复现、多种子分布多样）；独立口径复测导演库规模/唯一性/档案维度；final_capability_audit 30 轮全随机链路审计全部通过
 - 模式卡语料与索引（V16.6.0 批次2）：244/244 卡与 manifest 对账零漂移（tools/sync_mode_index.py --check）；孤儿卡/缺必填字段/错目录/名称错配/索引漂移 5 类负样本硬失败实测复现（8 断言全过）；实现指针双盲抽查 29 卡 × 10 目录全命中
 - 分镜 JSON 契约 v1→v2（批次2 起，批次6 升 v2）：83 断言全过 / FAIL=0 —— 14 诊断码可达（含相对引用环检测、槽位双射/越界拦截）、对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、v1 文件结构零漂移；V16.4/V16.5/V16.8 增量键已吸收进契约注册表；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
@@ -111,7 +112,8 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 
 ```bash
 python doctor.py                     # 9 类自检
-python tests/test_all_modes.py       # 18 节点 × 全模式回归 (280 断言)
+python tests/test_all_modes.py       # 19 节点 × 全模式回归 (283 断言)
+python tests/test_episode_node.py    # 批次7 长篇接入节点 (注册/形状/运行时/诚实失败/输出目录兜底)
 python tests/test_review_node.py     # V16.7.0 独立审查引擎 (确定性轨/编号报告/断点续跑/LLM 轨/无法验证/判例降级)
 python tests/test_aigc_random_full.py # 40 例全量随机 AIGC 测试 (A–H 八维, 含场景贴合度)
 python tests/test_workflows.py       # 工作流 JSON 有效性
@@ -141,7 +143,7 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ## 目录结构
 
 ```
-├── __init__.py              # 18 节点注册 (17 超级 + Final 别名)
+├── __init__.py              # 19 节点注册 (17 超级 + Final 别名 + 长篇接入)
 ├── doctor.py                # 安装自检
 ├── aggregator/              # 超级节点 + 引擎 (场景/节拍/节奏/长片/LLM/AIGC提示词/叙事编排/版本存储/格式导出)
 ├── knowledge_base/          # 知识库子模块 (摄影/叙事/类型/表演/镜头语汇/转场…)
@@ -153,6 +155,17 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ---
 
 ## 版本历史
+
+### V17.0.0（批次7：长篇输入管线）
+
+- **来源与政策**：延续零代码借鉴纪律（wind-comic 章节切分思想 / lumenx 两段式与锚点切分思想，思想层独立重写，cue 词表与指标定义全为本仓独立定义），零第三方依赖不变（仅 stdlib）。产物为数据层分集文件，不产像素，与既有模式面 additive 并存，既有 18 节点输出零改动。
+- **确定性切分与覆盖账本**：`aggregator/episode_pipeline/` 8 模块——splitter 章节贪心 + 段落二分（禁句内断）；ledger 覆盖账本 Σ(分集 span + 非分集归类段) == len(text) 硬约束，任何未归类字符（BOM/CRLF/全角空格先记账后归类不吞字符）fail loud 不静默丢，根除长文本静默截断。
+- **锚点回溯**：anchors 每集 3 个 ≤20 字原文锚点（句首/段首优先，按集内位置首/中/尾散布），traceback 精确 + 归一化（剥空白 substring）双路径核验偏移；伪造/篡改 → 0 命中拦截，引文真实但偏移错位 → offset_mismatch 拦截，畸形偏移声明（str/None/float/bool）同按 offset_mismatch 拦截（完全无 start/end 键才视为无主张）。
+- **钩子三指标与 LLM 可选轨**：hooks m1 悬念 / m2 主角赌注 / m3 新揭示，确定性启发式（自写 cue 词表，非语义理解），flags 只标记不阻断、阈值常量可调；llm_refine 可选精拆轨只写注释字段（logline/refined_scenes 标 llm_generated），原文 span/text 不可变，无凭据时 llm_track=unavailable 诚实降级。
+- **断点续跑与记忆桥**：pipeline 断点续跑复用批次3 CheckpointStore（pipeline_id=sha1(text)[:16]，跳集只跳过逐集产物生成，账本/锚点以全量重算与逐集核验为准）；memory_bridge 消费 dm_memory series 档案/锚点/注入，缺记忆目录管线产物逐字节零漂移（批次4 T7 口径 additive 硬断言）。
+- **节点**：新增 `DirectorMasterNovelIntake`（长篇小说 → 分集数据包），注册 18 → 19（映射 tuple/显示名/docstring 三处 + doctor + dump_mode_manifest 同步联动）。
+- **质量与双盲**：三新套件 248 断言全过（split 96 / hooks 115 / node 37），100k 字端到端实测 0.376s（验收线 <5s）；双盲互审 3 轮闭环（R1 双通道 9 项 → 修复 → R2 对抗审计 + 闭环核验 → R2A-02 畸形偏移声明修复 + 全矩阵复跑 → R3 收尾），零 HIGH/MED 残留。
+- **注册口径**：19 注册节点 / 247 创作模式不变；版本三处口径 17.0.0（__version__/pyproject/README）。
 
 ### V16.9.0-MERGED（批次4：记忆层）
 

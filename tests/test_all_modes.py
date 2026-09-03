@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-V16.7.0-MERGED 全量回归测试 — 18 节点 × 全部下拉模式运行时实测
+V16.7.0-MERGED 全量回归测试 — 19 节点 × 全部下拉模式运行时实测
 ================================================================
 不依赖 pytest:  python3 tests/test_all_modes.py
 覆盖:
   1. 金标准加载 (spec_from_file_location, 模拟 ComfyUI loader)
   2. E2E 管线 (Core → 7 上游 → Summary → Router/VideoRouter → Archive)
-  3. 全模式扫描 (261 模式逐一执行, 输出非空 + 逐节点哈希唯一性统计, 共 280 断言)
+  3. 全模式扫描 (261 模式逐一执行, 输出非空 + 逐节点哈希唯一性统计, 共 283 断言)
 退出码: 0 = 全部通过, 1 = 有失败
 """
 import os
@@ -85,7 +85,7 @@ _REVIEW_FIXTURE = json.dumps({
 
 def main():
     print("=" * 60)
-    print("  V16.7.0-MERGED 全量回归 (18 节点 × 全模式)")
+    print("  V16.7.0-MERGED 全量回归 (19 节点 × 全模式)")
     print("=" * 60)
 
     # 1. 加载
@@ -98,9 +98,10 @@ def main():
         "DirectorMasterRouter", "DirectorMasterVideoRouter", "DirectorMasterArchive",
         "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
         "DirectorMasterFusion", "DirectorMasterReview",
+        "DirectorMasterNovelIntake",
         "DirectorMasterFinal",
     }
-    check("节点集合 == 18 个预期节点", set(M.keys()) == expected,
+    check("节点集合 == 19 个预期节点", set(M.keys()) == expected,
           f"diff={set(M.keys()) ^ expected}")
     check("无重复下拉 (导演库)", len(M['DirectorMasterCore'].INPUT_TYPES()['required']['导演名'][0])
           == len(set(M['DirectorMasterCore'].INPUT_TYPES()['required']['导演名'][0])))
@@ -168,6 +169,30 @@ def main():
         print(f"  {node}: {node_ok}/{len(opts)} 模式通过, 唯一输出 {len(hashes)}")
 
     check(f"全模式执行 {ok}/{total}", ok == total)
+
+    # 3b. 长篇接入节点运行时实测 (批次7: 无模式下拉, 手工注册用例, tempfile 零仓库写入)
+    print("\n--- 长篇接入节点运行时 (批次7) ---")
+    import tempfile as _tf
+    with _tf.TemporaryDirectory(prefix="dm_intake_reg_") as _intake_out:
+        _novel = "".join(
+            "第%d章 夜行%d\n" % (i, i)
+            + "林照在山路上遇见了商队，为首的是个独眼汉子，哨卡的灯火通明，"
+              "盘查比往日严了三倍。\n" * 4
+            for i in range(1, 3))
+        _ni = call(M["DirectorMasterNovelIntake"],
+                   {"小说原文": _novel, "项目名": "回归测试", "每集目标字数": 300,
+                    "输出目录": _intake_out})
+        _ni_txt = "\n".join(str(o) for o in _ni)
+        check("NovelIntake·报告+JSON 非空", _ni_txt.strip())
+        try:
+            _ni_meta = json.loads(_ni[1])
+        except Exception:
+            _ni_meta = {}
+        check("NovelIntake·JSON ok=True 且 episodes ≥1",
+              isinstance(_ni_meta, dict) and _ni_meta.get("ok") is True
+              and len(_ni_meta.get("episodes") or []) >= 1)
+        check("NovelIntake·产物目录 episodes 存在",
+              os.path.isdir(os.path.join(_intake_out, "episodes")))
 
     # 4. V14.2 复活库接线验证
     print("\n--- 复活库接线 ---")
