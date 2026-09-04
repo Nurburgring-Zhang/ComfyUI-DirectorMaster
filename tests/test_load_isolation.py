@@ -3,7 +3,7 @@
 加载崩溃隔离真实机制测试 (T12, 批次1 起始) + 版本口径一致性 (动态三处校验, 随包版本自适应)
 ====================================================================
 验证 __init__.py 的 load_node_classes 隔离加载机制是真实机制而非装饰:
-  1. 真实注册表: 19 节点全部加载, DM_QUARANTINE 为空, 显示名全覆盖, Final 别名同源
+  1. 真实注册表: 20 节点全部加载, DM_QUARANTINE 为空, 显示名全覆盖, Final 别名同源
   2. 故障注入: 坏模块 (phase=import) / 坏类名 (phase=getattr) 被隔离且不拖垮好节点
   3. 隔离条目结构完整 (target/error/phase)
   4. 版本口径: __version__ / pyproject.toml / README 三处动态一致 (升版只改三处源, 不改本测试)
@@ -62,7 +62,7 @@ try:
     # ---------------- 1. 真实注册表 ----------------
     print("1. 真实注册表 (默认口径)")
     mappings = pkg.NODE_CLASS_MAPPINGS
-    check("注册节点恰好 19 个 (17 超级 + Final 别名 + 长篇接入)", len(mappings) == 19, f"n={len(mappings)}")
+    check("注册节点恰好 20 个 (17 超级 + Final 别名 + 长篇接入 + 生态预案)", len(mappings) == 20, f"n={len(mappings)}")
     missing = [n for n in EXPECTED_SUPER if n not in mappings]
     check("17 个超级节点全部在册", not missing, f"missing={missing}")
     check("Final 别名在册", "DirectorMasterFinal" in mappings)
@@ -109,7 +109,7 @@ try:
           all(set(e) == {"target", "error", "phase"} for e in q1 + q2 + q3))
 
     # 隔离机制不得污染真实注册表
-    check("故障注入后真实注册表仍为 19 节点", len(pkg.NODE_CLASS_MAPPINGS) == 19)
+    check("故障注入后真实注册表仍为 20 节点", len(pkg.NODE_CLASS_MAPPINGS) == 20)
 
     # ---------------- 3. 版本口径一致性 ----------------
     # V16.3: 动态三处一致性校验 (意图不变: __version__/pyproject/README 必须同版),

@@ -10,8 +10,8 @@ ComfyUI-DirectorMaster V16.3.0 自检脚本
 诊断 9 类问题:
     1. 安装路径 (是否位于 ComfyUI/custom_nodes 下)
     2. Python 环境 (版本/编码)
-    3. 模块导入 (19 节点依赖的全部模块)
-    4. 节点注册 (NODE_CLASS_MAPPINGS 是否恰好 19 个)
+    3. 模块导入 (20 节点依赖的全部模块)
+    4. 节点注册 (NODE_CLASS_MAPPINGS 是否恰好 20 个)
     5. 知识库完整性 (导演数据库/知识库子模块)
     6. 复活接线消费验证 (9 项孤儿库接线真实被调用, 非装饰)
     7. V15.0 引擎运行时消费验证 (融合/直觉/灵魂/多模态/共创/反AI)
@@ -112,6 +112,8 @@ AGGREGATOR_MODULES = [
     "review_engine",
     # 批次7 长篇输入管线节点 (episode_pipeline 子包)
     "episode_pipeline.node",
+    # 批次5 生态预案节点 (eco 子包)
+    "eco.node",
 ]
 LIB_MODULES = [
     "anti_ai_vocab", "director_data_unified",
@@ -165,10 +167,11 @@ try:
         "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
         "DirectorMasterFusion", "DirectorMasterReview",
         "DirectorMasterNovelIntake",
+        "DirectorMasterEcoManager",
         "DirectorMasterFinal",
     }
     if set(mappings.keys()) == expected:
-        ok(f"NODE_CLASS_MAPPINGS 恰好 19 个节点 (17 超级 + Final 别名 + 长篇接入)")
+        ok(f"NODE_CLASS_MAPPINGS 恰好 20 个节点 (17 超级 + Final 别名 + 长篇接入 + 生态预案)")
     else:
         missing = expected - set(mappings.keys())
         extra = set(mappings.keys()) - expected
@@ -470,7 +473,7 @@ if _pkg16 is not None:
     except Exception as e:
         err(f"隔离清单检查失败: {e!r}")
 
-# 8b. load_node_classes 独立机制: 真实重新加载并核对 18 类
+# 8b. load_node_classes 独立机制: 真实重新加载并核对 19 类
 if _pkg16 is not None:
     try:
         _lnc = getattr(_pkg16, "load_node_classes", None)
@@ -486,9 +489,10 @@ if _pkg16 is not None:
                 "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
                 "DirectorMasterFusion", "DirectorMasterReview",
                 "DirectorMasterNovelIntake",
+                "DirectorMasterEcoManager",
             }
             if set(_loaded.keys()) == _expected16:
-                ok("load_node_classes 隔离加载机制正常 (18/18 类)")
+                ok("load_node_classes 隔离加载机制正常 (19/19 类)")
             else:
                 err(f"load_node_classes 结果异常: 缺 {sorted(_expected16 - set(_loaded))} 多 {sorted(set(_loaded) - _expected16)}")
             # 隔离分支真实可用: 故意传一个不存在的模块, 应进隔离而非崩溃
@@ -696,6 +700,29 @@ else:
         else:
             err(f"分镜契约断言失败: version={_sbv9!r}, self_check={_sb_ok9!r}")
 
+# ---------- 10. 生态 dm_pack 包注册 (V17.1.0 批次5 仅追加段) ----------
+section("10. 生态 dm_pack 包注册 (V17.1.0)")
+try:
+    from aggregator.eco.pack_registry import register_packs as _reg_packs10
+    # 默认扫描 <仓库根>/eco/packs; 目录不存在 -> ok 不报错 (验收① 空载口径)
+    _packs_dir10 = os.path.join(ROOT, "eco", "packs")
+    if not os.path.isdir(_packs_dir10):
+        ok("eco packs 目录不存在 — 无第三方 dm_pack 包, 空载正常 (默认扫描 eco/packs)")
+    else:
+        _reg10 = _reg_packs10([_packs_dir10])
+        # 四查汇出: 字段缺失 / 版本不兼容 / 依赖未注册 / entry 缺失与 id 冲突,
+        # register_packs errors 逐条自包含, fail loud 逐行列出
+        for _e10 in _reg10.get("errors", []):
+            err(f"dm_pack 注册拦截: {_e10}")
+        _loaded10 = _reg10.get("packs", [])
+        if _loaded10:
+            _ids10 = ", ".join(str(p.get("pack_id", "?")) for p in _loaded10)
+            ok(f"dm_pack 注册通过 {len(_loaded10)} 个包: {_ids10}")
+        elif not _reg10.get("errors"):
+            ok("eco packs 目录存在且无违规包 (0 个 dm_pack 注册)")
+except Exception as e:
+    err(f"生态 dm_pack 注册段检查失败: {e!r}")
+
 # ---------- 汇总 ----------
 print("\n" + "=" * 50)
 print(f"自检结果: {len(PASSES)} 通过, {len(WARNINGS)} 警告, {len(ERRORS)} 错误")
@@ -707,5 +734,5 @@ if ERRORS:
     print("      并在启动日志中搜索 DirectorMaster 关键词。")
     sys.exit(1)
 else:
-    print("\n全部通过 — 重启 ComfyUI 即可使用 19 个 DirectorMaster 节点。")
+    print("\n全部通过 — 重启 ComfyUI 即可使用 20 个 DirectorMaster 节点。")
     sys.exit(0)

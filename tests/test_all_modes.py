@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-V16.7.0-MERGED 全量回归测试 — 19 节点 × 全部下拉模式运行时实测
+V16.7.0-MERGED 全量回归测试 — 20 节点 × 全部下拉模式运行时实测
 ================================================================
 不依赖 pytest:  python3 tests/test_all_modes.py
 覆盖:
@@ -85,7 +85,7 @@ _REVIEW_FIXTURE = json.dumps({
 
 def main():
     print("=" * 60)
-    print("  V16.7.0-MERGED 全量回归 (19 节点 × 全模式)")
+    print("  V16.7.0-MERGED 全量回归 (20 节点 × 全模式)")
     print("=" * 60)
 
     # 1. 加载
@@ -99,9 +99,10 @@ def main():
         "DirectorMasterCoCreator", "DirectorMasterSoul", "DirectorMasterIntuition",
         "DirectorMasterFusion", "DirectorMasterReview",
         "DirectorMasterNovelIntake",
+        "DirectorMasterEcoManager",
         "DirectorMasterFinal",
     }
-    check("节点集合 == 19 个预期节点", set(M.keys()) == expected,
+    check("节点集合 == 20 个预期节点", set(M.keys()) == expected,
           f"diff={set(M.keys()) ^ expected}")
     check("无重复下拉 (导演库)", len(M['DirectorMasterCore'].INPUT_TYPES()['required']['导演名'][0])
           == len(set(M['DirectorMasterCore'].INPUT_TYPES()['required']['导演名'][0])))

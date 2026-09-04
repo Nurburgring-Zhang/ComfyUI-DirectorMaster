@@ -45,8 +45,8 @@ DEFAULT_SCHEMA = os.path.join(ROOT, "knowledge_base", "mode_cards", "SCHEMA.md")
 DEFAULT_TEMPLATE = os.path.join(ROOT, "knowledge_base", "mode_cards", "_TEMPLATE.md")
 
 FINAL_ALIAS = "DirectorMasterFinal"
-EXPECTED_REGISTRY = 19   # 17 超级 + Final 别名 + 长篇接入 (批次7: +DirectorMasterNovelIntake)
-EXPECTED_SUPER = 18      # 注册表减 Final 别名 = 17 超级 + 长篇接入
+EXPECTED_REGISTRY = 20   # 17 超级 + Final 别名 + 长篇接入 + 生态预案 (批次5: +DirectorMasterEcoManager)
+EXPECTED_SUPER = 19      # 注册表减 Final 别名 = 17 超级 + 长篇接入 + 生态预案
 README_CREATIVE_CLAIM = 247  # README "质量验证" 节的创作模式口径 (诚实阀门对账基准)
 RANDOM_OPTION = "🎲 随机"
 
@@ -136,7 +136,7 @@ def load_registry():
 
 
 def check_registry_shape(mappings):
-    """校验 19 注册 / 18 超级 (含长篇接入) / Final 别名同源; 返回超级类名集合。"""
+    """校验 20 注册 / 19 超级 (含长篇接入+生态预案) / Final 别名同源; 返回超级类名集合。"""
     if len(mappings) != EXPECTED_REGISTRY:
         raise AuditError(f"注册表 {len(mappings)} 个节点 (期望 {EXPECTED_REGISTRY})")
     if mappings.get(FINAL_ALIAS) is not mappings.get("DirectorMasterSummary"):

@@ -14,6 +14,19 @@ output/
 _versions/
 .store.lock
 
+# eco 生态预案运行时产物 (dm_pack 注册表/参考素材台账/决策审计轨/快照桥/谱系 — 本地生成, 不入库; 不碰 aggregator/eco 源码与 tests)
+dm_pack.json
+dm_ref_ledger.json
+dm_decision_log.jsonl
+dm_versions_bridge.json
+decision_log.jsonl
+ref_lineage.jsonl
+ref_ledger/
+# R2A-04: 否定恢复第三方包入库面 (doctor 默认扫描 eco/packs/ — 运行时产物写用户
+# out_dir, 入库面只有 eco/packs 第三方包目录; 否定行后置, 后行规则优先恢复)
+!eco/packs/**
+!eco/packs/**/ref_ledger/
+
 # IDE/系统
 .vscode/
 .idea/

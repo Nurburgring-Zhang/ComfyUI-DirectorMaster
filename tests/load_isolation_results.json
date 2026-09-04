@@ -1,14 +1,14 @@
 {
   "suite": "test_load_isolation",
-  "version": "17.0.0",
-  "timestamp": "2026-09-04 07:18:21",
+  "version": "17.1.0",
+  "timestamp": "2026-09-04 15:27:39",
   "pass": 19,
   "fail": 0,
   "results": [
     {
-      "label": "注册节点恰好 19 个 (17 超级 + Final 别名 + 长篇接入)",
+      "label": "注册节点恰好 20 个 (17 超级 + Final 别名 + 长篇接入 + 生态预案)",
       "ok": true,
-      "detail": "n=19"
+      "detail": "n=20"
     },
     {
       "label": "17 个超级节点全部在册",
@@ -76,27 +76,27 @@
       "detail": ""
     },
     {
-      "label": "故障注入后真实注册表仍为 19 节点",
+      "label": "故障注入后真实注册表仍为 20 节点",
       "ok": true,
       "detail": ""
     },
     {
       "label": "__version__ 存在且为 x.y.z 形态",
       "ok": true,
-      "detail": "v='17.0.0'"
+      "detail": "v='17.1.0'"
     },
     {
       "label": "pyproject.toml version 与 __version__ 一致",
       "ok": true,
-      "detail": "pyproject=17.0.0 vs __version__=17.0.0"
+      "detail": "pyproject=17.1.0 vs __version__=17.1.0"
     },
     {
-      "label": "README 标注 V17.0.0",
+      "label": "README 标注 V17.1.0",
       "ok": true,
       "detail": ""
     },
     {
-      "label": "README 含 V17.0.0 版本历史小节",
+      "label": "README 含 V17.1.0 版本历史小节",
       "ok": true,
       "detail": ""
     }

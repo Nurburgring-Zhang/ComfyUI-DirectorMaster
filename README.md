@@ -2,7 +2,7 @@
 
 **导演级 AI 影视创作 ComfyUI 节点包** — 一句话创意 → 剧本 → 分镜 → AIGC 镜头级提示词，直供 Seedance / Wan / LTX / Hailuo / Sora 等主流视频生成模型。
 
-`V17.0.0` · 19 注册节点（17 超级 + Final 别名 + 长篇接入，可选扩展至 65 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
+`V17.1.0` · 20 注册节点（17 超级 + Final 别名 + 长篇接入 + 生态预案，可选扩展至 66 节点） · 600 位真实导演风格库 · 247 创作模式（247 张模式卡全量入库） · 零第三方依赖
 
 ---
 
@@ -33,7 +33,7 @@ cd ComfyUI/custom_nodes
 git clone https://github.com/Nurburgring-Zhang/ComfyUI-DirectorMaster.git
 ```
 
-重启 ComfyUI 即可使用 19 个 DirectorMaster 节点。无第三方依赖（可选 torch/PIL/numpy 用于 IMAGE 参考槽）。
+重启 ComfyUI 即可使用 20 个 DirectorMaster 节点。无第三方依赖（可选 torch/PIL/numpy 用于 IMAGE 参考槽）。
 
 安装后自检：
 
@@ -55,7 +55,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 
 现成工作流在 `workflows/`：`MINIMAL_PIPELINE_V8.2.json`（最小管线）、`MEGA_PIPELINE_V8.3.json`（全链路）。
 
-## 19 节点
+## 20 节点
 
 | 节点 | 能力 |
 |---|---|
@@ -78,8 +78,9 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 | DirectorMasterFinal | Summary 兼容别名 |
 | DirectorMasterReview | 独立审查：干净上下文 13 项清单核对（快速结构审查/全量审查/对比分镜），编号化报告（R-001 起，附镜头号/字段证据）+「无法验证」显式标注，多阶段 CheckpointStore 断点续跑，判例库自检引用，可选 LLM 语义轨 |
 | DirectorMasterNovelIntake | 长篇分集接入：小说原文 → 分集产物（章节感知切分 + 覆盖账本 Σ 校验 + 锚点回溯 + 三指标钩子 + CheckpointStore 断点续跑 + dm_memory 记忆桥），输出人读接入报告 + 管线 JSON（每集 9 键产物含 core_pack_seed） |
+| DirectorMasterEcoManager | 生态预案三合一（批次5）：dm_pack 包注册审计（字段/版本/依赖三查，负样本 fail loud） / 参考素材登记（授权声明+来源描述必填，缺任一不落盘，"只学手法不复制表达"边界字段落盘） / 决策审计轨追加（append-only JSONL，sha256 哈希链防篡改 + 全链 verify），输出状态报告 JSON + 数值计数，零 LLM 零时间戳 |
 
-另有 46 个 legacy 细粒度节点可选兼容层（V16.0.1 恢复）：设置环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 后加载 65 节点（19 注册 + 46 legacy），0 加载错误；默认不加载。
+另有 46 个 legacy 细粒度节点可选兼容层（V16.0.1 恢复）：设置环境变量 `DIRECTORMASTER_LEGACY_NODES=1` 后加载 66 节点（20 注册 + 46 legacy），0 加载错误；默认不加载。
 
 ## 数据聚合（真实消费，非装饰）
 
@@ -98,7 +99,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 - 结构硬指标：中点 48-53%、灵魂黑夜 68-76%（含此节拍的结构）、高潮 76-84%（T10 四结构断言全过）
 - 安全：SSRF 防护（link-local/云 metadata 禁止 + DNS 解析失败即拒 + 校验后 IP 钉扎直连 + 禁重定向 + 显式禁用环境代理）、归档路径消毒
 - LLM 链路故障注入（V16.2.0 批次1）：110 断言全过 / FAIL=0 —— 退避重试、同端点与跨端点降级、冷却探测恢复与回落、溢出两层压缩（含压缩耗尽跨级）、上游截断拆分重试、终端类错误不计降级阈值、围栏 JSON 宽容抢救、4 线程并发状态机无撕裂、SSRF 链级拦截（含 IPv4 兼容 IPv6 形态）；真实 HTTP 服务器 + 确定性时钟注入，证据存档 tests/llm_resilience_results.json
-- 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 19 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
+- 加载崩溃隔离（V16.2.0 批次1）：19 断言全过 / FAIL=0 —— 20 注册节点黑盒核验、坏模块/坏类名故障注入按 import/getattr 分相入隔离清单且好节点不拖垮、版本三处一致（__version__/pyproject/README）；证据存档 tests/load_isolation_results.json
 - 独立对抗验证（V16.3.0）：12 断言全过 / FAIL=0 —— 全节点 × 1100+ 次畸形输入（超长/Unicode/控制字符/畸形 JSON/异常种子）零崩溃；种子语义属性测试（种子0真随机非恒定、固定种子全链逐字节可复现、多种子分布多样）；独立口径复测导演库规模/唯一性/档案维度；final_capability_audit 30 轮全随机链路审计全部通过
 - 模式卡语料与索引（V16.6.0 批次2）：244/244 卡与 manifest 对账零漂移（tools/sync_mode_index.py --check）；孤儿卡/缺必填字段/错目录/名称错配/索引漂移 5 类负样本硬失败实测复现（8 断言全过）；实现指针双盲抽查 29 卡 × 10 目录全命中
 - 分镜 JSON 契约 v1→v2（批次2 起，批次6 升 v2）：83 断言全过 / FAIL=0 —— 14 诊断码可达（含相对引用环检测、槽位双射/越界拦截）、对抗输入零异常逃逸（解析永不抛）、normalize 逐字节确定、v1 文件结构零漂移；V16.4/V16.5/V16.8 增量键已吸收进契约注册表；manifest↔卡↔live 枚举三方一致性 doctor 第 9 类全过；证据存档 tests/storyboard_contract_results.json
@@ -112,7 +113,7 @@ DirectorMasterCore → DirectorMasterScript → DirectorMasterCinematic → Dire
 
 ```bash
 python doctor.py                     # 9 类自检
-python tests/test_all_modes.py       # 19 节点 × 全模式回归 (283 断言)
+python tests/test_all_modes.py       # 20 节点 × 全模式回归 (283 断言)
 python tests/test_episode_node.py    # 批次7 长篇接入节点 (注册/形状/运行时/诚实失败/输出目录兜底)
 python tests/test_review_node.py     # V16.7.0 独立审查引擎 (确定性轨/编号报告/断点续跑/LLM 轨/无法验证/判例降级)
 python tests/test_aigc_random_full.py # 40 例全量随机 AIGC 测试 (A–H 八维, 含场景贴合度)
@@ -143,7 +144,7 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ## 目录结构
 
 ```
-├── __init__.py              # 19 节点注册 (17 超级 + Final 别名 + 长篇接入)
+├── __init__.py              # 20 节点注册 (17 超级 + Final 别名 + 长篇接入 + 生态预案)
 ├── doctor.py                # 安装自检
 ├── aggregator/              # 超级节点 + 引擎 (场景/节拍/节奏/长片/LLM/AIGC提示词/叙事编排/版本存储/格式导出)
 ├── knowledge_base/          # 知识库子模块 (摄影/叙事/类型/表演/镜头语汇/转场…)
@@ -155,6 +156,17 @@ python tests/d2_similarity_probe.py  # 形态模式正文相似度
 ---
 
 ## 版本历史
+
+### V17.1.0（批次5：生态预案 · 收官批）
+
+- **来源与政策**：延续零代码借鉴纪律（xed-editor dm_pack 包清单思想 / openmontage decision_log 决策审计轨思想 / video-shotcraft 参考素材流授权边界思想，思想层独立重写，字段定义与哈希链配方全为本仓独立定义），零第三方依赖不变（仅 stdlib）。产物为生态层确定性轨（包审计/素材台账/决策日志），节点面零 LLM 依赖，与既有 19 节点 additive 并存，既有输出零改动。
+- **dm_pack 包注册审计**：`aggregator/eco/pack_registry.py` —— dm_pack.json 六字段（pack_id/version/min_dm_version/dependencies/tags/entry）全必填校验 + 手写 semver 三段数值比较（非 semver 串诚实拦截）+ 依赖图校验 + entry 存在性校验 + pack_id 冲突检测；任何负样本 errors 显式列出 fail loud 不静默跳过；doctor 追加 pack 诊断段（既有 54 检查逐行零改动，无 packs 目录 ok 不报错）。
+- **参考素材流授权边界**：`aggregator/eco/ref_flow.py` —— register_ref 授权声明与来源描述必填，缺任一 fail loud 不落盘（"只学手法不复制表达"法务边界字段落盘进台账，非口头约定）；deconstruct 手法/参考实现/取舍三列表结构（确定性归类，无 LLM）；inject_refs 只加 refs[] 键，批次6 storyboard_contract 既有键逐字节不动（零漂移硬断言）。
+- **decision_log 哈希链决策审计轨**：`aggregator/eco/decision_log.py` —— append-only JSONL，逐条 sha256 哈希链 prev_hash 接龙（创世 "0"*64），verify_log 全链重算可检出篡改/删行/重排/伪造；同 (category, subject) 再追加 → revised 语义 + options_considered 保留；replay 按链序重放；dm_versions_bridge.json 只读挂接 version_store 快照（既有 API 零改动）。
+- **并发纪律**：全链无锁乐观写（读全量→构建→复读比对→os.replace，冲突 3 轮重读重建后中文 fail loud）+ 调用唯一临时文件（pid+线程 id+自增序号）根除同进程多线程撕裂写；主部署面为 ComfyUI 单进程节点面，跨进程残余窗口为无锁设计既定接受项（源码 docstring 明文记载）。
+- **批次7 移交 2 卫生项闭环**：dm_memory 9 文件 `_safe_name` 控制字符正则对齐 pipeline 基准（同输入同输出探针）；ledger.py `_RE_MARKER_PROBE` 死代码删除（全仓零引用实证）。
+- **工程质量**：5 新套件 732 断言（pack 41 / refflow 128 / decision 89 / hygiene 374 / node 100）全绿；双盲互审 2 轮（R1 功能面+一致性面 → R2 对抗面：43 轮双进程压测 / 4 线程撕裂攻击 / 篡改矩阵 21/21）闭环，零 HIGH/MED 残留。
+- **注册口径**：20 注册节点（新增 DirectorMasterEcoManager，19→20 全链联动）/ 247 创作模式不变；版本三处口径 17.1.0（__version__/pyproject/README）。
 
 ### V17.0.0（批次7：长篇输入管线）
 

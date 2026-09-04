@@ -47,7 +47,7 @@ def _safe_name(s):
     # 原始 raw, 确定性), 与写侧各模块同映射。
     import hashlib
     raw = str(s or "")
-    base = re.sub(r'[\\/:*?"<>|]', "_", raw or "项目")
+    base = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]', "_", raw or "项目")
     safe = base.strip()[:40] or "项目"
     if ((safe != (raw or "项目")) or re.search(r"[A-Za-z]", safe)
             or safe[-1:] in (".", " ")):

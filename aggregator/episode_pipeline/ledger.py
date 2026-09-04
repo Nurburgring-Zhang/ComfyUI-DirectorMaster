@@ -17,15 +17,8 @@ verify_coverage(text, ledger) -> (ok, errors:list[str])
 随所在段计入 Σ, 不做任何剥离。
 确定性: 纯函数, 报错顺序 = 段索引顺序, 无 dict 迭代序依赖。
 """
-import re
 
 from aggregator.episode_pipeline.splitter import CATEGORIES, MARKER_RES
-
-_RE_MARKER_PROBE = re.compile(
-    r"^\s*(?:第[0-9０-９零一二三四五六七八九十百千两]+[章节卷]"
-    r"(?![\u4e00-\u9fff])|[Cc]hapter\s+(?:[0-9]+|[IVXLCDMivxlcdm]+)"
-    r"(?![A-Za-z0-9])|M{0,4}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})"
-    r"(?:IX|IV|V?I{0,3})(?=[\s.．、:：]|$))")
 
 
 def _is_int(x):

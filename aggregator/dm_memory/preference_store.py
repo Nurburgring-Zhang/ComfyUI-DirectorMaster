@@ -54,7 +54,7 @@ def _safe_name(s):
     # 后缀 (sha1 基于原始 raw): 同一原始输入恒映射同一文件名, 不同原名绝不共用同一目录。
     import hashlib
     raw = str(s or "")
-    base = re.sub(r'[\\/:*?"<>|]', "_", raw or "项目")
+    base = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]', "_", raw or "项目")
     safe = base.strip()[:40] or "项目"
     if ((safe != (raw or "项目")) or re.search(r"[A-Za-z]", safe)
             or safe[-1:] in (".", " ")):

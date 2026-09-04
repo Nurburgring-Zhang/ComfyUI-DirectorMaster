@@ -42,7 +42,7 @@ def _safe_name(s):
     # 原始 raw, 确定性跨进程稳定), 不同原名绝不共用同一目录; 纯中文/纯数字名零漂移。
     import hashlib
     raw = str(s or "")
-    base = re.sub(r'[\\/:*?"<>|]', "_", raw or "项目")
+    base = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]', "_", raw or "项目")
     safe = base.strip()[:40] or "项目"
     if ((safe != (raw or "项目")) or re.search(r"[A-Za-z]", safe)
             or safe[-1:] in (".", " ")):

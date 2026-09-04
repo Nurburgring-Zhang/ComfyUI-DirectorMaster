@@ -49,7 +49,7 @@ def _safe_name(s):
     # ③ 以 ./空格结尾 (Windows 剥尾) — 任一命中即追加原名短 sha1 后缀 (sha1 基于
     # 原始 raw): 不同 series_id 绝不共用同一档案文件; 同一原始 id 恒映射同一文件。
     raw = str(s or "")
-    base = re.sub(r'[\\/:*?"<>|]', "_", raw or "项目")
+    base = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]', "_", raw or "项目")
     safe = base.strip()[:40] or "项目"
     if ((safe != (raw or "项目")) or re.search(r"[A-Za-z]", safe)
             or safe[-1:] in (".", " ")):
